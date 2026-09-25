@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import { AVenir } from "@/components/bo/AVenir";
+import { PageRubrique } from "@/components/bo/PageRubrique";
 import { rubriqueObligatoire } from "@/lib/navigation";
 
-const rubrique = rubriqueObligatoire("/litiges-et-signalements");
-
-export const metadata: Metadata = { title: rubrique.titre };
+export const metadata: Metadata = { title: rubriqueObligatoire("/litiges-et-signalements").titre };
 
 export default function Page() {
-  return <AVenir rubrique={rubrique} animation="vault-shield" />;
+  return <PageRubrique chemin="/litiges-et-signalements" animation="vault-shield" />;
 }

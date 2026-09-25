@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import { AVenir } from "@/components/bo/AVenir";
+import { PageRubrique } from "@/components/bo/PageRubrique";
 import { rubriqueObligatoire } from "@/lib/navigation";
 
-const rubrique = rubriqueObligatoire("/live-shopping");
-
-export const metadata: Metadata = { title: rubrique.titre };
+export const metadata: Metadata = { title: rubriqueObligatoire("/live-shopping").titre };
 
 export default function Page() {
-  return <AVenir rubrique={rubrique} animation="live" />;
+  return <PageRubrique chemin="/live-shopping" animation="live" />;
 }

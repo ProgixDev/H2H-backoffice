@@ -34,6 +34,8 @@ export type Rubrique = {
   chemin: string;
   utilite: string;
   icone: LucideIcon;
+  /** La rubrique s'affiche si l'équipier détient l'une de ces permissions. */
+  permissions: string[];
   /** Les paragraphes du cahier qui la décrivent. */
   sections: string;
   livraison: Phase;
@@ -46,40 +48,40 @@ export const MENU: GroupeMenu[] = [
     partie: "A",
     titre: "Voir et piloter l'activité",
     rubriques: [
-      { titre: "Tableau de bord", chemin: "/tableau-de-bord", utilite: "Consulter les résultats et les indicateurs", icone: LayoutDashboard, sections: "§3", livraison: "P2a" },
-      { titre: "Activité en direct", chemin: "/activite-en-direct", utilite: "Suivre toutes les opérations en cours", icone: Activity, sections: "§4", livraison: "P1" },
-      { titre: "À traiter", chemin: "/a-traiter", utilite: "Ouvrir les dossiers nécessitant une intervention", icone: Inbox, sections: "§5, §7", livraison: "P1" },
+      { titre: "Tableau de bord", chemin: "/tableau-de-bord", permissions: ["tableau.lire"], utilite: "Consulter les résultats et les indicateurs", icone: LayoutDashboard, sections: "§3", livraison: "P2a" },
+      { titre: "Activité en direct", chemin: "/activite-en-direct", permissions: ["activite.lire"], utilite: "Suivre toutes les opérations en cours", icone: Activity, sections: "§4", livraison: "P1" },
+      { titre: "À traiter", chemin: "/a-traiter", permissions: ["dossiers.lire"], utilite: "Ouvrir les dossiers nécessitant une intervention", icone: Inbox, sections: "§5, §7", livraison: "P1" },
     ],
   },
   {
     partie: "C",
     titre: "Gérer les services",
     rubriques: [
-      { titre: "Utilisateurs", chemin: "/utilisateurs", utilite: "Consulter les comptes et leur historique", icone: Users, sections: "§8", livraison: "P2b" },
-      { titre: "Annonces Marketplace", chemin: "/annonces", utilite: "Contrôler les publications", icone: Tag, sections: "§9", livraison: "P2b" },
-      { titre: "Transactions", chemin: "/transactions", utilite: "Suivre les achats, paiements et livraisons", icone: ArrowLeftRight, sections: "§10, §11", livraison: "P2a" },
-      { titre: "H2H Logistic", chemin: "/h2h-logistic", utilite: "Gérer les recherches, trajets, missions et hubs", icone: Car, sections: "§12", livraison: "P4" },
-      { titre: "Offres Flash", chemin: "/offres-flash", utilite: "Suivre les propositions et sélections", icone: Zap, sections: "§13", livraison: "P5" },
-      { titre: "Live Shopping", chemin: "/live-shopping", utilite: "Superviser les directs, réservations et achats", icone: Radio, sections: "§14", livraison: "P5" },
+      { titre: "Utilisateurs", chemin: "/utilisateurs", permissions: ["utilisateurs.lire"], utilite: "Consulter les comptes et leur historique", icone: Users, sections: "§8", livraison: "P2b" },
+      { titre: "Annonces Marketplace", chemin: "/annonces", permissions: ["annonces.lire"], utilite: "Contrôler les publications", icone: Tag, sections: "§9", livraison: "P2b" },
+      { titre: "Transactions", chemin: "/transactions", permissions: ["transactions.lire"], utilite: "Suivre les achats, paiements et livraisons", icone: ArrowLeftRight, sections: "§10, §11", livraison: "P2a" },
+      { titre: "H2H Logistic", chemin: "/h2h-logistic", permissions: ["logistique.lire"], utilite: "Gérer les recherches, trajets, missions et hubs", icone: Car, sections: "§12", livraison: "P4" },
+      { titre: "Offres Flash", chemin: "/offres-flash", permissions: ["flash.lire"], utilite: "Suivre les propositions et sélections", icone: Zap, sections: "§13", livraison: "P5" },
+      { titre: "Live Shopping", chemin: "/live-shopping", permissions: ["live.lire"], utilite: "Superviser les directs, réservations et achats", icone: Radio, sections: "§14", livraison: "P5" },
     ],
   },
   {
     partie: "D",
     titre: "Problèmes et flux financiers",
     rubriques: [
-      { titre: "Litiges et signalements", chemin: "/litiges-et-signalements", utilite: "Instruire les dossiers et les recours", icone: Scale, sections: "§15", livraison: "P2a" },
-      { titre: "Paiements et comptabilité", chemin: "/paiements-et-comptabilite", utilite: "Contrôler les flux financiers", icone: Wallet, sections: "§16", livraison: "P2a" },
-      { titre: "Visibilité et publicité", chemin: "/visibilite-et-publicite", utilite: "Gérer les options et leur exécution", icone: Megaphone, sections: "§17", livraison: "P6" },
+      { titre: "Litiges et signalements", chemin: "/litiges-et-signalements", permissions: ["litiges.lire"], utilite: "Instruire les dossiers et les recours", icone: Scale, sections: "§15", livraison: "P2a" },
+      { titre: "Paiements et comptabilité", chemin: "/paiements-et-comptabilite", permissions: ["paiements.lire"], utilite: "Contrôler les flux financiers", icone: Wallet, sections: "§16", livraison: "P2a" },
+      { titre: "Visibilité et publicité", chemin: "/visibilite-et-publicite", permissions: ["visibilite.lire"], utilite: "Gérer les options et leur exécution", icone: Megaphone, sections: "§17", livraison: "P6" },
     ],
   },
   {
     partie: "E",
     titre: "Règles et administration",
     rubriques: [
-      { titre: "Classement et Pépites", chemin: "/classement-et-pepites", utilite: "Superviser les sélections automatiques", icone: Gem, sections: "§18", livraison: "P6" },
-      { titre: "Avis utilisateurs", chemin: "/avis-utilisateurs", utilite: "Contrôler les évaluations et signalements", icone: Star, sections: "§19", livraison: "P6" },
-      { titre: "Documents et paramètres", chemin: "/documents-et-parametres", utilite: "Gérer les règles, versions et configurations", icone: FileCog, sections: "§20", livraison: "P6" },
-      { titre: "Équipe et journal d'audit", chemin: "/equipe-et-audit", utilite: "Gérer les accès et consulter les actions", icone: ShieldCheck, sections: "§21", livraison: "P0a" },
+      { titre: "Classement et Pépites", chemin: "/classement-et-pepites", permissions: ["classement.lire"], utilite: "Superviser les sélections automatiques", icone: Gem, sections: "§18", livraison: "P6" },
+      { titre: "Avis utilisateurs", chemin: "/avis-utilisateurs", permissions: ["avis.lire"], utilite: "Contrôler les évaluations et signalements", icone: Star, sections: "§19", livraison: "P6" },
+      { titre: "Documents et paramètres", chemin: "/documents-et-parametres", permissions: ["documents.lire"], utilite: "Gérer les règles, versions et configurations", icone: FileCog, sections: "§20", livraison: "P6" },
+      { titre: "Équipe et journal d'audit", chemin: "/equipe-et-audit", permissions: ["equipe.lire", "journal.lire"], utilite: "Gérer les accès et consulter les actions", icone: ShieldCheck, sections: "§21", livraison: "P0a" },
     ],
   },
 ];

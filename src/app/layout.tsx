@@ -1,3 +1,5 @@
+import { ClerkProvider } from "@clerk/nextjs";
+import { frFR } from "@clerk/localizations";
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import { ThemeProvider } from "next-themes";
@@ -25,10 +27,29 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className={`${poppins.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        {/* Les écrans de Clerk (connexion, compte, vérification) aux couleurs de
+            l'application et en français. Les boutons de réseaux sociaux sont
+            masqués : un compte d'équipe se connecte par e-mail et second
+            facteur, jamais par un compte Google. */}
+        <ClerkProvider
+          localization={frFR}
+          appearance={{
+            variables: {
+              colorPrimary: "#0091C5",
+              colorDanger: "#EF4444",
+              colorSuccess: "#10B981",
+              colorWarning: "#F59E0B",
+              fontFamily: "var(--font-poppins), system-ui, sans-serif",
+              borderRadius: "0.75rem",
+            },
+            elements: { socialButtonsRoot: { display: "none" }, dividerRow: { display: "none" } },
+          }}
+        >
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <TooltipProvider>{children}</TooltipProvider>
           <Toaster />
-        </ThemeProvider>
+          </ThemeProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

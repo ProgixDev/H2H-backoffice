@@ -23,10 +23,17 @@ import { MENU } from "@/lib/navigation";
  *
  * ⚠️ UNE RUBRIQUE NON LIVRÉE RESTE DANS LE MENU. Le cahier fixe le menu ; la
  * cacher ferait croire qu'elle n'existe pas. Elle s'ouvre sur un état « à venir »
- * qui dit quand. (Le filtrage par permission arrivera avec `bo_moi()`.)
+ * qui dit quand. Seules les rubriques que le rôle de l'équipier permet de lire
+ * y figurent (`bo_moi()` → `permissions`).
  */
-export function BarreLaterale() {
+export function BarreLaterale({ permissions }: { permissions: string[] }) {
   const chemin = usePathname();
+  // Une rubrique ne s'affiche qu'avec l'une de ses permissions de lecture ;
+  // une partie sans rubrique visible disparaît avec elles.
+  const groupes = MENU.map((g) => ({
+    ...g,
+    rubriques: g.rubriques.filter((r) => r.permissions.some((p) => permissions.includes(p))),
+  })).filter((g) => g.rubriques.length > 0);
 
   return (
     <Sidebar collapsible="icon">
@@ -42,7 +49,7 @@ export function BarreLaterale() {
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        {MENU.map((groupe) => (
+        {groupes.map((groupe) => (
           <SidebarGroup key={groupe.partie}>
             <SidebarGroupLabel>{groupe.titre}</SidebarGroupLabel>
             <SidebarGroupContent>
