@@ -26,7 +26,10 @@ export async function retirerHub(p: { hub: string; motif: string; cle: string })
   }, [CHEMIN]);
 }
 
-/** Accepter (le point relais naît) ou refuser une candidature — un motif dans les deux sens. */
+/**
+ * Accepter (le point relais naît) ou refuser une candidature — un motif dans les
+ * deux sens ; seul celui d'un refus part au candidat, l'autre reste au journal.
+ */
 export async function trancherCandidature(p: { candidature: string; approuver: boolean; motif: string; cle: string }) {
   return geste<{ candidature: string; statut: string; point_relais: string | null }>("bo_candidature_relais_trancher", {
     p_id: p.candidature,

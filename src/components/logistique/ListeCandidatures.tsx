@@ -17,7 +17,8 @@ type Props = { candidatures: CandidatureRelais[]; peutGerer: boolean };
  * relais ; refuser répond à quelqu'un qui a donné son adresse et son téléphone.
  *
  * ⚠️ UN MOTIF DANS LES DEUX SENS, ET LA BASE L'EXIGE : ouvrir un point relais
- * engage la plateforme autant que le refuser.
+ * engage la plateforme autant que le refuser. Celui d'un refus part au
+ * candidat ; celui d'une acceptation reste au journal de l'équipe (R6.3).
  */
 export function ListeCandidatures({ candidatures, peutGerer }: Props) {
   const [decision, setDecision] = useState<{ c: CandidatureRelais; approuver: boolean } | null>(null);
@@ -85,7 +86,7 @@ export function ListeCandidatures({ candidatures, peutGerer }: Props) {
         titre={decision?.approuver ? "Accepter la candidature ?" : "Refuser la candidature ?"}
         description={
           decision?.approuver
-            ? "Le point relais est créé au nom du candidat ; il posera ses horaires depuis son application."
+            ? "Le point relais est créé au nom du candidat ; il posera ses horaires depuis son application. Ce motif reste au journal de l’équipe : il ne lui est pas envoyé."
             : "Le candidat recevra ce motif : il a donné son adresse et son téléphone, il mérite une réponse."
         }
         libelleAction={decision?.approuver ? "Accepter" : "Refuser"}
