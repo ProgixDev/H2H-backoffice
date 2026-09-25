@@ -1,6 +1,7 @@
 "use server";
 
 import { reverificationError } from "@clerk/nextjs/server";
+import { REVERIFICATION_BO } from "@/lib/connexion/reverification";
 import { revalidatePath } from "next/cache";
 import { geste } from "@/lib/db/geste";
 import type { Resultat } from "@/lib/db/rpc";
@@ -54,7 +55,7 @@ export async function emettreRemboursement(p: { dossier: string; cle: string }) 
   if (!r) {
     return { ok: false, indice: "BO_PANNE", message: "Un souci est survenu. Réessayez dans un instant." } as Resultat<never>;
   }
-  if (r.corps?.motif === "BO_REVERIF") return reverificationError("strict_mfa");
+  if (r.corps?.motif === "BO_REVERIF") return reverificationError(REVERIFICATION_BO);
   // L'état a pu changer dans tous les cas (réservation ouverte, libérée, écrite).
   revalidatePath(CHEMIN);
   if (r.statut >= 200 && r.statut < 300 && r.corps?.rembourse) {

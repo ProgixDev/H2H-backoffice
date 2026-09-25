@@ -1,5 +1,6 @@
 import "server-only";
 import { reverificationError } from "@clerk/nextjs/server";
+import { REVERIFICATION_BO } from "@/lib/connexion/reverification";
 import { revalidatePath } from "next/cache";
 import { refusEnResultat, rpc, RefusBO, type Resultat } from "@/lib/db/rpc";
 import { supabaseServeur } from "@/lib/supabase/serveur";
@@ -14,9 +15,9 @@ import { supabaseServeur } from "@/lib/supabase/serveur";
  *
  * 🔴 `BO_REVERIF` N'EST PAS UNE ERREUR À AFFICHER : c'est la base qui exige un
  * second facteur de moins de dix minutes. On le traduit en
- * `reverificationError('strict_mfa')`, que `useReverification` côté écran
- * transforme en fenêtre de vérification, puis en nouvel essai — avec un jeton
- * neuf, que la base accepte.
+ * `reverificationError(REVERIFICATION_BO)` — exactement cela, pas davantage —,
+ * que `useReverification` côté écran transforme en fenêtre de vérification
+ * (la nôtre, `VerificationIdentite`), puis en nouvel essai avec un jeton neuf.
  *
  * ⚠️ PAS DE `"use server"` ICI : ce module n'est pas une action, il en aide
  * plusieurs. Marqué ainsi, chacune de ses exportations deviendrait un point
@@ -32,7 +33,7 @@ export async function geste<T>(
     for (const c of chemins) revalidatePath(c);
     return { ok: true, donnees };
   } catch (e) {
-    if (e instanceof RefusBO && e.indice === "BO_REVERIF") return reverificationError("strict_mfa");
+    if (e instanceof RefusBO && e.indice === "BO_REVERIF") return reverificationError(REVERIFICATION_BO);
     // 🔴 L'ÉTAT A CHANGÉ SOUS NOS YEUX : l'écran doit relire, pas seulement
     // afficher le refus.
     if (e instanceof RefusBO && e.indice === "BO_ETAT_CHANGE") for (const c of chemins) revalidatePath(c);

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useReverification } from "@clerk/nextjs";
 import { toast } from "sonner";
+import { useDemandeVerification } from "@/components/bo/VerificationIdentite";
 import type { Resultat } from "@/lib/db/rpc";
 
 // Ce que rend une action serveur du back-office : un résultat, ou la demande
@@ -21,7 +22,10 @@ type Action<A, T> = (args: A) => Promise<Resultat<T> | unknown>;
 export function useGeste<A extends { cle: string }, T>(action: Action<A, T>) {
   const router = useRouter();
   const [enCours, setEnCours] = useState(false);
-  const faire = useReverification(action);
+  // Notre fenêtre de vérification quand le back-office la fournit ; celle du
+  // prestataire sinon (un geste appelé hors du cadre de l'équipe).
+  const demander = useDemandeVerification();
+  const faire = useReverification(action, demander ? { onNeedsReverification: demander } : undefined);
 
   async function lancer(args: Omit<A, "cle">, succes: string): Promise<Resultat<T> | null> {
     setEnCours(true);

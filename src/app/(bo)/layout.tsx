@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { BarreHaute } from "@/components/bo/BarreHaute";
 import { BarreLaterale } from "@/components/bo/BarreLaterale";
 import { LectureEchouee } from "@/components/bo/LectureEchouee";
+import { FournisseurVerification } from "@/components/bo/VerificationIdentite";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { chargerMoi } from "@/lib/equipe/moi";
 import type { Moi } from "@/lib/equipe/types";
@@ -33,12 +34,14 @@ export default async function LayoutBackOffice({ children }: { children: React.R
   if (!moi.membre) redirect("/acces");
 
   return (
-    <SidebarProvider>
-      <BarreLaterale permissions={moi.permissions} />
-      <SidebarInset>
-        <BarreHaute moi={moi} />
-        <main className="flex-1 p-4 md:p-6">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+    <FournisseurVerification>
+      <SidebarProvider>
+        <BarreLaterale permissions={moi.permissions} />
+        <SidebarInset>
+          <BarreHaute moi={moi} />
+          <main className="flex-1 p-4 md:p-6">{children}</main>
+        </SidebarInset>
+      </SidebarProvider>
+    </FournisseurVerification>
   );
 }
