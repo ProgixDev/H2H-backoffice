@@ -1,0 +1,13 @@
+# Fins de ligne en LF partout, quelle que soit la configuration git de la
+# machine — même règle que hand-to-hand, pour la même raison : sous Windows,
+# `core.autocrlf=true` réécrit les fichiers en CRLF, et les vérifications qui
+# comparent un fichier généré (jetons, types) octet par octet tombent sur un
+# `\r` invisible.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.webp binary
+*.pdf binary
+*.ico binary
