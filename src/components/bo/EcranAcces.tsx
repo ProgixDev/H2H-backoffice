@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { SignOutButton, useClerk } from "@clerk/nextjs";
-import { KeyRound, LogOut, ShieldAlert, UserPlus } from "lucide-react";
+import { SignOutButton } from "@clerk/nextjs";
+import { LogOut, ShieldAlert, UserPlus } from "lucide-react";
+import { ActivationDoubleAuthentification } from "@/components/bo/ActivationDoubleAuthentification";
 import { LogoBadge } from "@/components/marque/LogoBadge";
 import { Button } from "@/components/ui/button";
 import { rejoindreEquipe } from "@/lib/equipe/actions";
@@ -19,7 +20,6 @@ type Props = { raison: string; invitation: boolean; equipier: boolean; email: st
  */
 export function EcranAcces({ raison, invitation, equipier, email }: Props) {
   const router = useRouter();
-  const { openUserProfile } = useClerk();
   const [enCours, demarrer] = useTransition();
   const [erreur, setErreur] = useState<{ indice: string | null; message: string } | null>(null);
 
@@ -36,28 +36,15 @@ export function EcranAcces({ raison, invitation, equipier, email }: Props) {
   let titre: string;
   let texte: React.ReactNode;
   let actions: React.ReactNode;
+  // Un contenu plus riche que des boutons : l'installation du second facteur.
+  let bloc: React.ReactNode = null;
 
   if (doubleAuthentification) {
     titre = "Activez la double authentification";
-    texte = (
-      <>
-        Le back-office exige une application d’authentification (Google Authenticator, 1Password,
-        Microsoft Authenticator…). Ajoutez-la dans votre compte, rubrique <strong>Sécurité</strong>,
-        puis déconnectez-vous et reconnectez-vous pour l’utiliser.
-      </>
-    );
-    actions = (
-      <>
-        <Button onClick={() => openUserProfile()}>
-          <KeyRound /> Ouvrir mon compte
-        </Button>
-        <SignOutButton>
-          <Button variant="outline">
-            <LogOut /> Se reconnecter
-          </Button>
-        </SignOutButton>
-      </>
-    );
+    texte =
+      "Le back-office exige, en plus du code reçu par e-mail, celui d’une application d’authentification sur votre téléphone.";
+    actions = null;
+    bloc = <ActivationDoubleAuthentification />;
   } else if (invitation) {
     titre = "Une invitation vous attend";
     texte = (
@@ -120,6 +107,7 @@ export function EcranAcces({ raison, invitation, equipier, email }: Props) {
           </p>
         )}
         {actions && <div className="mt-6 flex flex-wrap justify-center gap-2">{actions}</div>}
+        {bloc && <div className="mt-6 text-left">{bloc}</div>}
         {email && <p className="mt-6 text-[11px] text-muted-foreground">Connecté en tant que {email}</p>}
       </div>
     </main>

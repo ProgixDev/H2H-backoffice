@@ -1,9 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
 import { FlaskConical, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import { MenuCompte } from "@/components/bo/MenuCompte";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -24,6 +24,7 @@ export function BarreHaute({ moi }: { moi: MoiMembre }) {
   const { resolvedTheme, setTheme } = useTheme();
   const sombre = resolvedTheme === "dark";
   const modeTest = moi.est_test || moi.origine !== "production" || moi.emetteur !== "production";
+  const roles = moi.roles.map((r) => LIBELLE_ROLE[r]).join(" · ") || "Aucun rôle";
 
   return (
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
@@ -48,9 +49,7 @@ export function BarreHaute({ moi }: { moi: MoiMembre }) {
       <div className="ml-auto flex items-center gap-2">
         <span className="hidden text-right leading-tight md:block">
           <span className="block text-legende font-medium">{moi.email}</span>
-          <span className="block text-[11px] text-muted-foreground">
-            {moi.roles.map((r) => LIBELLE_ROLE[r]).join(" · ") || "Aucun rôle"}
-          </span>
+          <span className="block text-[11px] text-muted-foreground">{roles}</span>
         </span>
         <Button
           variant="ghost"
@@ -60,7 +59,7 @@ export function BarreHaute({ moi }: { moi: MoiMembre }) {
         >
           {sombre ? <Sun /> : <Moon />}
         </Button>
-        <UserButton />
+        <MenuCompte email={moi.email} roles={roles} />
       </div>
     </header>
   );

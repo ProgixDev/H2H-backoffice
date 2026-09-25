@@ -27,10 +27,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className={`${poppins.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full">
-        {/* Les écrans de Clerk (connexion, compte, vérification) aux couleurs de
-            l'application et en français. Les boutons de réseaux sociaux sont
-            masqués : un compte d'équipe se connecte par e-mail et second
-            facteur, jamais par un compte Google. */}
+        {/* La connexion, l'installation du second facteur et le menu du compte
+            sont nos propres écrans. Reste de Clerk la fenêtre de vérification
+            d'identité avant un geste sensible (`useReverification`) : elle
+            prend ici les couleurs de l'application et le français. Les boutons
+            de réseaux sociaux restent masqués : un compte d'équipe se connecte
+            par e-mail et second facteur, jamais par un compte Google. */}
         <ClerkProvider
           localization={frFR}
           appearance={{
