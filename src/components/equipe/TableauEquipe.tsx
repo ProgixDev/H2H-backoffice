@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { demanderReactivation, demanderRole, suspendreEquipier } from "@/lib/equipe/actions";
 import { LIBELLE_ROLE, ROLES, type Equipe, type Membre, type Role } from "@/lib/equipe/types";
-import { useGeste } from "@/lib/equipe/useGeste";
+import { useGeste } from "@/lib/db/useGeste";
 import { DialogueInvitation } from "./DialogueInvitation";
 
 type Geste =

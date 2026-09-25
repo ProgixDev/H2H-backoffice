@@ -8,7 +8,7 @@ import { StatutPastille } from "@/components/bo/StatutPastille";
 import { Button } from "@/components/ui/button";
 import { deciderValidation } from "@/lib/equipe/actions";
 import { LIBELLE_ROLE, type Role, type Validation } from "@/lib/equipe/types";
-import { useGeste } from "@/lib/equipe/useGeste";
+import { useGeste } from "@/lib/db/useGeste";
 
 const quand = (iso: string) =>
   new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });

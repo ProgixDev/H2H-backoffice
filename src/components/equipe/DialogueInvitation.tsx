@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { inviterEquipier } from "@/lib/equipe/actions";
 import { LIBELLE_ROLE, ROLES, type Role } from "@/lib/equipe/types";
-import { useGeste } from "@/lib/equipe/useGeste";
+import { useGeste } from "@/lib/db/useGeste";
 
 /**
  * Inviter une adresse DÉDIÉE à l'équipe (décision du 25/09/2026) : jamais le
