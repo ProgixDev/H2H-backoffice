@@ -546,7 +546,50 @@ export type Reclamation = {
     note_contestation: string | null;
     cree_le: string;
   }[];
-  decisions: { le: string; par: string | null; motif: string | null; resultat: string | null }[];
+  /** L'un des onze motifs du cahier des charges (migration 20260926015000) ; `null` : à qualifier. */
+  motif_litige: string | null;
+  motif_litige_libelle: string | null;
+  qualifications: { motif: string; libelle: string | null; justification: string; par: string | null; le: string }[];
+  /** Chaque décision, dans l'ordre : la première, les suivantes. */
+  decisions: {
+    rang: number;
+    decision: E["support_decision"];
+    montant_cents: number | null;
+    motif: string | null;
+    par: string | null;
+    le: string | null;
+    source: "back_office" | "support_mobile" | "reprise";
+    /** Le recours que cette décision tranche. */
+    recours: string | null;
+  }[];
+  recours: {
+    id: string;
+    decision_rang: number;
+    partie: E["claim_party"];
+    canal: string;
+    texte: string;
+    recu_le: string;
+    enregistre_par: string | null;
+    statut: "a_examiner" | "recevable" | "irrecevable" | "tranche";
+    examine_par: string | null;
+    examine_le: string | null;
+    motif_examen: string | null;
+  }[];
+  enquetes: {
+    id: string;
+    transporteur: string;
+    suivi: string | null;
+    reference: string;
+    echeance: string | null;
+    note: string | null;
+    ouverte_par: string | null;
+    ouverte_le: string;
+    statut: "ouverte" | "conclue";
+    issue: "perdu" | "livre_confirme" | "endommage" | "retrouve" | "sans_suite" | null;
+    conclusion: string | null;
+    conclue_par: string | null;
+    conclue_le: string | null;
+  }[];
 };
 
 export type Incident = {
@@ -567,6 +610,9 @@ export type Incident = {
   conteste: string | null;
   issue: string | null;
   pieces: number;
+  /** Absence, refus de colis… ; `null` : à qualifier (ou une contestation, lue avec l'incident qu'elle conteste). */
+  motif_litige: string | null;
+  motif_litige_libelle: string | null;
 };
 
 export type Litiges = { reclamations: Reclamation[]; incidents: Incident[]; oppositions: number };

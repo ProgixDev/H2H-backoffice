@@ -8,7 +8,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { dateCourte } from "./activite/temps";
-import { anneeParis, dateHeure, horodatage, jour, jourMoyen } from "./dates";
+import { anneeParis, aujourdhuiParis, dateHeure, horodatage, instantParis, jour, jourMoyen } from "./dates";
 
 const ETE = "2026-09-26T17:38:05Z"; // 19 h 38 à Paris (UTC+2)
 const HIVER = "2026-12-26T17:38:05Z"; // 18 h 38 à Paris (UTC+1)
@@ -41,6 +41,12 @@ describe("les dates à l'heure de Paris", () => {
     expect(dateHeure(null)).toBe("—");
     expect(jour(undefined)).toBe("—");
     expect(jourMoyen(null)).toBe("—");
+  });
+
+  it("un jour de calendrier devient une heure de Paris, été comme hiver", () => {
+    expect(instantParis("2026-10-03")).toBe("2026-10-03T16:00:00.000Z");
+    expect(instantParis("2026-12-03")).toBe("2026-12-03T17:00:00.000Z");
+    expect(aujourdhuiParis(Date.parse("2026-09-26T22:30:00Z"))).toBe("2026-09-27");
   });
 
   it("l'année courante se compte à Paris", () => {

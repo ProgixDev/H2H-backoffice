@@ -41,6 +41,121 @@ export type Litige = {
   vendeur: string | null;
   est_test: boolean;
   ouvert_le: string;
+  // ── Le dossier (migration 20260926015000) ──
+  /** L'un des onze motifs du cahier des charges ; `null` : à qualifier. */
+  motif_litige: string | null;
+  motif_litige_libelle: string | null;
+  /** L'équipe a rangé le dossier elle-même. */
+  motif_qualifie: boolean;
+  /** Combien de décisions le dossier a connues (la première, les suivantes). */
+  decisions: number;
+  /** Le recours en cours, sinon le dernier examiné. */
+  recours_id: string | null;
+  recours_statut: StatutRecours | null;
+  recours_partie: Partie | null;
+  recours_canal: Canal | null;
+  recours_texte: string | null;
+  recours_recu_le: string | null;
+  recours_decision_rang: number | null;
+  /** À examiner, et pas par l'auteur de la décision contestée. */
+  recours_examinable: boolean;
+  /** L'enquête ouverte, sinon la dernière conclue. */
+  enquete_id: string | null;
+  enquete_statut: StatutEnquete | null;
+  enquete_reference: string | null;
+  enquete_echeance: string | null;
+  enquete_issue: IssueEnquete | null;
+  enquete_ouverte_le: string | null;
+  /** Le transporteur tiers de la commande ; `null` : pas d'enquête possible. */
+  transporteur: string | null;
+};
+
+// ── Le dossier : motifs, recours, enquêtes (§15) ────────────────────────────
+
+export type GenreDossier = "reclamation" | "incident" | "signalement_utilisateur" | "signalement_annonce";
+export type Partie = "buyer" | "seller";
+export type Canal = "e_mail" | "telephone" | "messagerie" | "courrier" | "autre";
+export type StatutRecours = "a_examiner" | "recevable" | "irrecevable" | "tranche";
+export type StatutEnquete = "ouverte" | "conclue";
+export type IssueEnquete = "perdu" | "livre_confirme" | "endommage" | "retrouve" | "sans_suite";
+
+/** Le filtre des dossiers sans motif. */
+export const A_QUALIFIER = "a_qualifier";
+
+/** Un motif et ses dossiers ouverts (`bo_litiges_motifs`) ; `motif` nul : à qualifier. */
+export type CompteMotif = {
+  motif: string | null;
+  libelle: string;
+  ordre: number;
+  a_confirmer: boolean;
+  definition: string | null;
+  reclamations: number;
+  incidents: number;
+  signalements: number;
+};
+
+/** Un dossier qui n'est pas une réclamation : incident de co-livraison ou signalement. */
+export type Signalement = {
+  genre: Exclude<GenreDossier, "reclamation">;
+  id: string;
+  motif: string | null;
+  motif_libelle: string | null;
+  motif_qualifie: boolean;
+  titre: string;
+  etat: string;
+  ouvert: boolean;
+  ouvert_le: string;
+  commande_id: string | null;
+  reference: string | null;
+  participants: string;
+  est_test: boolean;
+};
+
+export const LIBELLE_GENRE: Record<Signalement["genre"], string> = {
+  incident: "Incident de co-livraison",
+  signalement_utilisateur: "Signalement d’un utilisateur",
+  signalement_annonce: "Signalement d’une annonce",
+};
+
+export const LIBELLE_ETAT_SIGNALEMENT: Record<string, string> = {
+  pending: "Déclaré",
+  blocked: "Bloqué",
+  support_review: "Transmis au support",
+  closed: "Clos",
+  signale: "Signalé",
+};
+
+export const LIBELLE_PARTIE: Record<Partie, string> = { buyer: "L’acheteur", seller: "Le vendeur" };
+
+export const CANAUX: { canal: Canal; libelle: string }[] = [
+  { canal: "e_mail", libelle: "E-mail" },
+  { canal: "telephone", libelle: "Téléphone" },
+  { canal: "messagerie", libelle: "Messagerie" },
+  { canal: "courrier", libelle: "Courrier" },
+  { canal: "autre", libelle: "Autre canal" },
+];
+export const LIBELLE_CANAL = Object.fromEntries(CANAUX.map((c) => [c.canal, c.libelle])) as Record<Canal, string>;
+
+export const LIBELLE_STATUT_RECOURS: Record<StatutRecours, string> = {
+  a_examiner: "Recours à examiner",
+  recevable: "Recours recevable — décision à rendre",
+  irrecevable: "Recours irrecevable",
+  tranche: "Recours tranché",
+};
+
+export const ISSUES: { issue: IssueEnquete; libelle: string }[] = [
+  { issue: "perdu", libelle: "Colis perdu" },
+  { issue: "livre_confirme", libelle: "Livraison confirmée par le transporteur" },
+  { issue: "endommage", libelle: "Avarie constatée" },
+  { issue: "retrouve", libelle: "Colis retrouvé, en route" },
+  { issue: "sans_suite", libelle: "Sans suite" },
+];
+export const LIBELLE_ISSUE = Object.fromEntries(ISSUES.map((i) => [i.issue, i.libelle])) as Record<IssueEnquete, string>;
+
+export const LIBELLE_SOURCE_DECISION: Record<string, string> = {
+  back_office: "back-office",
+  support_mobile: "écran mobile du support",
+  reprise: "décision antérieure à l’historique",
 };
 
 // `src/i18n/fr.ts` de l'application : `components_claim_status.dec*`.

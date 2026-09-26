@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@9409f46 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@38226cf : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260926014000_un_remboursement_devient_un_ordre.sql
+// Base : 20260926015000_le_dossier_de_litige.sql
 
 export type Json =
   | string
@@ -8233,6 +8233,25 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      bo_enquete_conclure: {
+        Args: {
+          p_cle: string
+          p_conclusion: string
+          p_enquete: string
+          p_issue: string
+        }
+        Returns: Json
+      }
+      bo_enquete_ouvrir: {
+        Args: {
+          p_claim: string
+          p_cle: string
+          p_echeance: string
+          p_note: string
+          p_reference: string
+        }
+        Returns: Json
+      }
       bo_equipe_demander: {
         Args: {
           p_attribuer: boolean
@@ -8374,6 +8393,35 @@ export type Database = {
         }
         Returns: Json
       }
+      bo_litige_qualifier: {
+        Args: {
+          p_cle: string
+          p_genre: string
+          p_justification: string
+          p_motif: string
+          p_objet: string
+        }
+        Returns: Json
+      }
+      bo_litige_recours_enregistrer: {
+        Args: {
+          p_canal: string
+          p_claim: string
+          p_cle: string
+          p_partie: Database["public"]["Enums"]["claim_party"]
+          p_texte: string
+        }
+        Returns: Json
+      }
+      bo_litige_recours_examiner: {
+        Args: {
+          p_cle: string
+          p_motif: string
+          p_recevable: boolean
+          p_recours: string
+        }
+        Returns: Json
+      }
       bo_litiges_lister: {
         Args: never
         Returns: {
@@ -8382,12 +8430,22 @@ export type Database = {
           commande_id: string
           decision: string
           decision_cents: number
+          decisions: number
           deja_rendu_cents: number
           description: string
+          enquete_echeance: string
+          enquete_id: string
+          enquete_issue: string
+          enquete_ouverte_le: string
+          enquete_reference: string
+          enquete_statut: string
           est_test: boolean
           famille: string
           id: string
           motif: string
+          motif_litige: string
+          motif_litige_libelle: string
+          motif_qualifie: boolean
           numero_commande: string
           ordre_cents: number
           ordre_depuis: string
@@ -8397,12 +8455,34 @@ export type Database = {
           ordre_statut: string
           ouvert_le: string
           phase: string
+          recours_canal: string
+          recours_decision_rang: number
+          recours_examinable: boolean
+          recours_id: string
+          recours_partie: string
+          recours_recu_le: string
+          recours_statut: string
+          recours_texte: string
           reservation_cents: number
           reservation_depuis: string
           restant_cents: number
           solution_demandee: string
           total_cents: number
+          transporteur: string
           vendeur: string
+        }[]
+      }
+      bo_litiges_motifs: {
+        Args: never
+        Returns: {
+          a_confirmer: boolean
+          definition: string
+          incidents: number
+          libelle: string
+          motif: string
+          ordre: number
+          reclamations: number
+          signalements: number
         }[]
       }
       bo_moi: { Args: never; Returns: Json }
@@ -8547,6 +8627,24 @@ export type Database = {
           p_piece?: string
         }
         Returns: Json
+      }
+      bo_signalements_lister: {
+        Args: { p_motif?: string }
+        Returns: {
+          commande_id: string
+          est_test: boolean
+          etat: string
+          genre: string
+          id: string
+          motif: string
+          motif_libelle: string
+          motif_qualifie: boolean
+          ouvert: boolean
+          ouvert_le: string
+          participants: string
+          reference: string
+          titre: string
+        }[]
       }
       bo_taches_automatiques: {
         Args: never

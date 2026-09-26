@@ -15,13 +15,23 @@ import {
   LIBELLE_SOLUTION,
   LIBELLE_SUIVI_RETOUR,
 } from "@/lib/operations/libelles";
+import {
+  libelleMotif,
+  LIBELLE_CANAL,
+  LIBELLE_ISSUE,
+  LIBELLE_SOURCE_DECISION,
+  LIBELLE_STATUT_RECOURS,
+  type Canal,
+} from "@/lib/litiges/types";
 import type { Incident, Litiges, Reclamation } from "@/lib/operations/types";
 import { Aucun, Bloc, Champs, Montant, ouiNon, Paires, Quand } from "../commun";
 
 /**
- * Litiges : la réclamation et ce que chaque partie y a apporté, les décisions
- * de l'équipe — et, sur le même écran, les incidents de co-livraison du même
- * achat (R15.4). En lecture : on tranche depuis « Litiges et signalements ».
+ * Litiges : la réclamation et ce que chaque partie y a apporté, son motif, ses
+ * décisions — la première, la contestation éventuelle, la suivante —, les
+ * enquêtes transporteur — et, sur le même écran, les incidents de co-livraison
+ * du même achat (R15.4). En lecture : on instruit et on tranche depuis
+ * « Litiges et signalements ».
  */
 export function OngletLitiges({ l, maintenant }: { l: Litiges; maintenant: number }) {
   if (l.reclamations.length === 0 && l.incidents.length === 0 && l.oppositions === 0) {
@@ -61,7 +71,8 @@ function UneReclamation({ r, maintenant }: { r: Reclamation; maintenant: number 
       <Champs
         colonnes={4}
         items={[
-          ["Motif", r.motif],
+          ["Motif du dossier", `${r.motif_litige_libelle ?? "À qualifier"}${r.qualifications.length ? " · qualifié par l’équipe" : ""}`],
+          ["Motif déclaré", r.motif ? libelleMotif(r.motif) : null],
           ["Parcours", r.parcours ? LIBELLE_PARCOURS[r.parcours] : null],
           ["État du colis", r.etat_colis ? LIBELLE_ETAT_PAQUET[r.etat_colis] : null],
           ["Solution demandée", r.solution_demandee ? LIBELLE_SOLUTION[r.solution_demandee] : null],
@@ -157,21 +168,88 @@ function UneReclamation({ r, maintenant }: { r: Reclamation; maintenant: number 
       )}
 
       <div className="grid gap-2 border-t pt-3">
-        <span className="text-legende font-semibold text-muted-foreground">Décisions de l’équipe</span>
+        <span className="text-legende font-semibold text-muted-foreground">Décisions et recours</span>
         {r.decisions.length === 0 ? (
           <Aucun>Aucune décision rendue.</Aucun>
         ) : (
-          <ul className="grid gap-1 text-corps">
-            {r.decisions.map((x, i) => (
+          <ol className="grid gap-3">
+            {r.decisions.map((d) => (
+              <li key={d.rang} className="grid gap-2">
+                <div className="grid gap-0.5">
+                  <span className="flex flex-wrap items-center gap-2 text-corps">
+                    <span className="font-semibold">Décision n°{d.rang}</span>
+                    <StatutPastille ton="neutre">{LIBELLE_DECISION[d.decision]}</StatutPastille>
+                    {d.montant_cents !== null && <Montant cents={d.montant_cents} fort />}
+                  </span>
+                  <span className="text-legende text-muted-foreground">
+                    {d.le ? <Quand iso={d.le} maintenant={maintenant} /> : "date inconnue"} · {d.par ?? "—"} ·{" "}
+                    {LIBELLE_SOURCE_DECISION[d.source] ?? d.source}
+                    {d.recours ? " · à la suite d’un recours" : ""}
+                  </span>
+                  {d.motif && <span className="text-corps">« {d.motif} »</span>}
+                </div>
+                {r.recours
+                  .filter((x) => x.decision_rang === d.rang)
+                  .map((x) => (
+                    <div key={x.id} className="grid gap-0.5 border-l-2 pl-3">
+                      <span className="flex flex-wrap items-center gap-2 text-corps">
+                        <span className="font-medium">Recours {x.partie === "buyer" ? "de l’acheteur" : "du vendeur"}</span>
+                        <StatutPastille ton={x.statut === "a_examiner" ? "actif" : x.statut === "recevable" ? "marque" : "muet"}>
+                          {LIBELLE_STATUT_RECOURS[x.statut]}
+                        </StatutPastille>
+                      </span>
+                      <span className="text-legende text-muted-foreground">
+                        Reçu par {(LIBELLE_CANAL[x.canal as Canal] ?? x.canal).toLowerCase()} ·{" "}
+                        <Quand iso={x.recu_le} maintenant={maintenant} /> · enregistré par {x.enregistre_par ?? "—"}
+                      </span>
+                      <span className="whitespace-pre-line text-corps">« {x.texte} »</span>
+                      {x.examine_le && (
+                        <span className="text-legende text-muted-foreground">
+                          Examiné par {x.examine_par ?? "—"} · <Quand iso={x.examine_le} maintenant={maintenant} />
+                          {x.motif_examen ? ` — ${x.motif_examen}` : ""}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+              </li>
+            ))}
+          </ol>
+        )}
+        {r.qualifications.length > 0 && (
+          <ul className="grid gap-0.5 text-legende text-muted-foreground">
+            {r.qualifications.map((x, i) => (
               <li key={i}>
-                <Quand iso={x.le} maintenant={maintenant} /> · {x.par ?? "Équipe"}
-                {x.motif ? ` — ${x.motif}` : ""}
-                {x.resultat && x.resultat !== "ok" ? ` (${x.resultat})` : ""}
+                Rangé sous « {x.libelle ?? x.motif} » par {x.par ?? "—"} · <Quand iso={x.le} maintenant={maintenant} /> —{" "}
+                {x.justification}
               </li>
             ))}
           </ul>
         )}
       </div>
+
+      {r.enquetes.length > 0 && (
+        <div className="grid gap-2 border-t pt-3">
+          <span className="text-legende font-semibold text-muted-foreground">Enquêtes transporteur</span>
+          {r.enquetes.map((e) => (
+            <Champs
+              key={e.id}
+              colonnes={4}
+              items={[
+                ["Transporteur", e.transporteur],
+                ["Référence", e.reference],
+                ["Suivi", e.suivi],
+                ["Ouverte", <Quand key="o" iso={e.ouverte_le} maintenant={maintenant} />],
+                ["Ouverte par", e.ouverte_par],
+                ["Réponse attendue", e.statut === "ouverte" && e.echeance ? <Echeance key="e" iso={e.echeance} maintenant={maintenant} /> : null],
+                ["Issue", e.issue ? LIBELLE_ISSUE[e.issue] : "En cours"],
+                ["Conclue", e.conclue_le ? <Quand key="c" iso={e.conclue_le} maintenant={maintenant} /> : null],
+                ["Réponse du transporteur", e.conclusion],
+                ["Note", e.note],
+              ]}
+            />
+          ))}
+        </div>
+      )}
     </Bloc>
   );
 }
@@ -185,6 +263,9 @@ function UnIncident({ d, maintenant }: { d: Incident; maintenant: number }) {
           {d.formulaire_libelle}
         </span>
         <StatutPastille ton={d.statut === "closed" ? "muet" : "attention"}>{LIBELLE_INCIDENT[d.statut]}</StatutPastille>
+        {!d.conteste && (
+          <StatutPastille ton={d.motif_litige ? "neutre" : "attention"}>{d.motif_litige_libelle ?? "À qualifier"}</StatutPastille>
+        )}
       </span>
       <Champs
         colonnes={4}

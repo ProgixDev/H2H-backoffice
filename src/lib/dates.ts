@@ -43,3 +43,22 @@ export const horodatage = (iso: string) => enHeureDeParis(iso, { dateStyle: "sho
 
 /** L'année à Paris : le 31 décembre à 23 h 30 UTC y est déjà l'an suivant. */
 export const anneeParis = (quand: Instant) => enHeureDeParis(quand, { year: "numeric" });
+
+/**
+ * Un jour choisi dans un calendrier (« 2026-10-03 »), à une heure de Paris,
+ * en instant ISO. ⚠️ LE DÉCALAGE CHANGE DEUX FOIS L'AN : on essaie l'heure
+ * d'hiver puis l'heure d'été, et l'on garde celle qui tombe juste à Paris.
+ */
+export function instantParis(jour: string, heure = "18:00"): string {
+  for (const decalage of ["+01:00", "+02:00"]) {
+    const d = new Date(`${jour}T${heure}:00${decalage}`);
+    if (enHeureDeParis(d, { hour: "2-digit", minute: "2-digit" }) === heure) return d.toISOString();
+  }
+  return new Date(`${jour}T${heure}:00+01:00`).toISOString();
+}
+
+/** Aujourd'hui à Paris, au format d'un champ date (« 2026-09-26 »). */
+export function aujourdhuiParis(maintenant: Instant = Date.now()): string {
+  const [j, m, a] = enHeureDeParis(maintenant, { day: "2-digit", month: "2-digit", year: "numeric" }).split("/");
+  return `${a}-${m}-${j}`;
+}
