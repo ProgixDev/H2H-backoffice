@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { BarreHaute } from "@/components/bo/BarreHaute";
 import { BarreLaterale } from "@/components/bo/BarreLaterale";
+import { FournisseurDonnees } from "@/components/bo/FournisseurDonnees";
 import { LectureEchouee } from "@/components/bo/LectureEchouee";
 import { FournisseurVerification } from "@/components/bo/VerificationIdentite";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -35,13 +36,15 @@ export default async function LayoutBackOffice({ children }: { children: React.R
 
   return (
     <FournisseurVerification>
-      <SidebarProvider>
-        <BarreLaterale permissions={moi.permissions} />
-        <SidebarInset>
-          <BarreHaute moi={moi} />
-          <main className="flex-1 p-4 md:p-6">{children}</main>
-        </SidebarInset>
-      </SidebarProvider>
+      <FournisseurDonnees>
+        <SidebarProvider>
+          <BarreLaterale permissions={moi.permissions} />
+          <SidebarInset>
+            <BarreHaute moi={moi} />
+            <main className="flex-1 p-4 md:p-6">{children}</main>
+          </SidebarInset>
+        </SidebarProvider>
+      </FournisseurDonnees>
     </FournisseurVerification>
   );
 }

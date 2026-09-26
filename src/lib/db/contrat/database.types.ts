@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@9cd17f5 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@565fd7f : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260926004000_la_double_authentification_se_regle.sql
+// Base : 20260926005000_l_activite_en_direct.sql
 
 export type Json =
   | string
@@ -8188,6 +8188,27 @@ export type Database = {
         Args: { p_cle: string; p_motif: string; p_profil: string }
         Returns: Json
       }
+      bo_evenements_lister: {
+        Args: {
+          p_avant?: number
+          p_inclure_test?: boolean
+          p_limite?: number
+          p_objet_id?: string
+        }
+        Returns: {
+          acteur: string
+          acteur_type: string
+          entite: string
+          est_test: boolean
+          id: number
+          le: string
+          libelle: string
+          objet_id: string
+          objet_table: string
+          ref: string
+          service: string
+        }[]
+      }
       bo_hub_retirer: {
         Args: { p_cle: string; p_hub_id: string; p_motif: string }
         Returns: Json
@@ -8258,6 +8279,32 @@ export type Database = {
         }[]
       }
       bo_moi: { Args: never; Returns: Json }
+      bo_operations_compteurs: {
+        Args: { p_inclure_test?: boolean }
+        Returns: {
+          calcule_le: string
+          code: string
+          description: string
+          libelle: string
+          nombre: number
+        }[]
+      }
+      bo_operations_lister: {
+        Args: {
+          p_compteur?: string
+          p_inclure_test?: boolean
+          p_recherche?: string
+          p_service?: string
+          p_termines?: boolean
+        }
+        Returns: Database["public"]["CompositeTypes"]["bo_operation"][]
+        SetofOptions: {
+          from: "*"
+          to: "bo_operation"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       bo_rejoindre: { Args: never; Returns: Json }
       bo_transporteur_regler: {
         Args: {
@@ -10969,7 +11016,32 @@ export type Database = {
         | "courtage"
     }
     CompositeTypes: {
-      [_ in never]: never
+      bo_operation: {
+        ref: string | null
+        type: string | null
+        service: string | null
+        objet_table: string | null
+        objet_id: string | null
+        bien_titre: string | null
+        bien_image: string | null
+        participants: Json | null
+        etape: string | null
+        etape_libelle: string | null
+        finance: string | null
+        finance_libelle: string | null
+        action_attendue: string | null
+        acteur_attendu: string | null
+        echeance: string | null
+        localisation: string | null
+        dernier_evenement: string | null
+        dernier_evenement_le: string | null
+        alerte: string | null
+        alerte_libelle: string | null
+        montant_cents: number | null
+        paiement_en_attente: boolean | null
+        est_test: boolean | null
+        termine_le: string | null
+      }
     }
   }
 }
