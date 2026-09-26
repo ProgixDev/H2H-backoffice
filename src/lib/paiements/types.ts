@@ -36,3 +36,69 @@ export const euros = (cents: number | null | undefined) => FORMAT.format(Number(
 
 export const quand = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString("fr-FR", { dateStyle: "medium" }) : "—";
+
+// ── Les fonds à verser (`bo_fonds_lister`, migration 20260926013000) ─────────
+//
+// 🔴 UNE SEULE RÈGLE DÉCIDE CE QUI RETIENT L'ARGENT : `app.fonds_retenus`, que
+// les versements lisent aussi. « Versable » ici est ce que le versement
+// paierait, pas une estimation de l'écran.
+
+/** Où en est ce qu'une commande doit à une personne. */
+export type EtatFonds = "verse" | "retenu" | "versable" | "en_attente" | "rien" | "annule";
+/** Ce qu'attend un dû « en attente ». */
+export type AttenteFonds = "paiement" | "remise" | "fenetre";
+/** Les cinq causes qui retiennent l'argent, dans l'ordre où l'écran les nomme. */
+export type MotifRetenue = "reclamation" | "opposition" | "incident" | "creance" | "retenue";
+
+export type Retenue = {
+  motif: MotifRetenue;
+  libelle: string;
+  depuis: string;
+  /** L'identifiant d'une retenue de l'équipe — la seule cause qui se lève d'ici. */
+  retenue: string | null;
+};
+
+/** Une ligne de « Fonds à verser » : une commande, une personne qu'elle paie. */
+export type FondsAVerser = {
+  order_id: string;
+  reference: string;
+  bien: string | null;
+  role: "vendeur" | "cotransporteur";
+  beneficiaire_id: string;
+  pseudo: string | null;
+  du_cents: number;
+  etat: "retenu" | "versable" | "en_attente";
+  attente: AttenteFonds | null;
+  versable_le: string | null;
+  retenues: Retenue[];
+  est_test: boolean;
+};
+
+export const FILTRES_FONDS = ["retenu", "versable", "en_attente"] as const;
+export type FiltreFonds = (typeof FILTRES_FONDS)[number];
+
+export const LIBELLE_ETAT_FONDS: Record<EtatFonds, string> = {
+  verse: "Versé",
+  retenu: "Retenu",
+  versable: "Versable",
+  en_attente: "En attente",
+  rien: "Rien à verser",
+  annule: "Commande annulée",
+};
+
+export const LIBELLE_FILTRE_FONDS: Record<FiltreFonds, string> = {
+  retenu: "Retenus",
+  versable: "Versables",
+  en_attente: "En attente",
+};
+
+export const LIBELLE_ATTENTE: Record<AttenteFonds, string> = {
+  paiement: "Paiement de l’acheteur pas encore encaissé",
+  remise: "Colis pas encore remis",
+  fenetre: "Fenêtre de réclamation en cours",
+};
+
+export const LIBELLE_ROLE_FONDS: Record<FondsAVerser["role"], string> = {
+  vendeur: "Vendeur",
+  cotransporteur: "Cotransporteur",
+};

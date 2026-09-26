@@ -1,7 +1,7 @@
 import "server-only";
 import { rpc } from "@/lib/db/rpc";
 import { supabaseServeur } from "@/lib/supabase/serveur";
-import type { DuTransporteur } from "./types";
+import type { DuTransporteur, FiltreFonds, FondsAVerser } from "./types";
 
 /**
  * Ce qui reste dû aux transporteurs tiers, commande par commande — le grand
@@ -12,4 +12,14 @@ import type { DuTransporteur } from "./types";
  */
 export async function listerTransporteursARegler(): Promise<DuTransporteur[]> {
   return rpc<DuTransporteur[]>(await supabaseServeur(), "bo_transporteurs_a_regler");
+}
+
+/**
+ * Ce qui est dû et n'est pas encore parti, personne par personne : retenu
+ * d'abord (avec ses causes), puis versable, puis en attente.
+ *
+ * ⚠️ CHAQUE MONDE LIT SES FONDS : l'équipier de test ne voit que le test.
+ */
+export async function listerFondsAVerser(etat: FiltreFonds | null): Promise<FondsAVerser[]> {
+  return rpc<FondsAVerser[]>(await supabaseServeur(), "bo_fonds_lister", { p_etat: etat, p_inclure_test: false });
 }

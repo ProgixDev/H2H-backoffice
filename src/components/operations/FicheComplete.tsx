@@ -54,12 +54,18 @@ export function FicheComplete({
   table,
   id,
   peutReveler,
+  peutRetenir = false,
+  peutLiberer = false,
 }: {
   initial: Fiche;
   table: ObjetFiche;
   id: string;
   /** L'équipier tient `donnees.reveler` : les boutons de consultation s'affichent. */
   peutReveler: boolean;
+  /** `fonds.retenir` : retenir les fonds d'un achat (onglet Paiements). */
+  peutRetenir?: boolean;
+  /** `fonds.liberer` : lever une retenue de l'équipe. */
+  peutLiberer?: boolean;
 }) {
   const client = useQueryClient();
   const maintenant = useMaintenant();
@@ -156,7 +162,14 @@ export function FicheComplete({
             <>
               <TabsContent value="paiements" className="pt-2">
                 {f.paiements ? (
-                  <OngletPaiements p={f.paiements} maintenant={maintenant} />
+                  <OngletPaiements
+                    p={f.paiements}
+                    maintenant={maintenant}
+                    commande={id}
+                    peutRetenir={peutRetenir}
+                    peutLiberer={peutLiberer}
+                    surGeste={relire}
+                  />
                 ) : (
                   <Reserve quoi="aux paiements" permission="paiements.lire" />
                 )}

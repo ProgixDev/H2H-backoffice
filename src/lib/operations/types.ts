@@ -9,6 +9,7 @@
 import type { Database } from "@/lib/db/contrat/database.types";
 import type { Echeance, Operation } from "@/lib/activite/types";
 import type { Priorite } from "@/lib/dossiers/types";
+import type { AttenteFonds, EtatFonds, Retenue } from "@/lib/paiements/types";
 
 type E = Database["public"]["Enums"];
 
@@ -279,6 +280,36 @@ export type Paiements = {
     libelle: string | null;
     groupe: string;
   }[];
+  /**
+   * L'état des fonds (R15.2, migration 20260926013000) : ce que l'achat doit à
+   * chaque personne qu'il paie, ce qui le retient, et les retenues de l'équipe.
+   */
+  fonds: {
+    beneficiaires: {
+      role: "vendeur" | "cotransporteur";
+      profil: string;
+      pseudo: string | null;
+      du_cents: number;
+      etat: EtatFonds;
+      attente: AttenteFonds | null;
+      versable_le: string | null;
+      verse_le: string | null;
+    }[];
+    /** Tout ce qui retient l'argent, maintenant. `beneficiaire` nul : pour tous. */
+    retenues: (Retenue & { beneficiaire: string | null; pseudo: string | null })[];
+    /** Les retenues de l'équipe, posées puis levées — la plus récente d'abord. */
+    historique: {
+      id: string;
+      beneficiaire: string | null;
+      pseudo: string | null;
+      motif: string;
+      posee_par: string | null;
+      posee_le: string;
+      levee_par: string | null;
+      levee_le: string | null;
+      motif_levee: string | null;
+    }[];
+  };
 };
 
 // ── Livraison ───────────────────────────────────────────────────────────────

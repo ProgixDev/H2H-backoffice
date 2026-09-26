@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@0695657 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@f1ef32b : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260926012000_l_activite_se_diffuse.sql
+// Base : 20260926013000_les_fonds_se_retiennent.sql
 
 export type Json =
   | string
@@ -8299,6 +8299,36 @@ export type Database = {
           ref: string
           service: string
         }[]
+      }
+      bo_fonds_liberer: {
+        Args: { p_cle: string; p_motif: string; p_retenue: string }
+        Returns: Json
+      }
+      bo_fonds_lister: {
+        Args: { p_etat?: string; p_inclure_test?: boolean }
+        Returns: {
+          attente: string
+          beneficiaire_id: string
+          bien: string
+          du_cents: number
+          est_test: boolean
+          etat: string
+          order_id: string
+          pseudo: string
+          reference: string
+          retenues: Json
+          role: string
+          versable_le: string
+        }[]
+      }
+      bo_fonds_retenir: {
+        Args: {
+          p_beneficiaire: string
+          p_cle: string
+          p_motif: string
+          p_order: string
+        }
+        Returns: Json
       }
       bo_hub_retirer: {
         Args: { p_cle: string; p_hub_id: string; p_motif: string }

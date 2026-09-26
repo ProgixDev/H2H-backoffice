@@ -59,6 +59,8 @@ export default async function PageFiche({ params }: Params) {
           table={cible.objet_table}
           id={cible.objet_id}
           peutReveler={peut(moi, "donnees.reveler")}
+          peutRetenir={peut(moi, "fonds.retenir")}
+          peutLiberer={peut(moi, "fonds.liberer")}
         />
       </div>
     );
