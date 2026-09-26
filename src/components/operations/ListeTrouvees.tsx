@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { StatutPastille } from "@/components/bo/StatutPastille";
 import { LIBELLE_TYPE } from "@/lib/activite/types";
+import { jour } from "@/lib/dates";
 import { cheminFiche, type Trouvee } from "@/lib/operations/types";
 
 /** Les opérations qu'une référence désigne, chacune vers sa fiche. */
@@ -23,7 +24,7 @@ export function ListeTrouvees({ trouvees }: { trouvees: Trouvee[] }) {
               </span>
               <span className="truncate text-corps">{t.titre ?? "—"}</span>
               <span className="text-legende text-muted-foreground">
-                {t.correspondance} · créée le {new Date(t.cree_le).toLocaleDateString("fr-FR")}
+                {t.correspondance} · créée le {jour(t.cree_le)}
               </span>
             </span>
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />

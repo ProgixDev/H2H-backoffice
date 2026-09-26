@@ -67,6 +67,3 @@ export const LIBELLE_CATEGORIE: Record<string, string> = {
   restaurant: "Restaurant",
   other: "Autre commerce",
 };
-
-export const quand = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—";

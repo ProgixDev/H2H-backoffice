@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { StatutPastille, type Ton } from "@/components/bo/StatutPastille";
 import { Button } from "@/components/ui/button";
+import { horodatage } from "@/lib/dates";
 import type { LigneJournal } from "@/lib/equipe/types";
 
 const GENRES: { valeur: LigneJournal["genre"]; libelle: string }[] = [
@@ -20,16 +21,6 @@ const TON_RESULTAT: Record<string, Ton> = {
   expiree: "muet",
   echec: "erreur",
 };
-
-const quand = (iso: string) =>
-  new Date(iso).toLocaleString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
 
 /**
  * Le journal d'audit : qui a fait quoi, quand, pourquoi, avec quel résultat.
@@ -98,7 +89,7 @@ export function JournalAudit({
             <tbody>
               {lignes.map((l) => (
                 <tr key={l.id} className="border-t align-top">
-                  <td className="px-4 py-2.5 whitespace-nowrap text-muted-foreground tabular-nums">{quand(l.le)}</td>
+                  <td className="px-4 py-2.5 whitespace-nowrap text-muted-foreground tabular-nums">{horodatage(l.le)}</td>
                   <td className="px-4 py-2.5">{l.acteur_email ?? "Par la plateforme"}</td>
                   <td className="px-4 py-2.5">
                     <div className="font-medium">{l.action}</div>

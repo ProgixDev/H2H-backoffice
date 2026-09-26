@@ -5,6 +5,7 @@ import { Lock } from "lucide-react";
 import { cn } from "cn";
 import { StatutPastille } from "@/components/bo/StatutPastille";
 import { dateCourte } from "@/lib/activite/temps";
+import { horodatage } from "@/lib/dates";
 import { LIBELLE_SOURCE } from "@/lib/operations/libelles";
 import type { Fait, SourceFait } from "@/lib/operations/types";
 import { Aucun, Montant } from "../commun";
@@ -74,7 +75,7 @@ export function ListeFaits({
         <ol className="grid">
           {visibles.map((x, i) => (
             <li key={`${x.le}-${i}`} className="grid grid-cols-[5.5rem_1fr] gap-3 border-b py-2.5 last:border-0">
-              <time dateTime={x.le} className="pt-0.5 text-legende tabular-nums text-muted-foreground" title={new Date(x.le).toLocaleString("fr-FR")}>
+              <time dateTime={x.le} className="pt-0.5 text-legende tabular-nums text-muted-foreground" title={horodatage(x.le)}>
                 {dateCourte(x.le, maintenant)}
               </time>
               <div className="grid min-w-0 gap-0.5">

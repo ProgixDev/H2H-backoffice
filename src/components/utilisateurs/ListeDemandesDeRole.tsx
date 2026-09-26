@@ -5,6 +5,7 @@ import { AnimationH2H } from "@/components/marque/AnimationH2H";
 import { DialogueMotif } from "@/components/bo/DialogueMotif";
 import { StatutPastille } from "@/components/bo/StatutPastille";
 import { Button } from "@/components/ui/button";
+import { dateHeure } from "@/lib/dates";
 import { useGeste } from "@/lib/db/useGeste";
 import { trancherDemandeDeRole } from "@/lib/utilisateurs/actions";
 import {
@@ -12,7 +13,6 @@ import {
   LIBELLE_METHODE,
   LIBELLE_ROLE,
   LIBELLE_STATUT_ROLE,
-  quand,
   type DemandeRole,
 } from "@/lib/utilisateurs/types";
 
@@ -60,7 +60,7 @@ export function ListeDemandesDeRole({ demandes, peutTrancher }: Props) {
                     {d.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
                   </div>
                   <span className="text-legende text-muted-foreground">
-                    Demandée le {quand(d.demande_le)}
+                    Demandée le {dateHeure(d.demande_le)}
                     {d.ville ? ` · ${d.ville}` : ""}
                   </span>
                   <dl className="mt-1 grid gap-1 text-corps">
@@ -88,7 +88,7 @@ export function ListeDemandesDeRole({ demandes, peutTrancher }: Props) {
                         bon={d.convention_signee_le !== null}
                         valeur={
                           d.convention_signee_le
-                            ? `signée le ${quand(d.convention_signee_le)} (${d.convention_version ?? "version inconnue"})`
+                            ? `signée le ${dateHeure(d.convention_signee_le)} (${d.convention_version ?? "version inconnue"})`
                             : "non signée"
                         }
                       />

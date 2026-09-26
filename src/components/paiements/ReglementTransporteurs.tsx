@@ -8,13 +8,13 @@ import { StatutPastille } from "@/components/bo/StatutPastille";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { jourMoyen } from "@/lib/dates";
 import { useGeste } from "@/lib/db/useGeste";
 import { reglerFactureTransporteur } from "@/lib/paiements/actions";
 import {
   LIBELLE_TRANSPORTEUR,
   TRANSPORTEURS,
   euros,
-  quand,
   type DuTransporteur,
   type Transporteur,
 } from "@/lib/paiements/types";
@@ -92,7 +92,7 @@ export function ReglementTransporteurs({ dus, peutRegler }: Props) {
                   {d.retour_inclus && <StatutPastille ton="attention">Retour inclus</StatutPastille>}
                   {d.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
                 </span>
-                <span className="text-legende text-muted-foreground">Dû depuis le {quand(d.depuis)}</span>
+                <span className="text-legende text-muted-foreground">Dû depuis le {jourMoyen(d.depuis)}</span>
               </span>
               <span className="font-bold">{euros(d.du_cents)}</span>
             </label>

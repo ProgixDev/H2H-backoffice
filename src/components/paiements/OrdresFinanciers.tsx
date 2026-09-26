@@ -4,6 +4,7 @@ import Link from "next/link";
 import { cn } from "cn";
 import { AnimationH2H } from "@/components/marque/AnimationH2H";
 import { StatutPastille, type Ton } from "@/components/bo/StatutPastille";
+import { dateHeure } from "@/lib/dates";
 import { cheminFiche } from "@/lib/operations/types";
 import {
   LIBELLE_STATUT_ORDRE,
@@ -23,9 +24,6 @@ export const TON_ORDRE: Record<StatutOrdre, Ton> = {
   echoue: "erreur",
   annule: "muet",
 };
-
-const quand = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—";
 
 /**
  * Les ordres financiers (§16) : chaque remboursement, du moment où il est
@@ -96,18 +94,18 @@ export function OrdresFinanciers({
                     </Link>
                   </span>
                   <span className="text-legende text-muted-foreground">
-                    Demandé par {o.demande_par ?? "—"} le {quand(o.cree_le)} · « {o.motif} »
+                    Demandé par {o.demande_par ?? "—"} le {dateHeure(o.cree_le)} · « {o.motif} »
                   </span>
                   {o.statut === "en_validation" && o.validation_expire_le && (
                     <span className="text-legende text-muted-foreground">
-                      Attend une seconde personne (Finance ou Direction) jusqu’au {quand(o.validation_expire_le)}.
+                      Attend une seconde personne (Finance ou Direction) jusqu’au {dateHeure(o.validation_expire_le)}.
                     </span>
                   )}
                   {o.tentatives > 0 && (
                     <span className="text-legende text-muted-foreground">
                       {o.tentatives} tentative{o.tentatives > 1 ? "s" : ""} chez Stripe
                       {o.stripe ? ` · ${o.stripe}` : ""}
-                      {o.termine_le ? ` · terminé le ${quand(o.termine_le)}` : ""}
+                      {o.termine_le ? ` · terminé le ${dateHeure(o.termine_le)}` : ""}
                     </span>
                   )}
                   {o.erreur && <span className="text-legende text-h2h-error">{o.erreur}</span>}

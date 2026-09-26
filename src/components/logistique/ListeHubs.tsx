@@ -17,9 +17,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { dateHeure } from "@/lib/dates";
 import { useGeste } from "@/lib/db/useGeste";
 import { retirerHub, validerHub } from "@/lib/logistique/actions";
-import { LIBELLE_LIEU, lienCarte, quand, type HubAValider } from "@/lib/logistique/types";
+import { LIBELLE_LIEU, lienCarte, type HubAValider } from "@/lib/logistique/types";
 
 type Props = { hubs: HubAValider[]; peutGerer: boolean };
 
@@ -65,7 +66,7 @@ export function ListeHubs({ hubs, peutGerer }: Props) {
                 </div>
                 <span className="text-legende text-muted-foreground">
                   {h.ville ?? "—"}
-                  {h.region ? ` · ${h.region}` : ""} · posé le {quand(h.cree_le)}
+                  {h.region ? ` · ${h.region}` : ""} · posé le {dateHeure(h.cree_le)}
                 </span>
                 <span className="text-corps">Repère : {h.repere ?? "—"}</span>
                 <span className="text-corps text-muted-foreground">

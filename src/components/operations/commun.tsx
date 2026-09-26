@@ -1,6 +1,7 @@
 import { Lock } from "lucide-react";
 import { cn } from "cn";
 import { dateCourte } from "@/lib/activite/temps";
+import { horodatage } from "@/lib/dates";
 import { euros } from "@/lib/litiges/types";
 
 /** Une section de la fiche : un titre, son contenu. */
@@ -72,7 +73,7 @@ export function Aucun({ children }: { children: React.ReactNode }) {
 export function Quand({ iso, maintenant }: { iso: string | null | undefined; maintenant: number }) {
   if (!iso) return <span className="text-muted-foreground">—</span>;
   return (
-    <time dateTime={iso} className="tabular-nums" title={new Date(iso).toLocaleString("fr-FR")}>
+    <time dateTime={iso} className="tabular-nums" title={horodatage(iso)}>
       {dateCourte(iso, maintenant)}
     </time>
   );

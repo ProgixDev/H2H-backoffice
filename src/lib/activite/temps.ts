@@ -2,6 +2,8 @@
 // « il y a 30 s ». Des fonctions pures — l'heure courante leur est donnée,
 // calée sur l'horloge de la base.
 
+import { anneeParis, enHeureDeParis } from "@/lib/dates";
+
 const MIN = 60_000;
 const HEURE = 60 * MIN;
 const JOUR = 24 * HEURE;
@@ -34,11 +36,10 @@ export function ilYA(quand: string | number, maintenant: number): string {
   return ecart < 5_000 ? "à l’instant" : `il y a ${duree(ecart)}`;
 }
 
-/** « 26/09 14:30 » — l'année quand elle n'est pas la courante. */
+/** « 26/09 14:30 » à l'heure de Paris — l'année quand elle n'est pas la courante. */
 export function dateCourte(iso: string, maintenant: number): string {
-  const d = new Date(iso);
-  const memeAnnee = d.getFullYear() === new Date(maintenant).getFullYear();
-  return d.toLocaleString("fr-FR", {
+  const memeAnnee = anneeParis(iso) === anneeParis(maintenant);
+  return enHeureDeParis(iso, {
     day: "2-digit",
     month: "2-digit",
     ...(memeAnnee ? {} : { year: "numeric" }),

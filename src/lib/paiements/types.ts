@@ -34,9 +34,6 @@ export const LIBELLE_TRANSPORTEUR: Record<string, string> = Object.fromEntries(
 const FORMAT = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
 export const euros = (cents: number | null | undefined) => FORMAT.format(Number(cents ?? 0) / 100);
 
-export const quand = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString("fr-FR", { dateStyle: "medium" }) : "—";
-
 // ── Les fonds à verser (`bo_fonds_lister`, migration 20260926013000) ─────────
 //
 // 🔴 UNE SEULE RÈGLE DÉCIDE CE QUI RETIENT L'ARGENT : `app.fonds_retenus`, que

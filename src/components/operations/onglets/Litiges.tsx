@@ -1,5 +1,6 @@
 import { Echeance } from "@/components/activite/Echeance";
 import { StatutPastille } from "@/components/bo/StatutPastille";
+import { jour } from "@/lib/dates";
 import {
   LIBELLE_DECISION,
   LIBELLE_DECLARANT,
@@ -145,7 +146,7 @@ function UneReclamation({ r, maintenant }: { r: Reclamation; maintenant: number 
               items={[
                 ["Transporteur", x.transporteur],
                 ["Suivi", `${LIBELLE_SUIVI_RETOUR[x.suivi_mode]}${x.suivi ? ` · ${x.suivi}` : ""}`],
-                ["Expédié le", x.expedie_le ? new Date(x.expedie_le).toLocaleDateString("fr-FR") : null],
+                ["Expédié le", x.expedie_le ? jour(x.expedie_le) : null],
                 ["Reçu", <Quand key="r" iso={x.recu_le} maintenant={maintenant} />],
                 ["Emballage", x.emballage],
                 ["Contestation", [x.contestation, x.note_contestation].filter(Boolean).join(" — ")],

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AnimationH2H } from "@/components/marque/AnimationH2H";
 import { StatutPastille, type Ton } from "@/components/bo/StatutPastille";
 import { Button } from "@/components/ui/button";
+import { dateHeure } from "@/lib/dates";
 import { useGeste } from "@/lib/db/useGeste";
 import { deciderLitige } from "@/lib/litiges/actions";
 import { BoutonRembourserLitige } from "@/components/paiements/GestesOrdres";
@@ -33,9 +34,6 @@ const TON_PHASE: Record<string, Ton> = {
   closed: "muet",
   rejected: "neutre",
 };
-
-const quand = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—";
 
 type Props = { litiges: Litige[]; peutDecider: boolean; peutRembourser: boolean };
 
@@ -83,7 +81,7 @@ export function ListeLitiges({ litiges, peutDecider, peutRembourser }: Props) {
                     {l.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
                   </div>
                   <span className="text-legende text-muted-foreground">
-                    {l.acheteur ?? "—"} (acheteur) · {l.vendeur ?? "—"} (vendeur) · ouvert le {quand(l.ouvert_le)}
+                    {l.acheteur ?? "—"} (acheteur) · {l.vendeur ?? "—"} (vendeur) · ouvert le {dateHeure(l.ouvert_le)}
                   </span>
                   <span className="text-corps">
                     {LIBELLE_FAMILLE[l.famille] ?? l.famille} — {libelleMotif(l.motif)}
@@ -99,7 +97,7 @@ export function ListeLitiges({ litiges, peutDecider, peutRembourser }: Props) {
                   {l.reservation_cents !== null && (
                     <span className="text-legende text-h2h-warning">
                       Un remboursement de {euros(l.reservation_cents)} lancé depuis l’application mobile est en
-                      cours depuis le {quand(l.reservation_depuis)}.
+                      cours depuis le {dateHeure(l.reservation_depuis)}.
                     </span>
                   )}
                   {l.ordre_statut && l.ordre_cents !== null && (
@@ -107,7 +105,7 @@ export function ListeLitiges({ litiges, peutDecider, peutRembourser }: Props) {
                       <StatutPastille ton={TON_ORDRE[l.ordre_statut]}>
                         {l.ordre_ref} · {LIBELLE_STATUT_ORDRE[l.ordre_statut]}
                       </StatutPastille>
-                      {euros(l.ordre_cents)} depuis le {quand(l.ordre_depuis)}
+                      {euros(l.ordre_cents)} depuis le {dateHeure(l.ordre_depuis)}
                       {l.ordre_statut === "echoue" && " — relancez-le ou annulez-le depuis Paiements et comptabilité"}
                     </span>
                   )}

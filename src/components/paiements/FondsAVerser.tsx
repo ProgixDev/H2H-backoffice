@@ -4,6 +4,7 @@ import Link from "next/link";
 import { cn } from "cn";
 import { AnimationH2H } from "@/components/marque/AnimationH2H";
 import { StatutPastille, type Ton } from "@/components/bo/StatutPastille";
+import { jourMoyen } from "@/lib/dates";
 import { cheminFiche } from "@/lib/operations/types";
 import {
   FILTRES_FONDS,
@@ -12,7 +13,6 @@ import {
   LIBELLE_FILTRE_FONDS,
   LIBELLE_ROLE_FONDS,
   euros,
-  quand,
   type EtatFonds,
   type FiltreFonds,
   type FondsAVerser as Ligne,
@@ -122,7 +122,7 @@ export function FondsAVerser({
                           {l.retenues.map((r, i) => (
                             <li key={i} className="flex flex-wrap items-center gap-2">
                               <span>{r.libelle}</span>
-                              <span className="text-legende text-muted-foreground">depuis le {quand(r.depuis)}</span>
+                              <span className="text-legende text-muted-foreground">depuis le {jourMoyen(r.depuis)}</span>
                               {r.retenue && peutLiberer && <BoutonLever retenue={r.retenue} taille="xs" />}
                             </li>
                           ))}
@@ -130,7 +130,7 @@ export function FondsAVerser({
                       ) : l.etat === "en_attente" ? (
                         <span className="text-muted-foreground">
                           {l.attente ? LIBELLE_ATTENTE[l.attente] : "En attente"}
-                          {l.attente === "fenetre" && l.versable_le ? ` — jusqu’au ${quand(l.versable_le)}` : ""}
+                          {l.attente === "fenetre" && l.versable_le ? ` — jusqu’au ${jourMoyen(l.versable_le)}` : ""}
                         </span>
                       ) : (
                         <span className="text-muted-foreground">La personne peut demander son versement.</span>

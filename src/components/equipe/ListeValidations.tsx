@@ -6,13 +6,13 @@ import { AnimationH2H } from "@/components/marque/AnimationH2H";
 import { DialogueMotif } from "@/components/bo/DialogueMotif";
 import { StatutPastille } from "@/components/bo/StatutPastille";
 import { Button } from "@/components/ui/button";
+import { enHeureDeParis } from "@/lib/dates";
 import { deciderValidation } from "@/lib/equipe/actions";
 import { LIBELLE_ROLE, type Role, type Validation } from "@/lib/equipe/types";
 import { useGeste } from "@/lib/db/useGeste";
 import { euros } from "@/lib/paiements/types";
 
-const quand = (iso: string) =>
-  new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const quand = (iso: string) => enHeureDeParis(iso, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 function detail(v: Validation): string {
   const p = v.parametres as { role?: Role; roles?: Role[]; montant_cents?: number };

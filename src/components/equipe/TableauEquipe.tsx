@@ -16,6 +16,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { enHeureDeParis } from "@/lib/dates";
 import { demanderReactivation, demanderRole, suspendreEquipier } from "@/lib/equipe/actions";
 import { LIBELLE_ROLE, ROLES, type Equipe, type Membre, type Role } from "@/lib/equipe/types";
 import { useGeste } from "@/lib/db/useGeste";
@@ -26,7 +27,7 @@ type Geste =
   | { type: "suspendre"; membre: Membre }
   | { type: "reactiver"; membre: Membre };
 
-const date = (iso: string) => new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+const date = (iso: string) => enHeureDeParis(iso, { day: "numeric", month: "short", year: "numeric" });
 
 /**
  * L'équipe : qui, avec quels rôles, dans quel état — et les gestes de la

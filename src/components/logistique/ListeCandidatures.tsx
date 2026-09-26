@@ -6,9 +6,10 @@ import { AnimationH2H } from "@/components/marque/AnimationH2H";
 import { DialogueMotif } from "@/components/bo/DialogueMotif";
 import { StatutPastille } from "@/components/bo/StatutPastille";
 import { Button } from "@/components/ui/button";
+import { dateHeure } from "@/lib/dates";
 import { useGeste } from "@/lib/db/useGeste";
 import { trancherCandidature } from "@/lib/logistique/actions";
-import { LIBELLE_CATEGORIE, lienCarte, quand, type CandidatureRelais } from "@/lib/logistique/types";
+import { LIBELLE_CATEGORIE, lienCarte, type CandidatureRelais } from "@/lib/logistique/types";
 
 type Props = { candidatures: CandidatureRelais[]; peutGerer: boolean };
 
@@ -47,7 +48,7 @@ export function ListeCandidatures({ candidatures, peutGerer }: Props) {
                   {c.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
                 </div>
                 <span className="text-legende text-muted-foreground">
-                  Par {c.candidat ?? "—"} · déposée le {quand(c.depose_le)}
+                  Par {c.candidat ?? "—"} · déposée le {dateHeure(c.depose_le)}
                 </span>
                 <span className="text-corps">
                   {c.adresse}, {c.ville}

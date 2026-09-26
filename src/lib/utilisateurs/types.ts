@@ -51,6 +51,3 @@ export const LIBELLE_METHODE: Record<string, string> = {
   stripe_identity: "pièce d’identité et selfie",
   stripe_connect: "compte de versement",
 };
-
-export const quand = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—";
