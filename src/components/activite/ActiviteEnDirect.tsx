@@ -14,10 +14,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { etatSynchro, ilYA } from "@/lib/activite/temps";
 import {
+  FILTRES_NOTIFICATIONS,
   LIBELLE_SERVICE,
   SERVICES,
   type Operation,
   type ReponseEvenements,
+  type ReponseNotifications,
   type ReponseOperations,
   type ReponseEcheances,
   type ReponseTaches,
@@ -28,11 +30,15 @@ import { FicheOperation } from "./FicheOperation";
 import { FilEvenements } from "./FilEvenements";
 import { ListeOperations } from "./ListeOperations";
 import { ListeEcheances } from "./ListeEcheances";
+import { ListeNotifications } from "./ListeNotifications";
 import { ListeTaches } from "./ListeTaches";
 
 // Les filtres vivent dans l'adresse : ils survivent à l'actualisation (§4).
 const PARSEURS = {
-  vue: parseAsStringLiteral(["operations", "evenements", "echeances", "taches"] as const).withDefault("operations"),
+  vue: parseAsStringLiteral(["operations", "evenements", "echeances", "notifications", "taches"] as const).withDefault(
+    "operations",
+  ),
+  avis: parseAsStringLiteral(FILTRES_NOTIFICATIONS),
   compteur: parseAsString,
   service: parseAsStringLiteral(SERVICES),
   q: parseAsString,
@@ -135,13 +141,34 @@ export function ActiviteEnDirect({ initial, initialCle, peutInclureTest, peutTra
     refetchIntervalInBackground: true,
   });
 
+  const lesNotifications = useQuery({
+    queryKey: ["activite-notifications", f.avis, inclureTest],
+    queryFn: ({ signal }) =>
+      lireActivite<ReponseNotifications>(
+        new URLSearchParams({ vue: "notifications", test: String(inclureTest), ...(f.avis ? { filtre: f.avis } : {}) }),
+        signal,
+      ),
+    enabled: f.vue === "notifications",
+    refetchInterval: RYTHME,
+    refetchIntervalInBackground: true,
+    placeholderData: keepPreviousData,
+  });
+
   // L'horloge de la base : les comptes à rebours s'y calent, pas sur celle du poste.
   const calcule = operations.data?.compteurs[0]?.calcule_le;
   const decalage = calcule && operations.dataUpdatedAt ? Date.parse(calcule) - operations.dataUpdatedAt : 0;
   const maintenant = maintenantLocal + decalage;
 
   const lecture =
-    f.vue === "operations" ? operations : f.vue === "taches" ? taches : f.vue === "echeances" ? lesEcheances : evenements;
+    f.vue === "operations"
+      ? operations
+      : f.vue === "taches"
+        ? taches
+        : f.vue === "echeances"
+          ? lesEcheances
+          : f.vue === "notifications"
+            ? lesNotifications
+            : evenements;
   const etat = etatSynchro(lecture.dataUpdatedAt, lecture.isError, maintenantLocal);
 
   const affichees = gele ?? operations.data;
@@ -189,6 +216,7 @@ export function ActiviteEnDirect({ initial, initialCle, peutInclureTest, peutTra
             <TabsTrigger value="operations">Opérations en cours</TabsTrigger>
             <TabsTrigger value="evenements">Derniers événements</TabsTrigger>
             <TabsTrigger value="echeances">Échéances</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="taches">Travaux automatiques</TabsTrigger>
           </TabsList>
         </Tabs>
@@ -318,6 +346,25 @@ export function ActiviteEnDirect({ initial, initialCle, peutInclureTest, peutTra
             echeances={lesEcheances.data.echeances}
             regles={lesEcheances.data.regles}
             maintenant={maintenant}
+          />
+        )
+      ) : f.vue === "notifications" ? (
+        !lesNotifications.data ? (
+          lesNotifications.isError ? (
+            <LectureEchouee message={lesNotifications.error.message} />
+          ) : (
+            <div className="grid gap-2">
+              {Array.from({ length: 5 }, (_, i) => (
+                <Skeleton key={i} className="h-20 rounded-xl" />
+              ))}
+            </div>
+          )
+        ) : (
+          <ListeNotifications
+            notifications={lesNotifications.data.notifications}
+            filtre={f.avis}
+            surFiltre={(avis) => setF({ avis })}
+            maintenant={maintenantLocal}
           />
         )
       ) : f.vue === "taches" ? (

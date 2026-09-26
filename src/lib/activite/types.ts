@@ -1,6 +1,8 @@
 // Les formes que rendent `bo_operations_lister`, `bo_operations_compteurs` et
 // `bo_evenements_lister` (migration 20260926005000 de hand-to-hand).
 
+import type { Database } from "@/lib/db/contrat/database.types";
+
 /** Les services qu'on filtre. Une ligne peut aussi être « plateforme » : un travail planifié en échec. */
 export const SERVICES = ["marketplace", "logistic", "flash", "live"] as const;
 export type Service = (typeof SERVICES)[number] | "plateforme";
@@ -130,6 +132,51 @@ export type RegleDelai = {
 };
 
 export type ReponseEcheances = { echeances: Echeance[]; regles: RegleDelai[] };
+
+/** L'état d'une notification tel que l'équipe le lit (R20.5, `app.notification_etat`). */
+export type EtatNotification =
+  | "prevue"
+  | "envoyee"
+  | "distribuee"
+  | "consultee"
+  | "echec"
+  | "application"
+  | "avant_suivi"
+  | "ecartee";
+
+export const FILTRES_NOTIFICATIONS = ["non_parvenues", "echecs", "obligatoires_non_lues", "ecartees"] as const;
+export type FiltreNotifications = (typeof FILTRES_NOTIFICATIONS)[number];
+
+/**
+ * Une notification des sept derniers jours et son suivi (`bo_notifications_lister`,
+ * migration 20260926010000 de hand-to-hand).
+ *
+ * 🔴 NI SON CORPS, NI LE JETON D'UN APPAREIL, NI LES MESSAGES : la base ne les
+ * rend pas. Le titre dit de quoi il s'agit ; le reste appartient au destinataire.
+ */
+export type NotificationSuivie = {
+  id: string;
+  le: string;
+  type: Database["public"]["Enums"]["notification_type"];
+  titre: string;
+  destinataire: string | null;
+  obligatoire: boolean;
+  modele: string | null;
+  etat: EtatNotification;
+  push_statut: "prevu" | "envoye" | "distribue" | "echec" | "expire" | "sans_appareil" | null;
+  push_erreur: string | null;
+  push_tentatives: number | null;
+  push_appareils: number | null;
+  consultee_le: string | null;
+  /** Obligatoire, ni poussée ni lue : elle remonte dans « À traiter ». */
+  non_parvenue: boolean;
+  objet_table: "orders" | "courtage_listings" | "live_sessions" | null;
+  objet_id: string | null;
+  objet_ref: string | null;
+  est_test: boolean;
+};
+
+export type ReponseNotifications = { notifications: NotificationSuivie[] };
 
 export const LIBELLE_SERVICE: Record<Service, string> = {
   marketplace: "Marketplace",

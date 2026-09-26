@@ -26,6 +26,7 @@ import {
 } from "@/lib/dossiers/actions";
 import {
   CATEGORIE_COURTE,
+  CLOTURE_AUTOMATIQUE,
   EQUIPES,
   LIBELLE_EQUIPE,
   LIBELLE_PRIORITE,
@@ -327,9 +328,7 @@ export function FicheDossier({
                     </Bloc>
                   )}
                   {d.source !== "manuel" && (
-                    <p className="text-legende text-muted-foreground">
-                      Ce dossier se clôt tout seul quand l’opération n’attend plus l’équipe.
-                    </p>
+                    <p className="text-legende text-muted-foreground">{CLOTURE_AUTOMATIQUE[d.source]}</p>
                   )}
                 </>
               )}

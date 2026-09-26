@@ -39,7 +39,7 @@ export const LIBELLE_EQUIPE: Record<string, string> = {
 export type Dossier = {
   id: string;
   ref: string;
-  source: "operation" | "tache" | "manuel";
+  source: "operation" | "tache" | "echeance" | "notification" | "manuel";
   titre: string;
   motif: string | null;
   categorie: string;
@@ -64,6 +64,14 @@ export type Dossier = {
   alerte_libelle: string | null;
   dernier_evenement_le: string;
   est_test: boolean;
+};
+
+/** Ce qui clôt tout seul un dossier né d'une source automatique. */
+export const CLOTURE_AUTOMATIQUE: Record<Exclude<Dossier["source"], "manuel">, string> = {
+  operation: "Ce dossier se clôt tout seul quand l’opération n’attend plus l’équipe.",
+  tache: "Ce dossier se clôt tout seul quand le travail tourne de nouveau normalement.",
+  echeance: "Ce dossier se clôt tout seul quand l’échéance est exécutée.",
+  notification: "Ce dossier se clôt tout seul dès que l’avis est lu, ou remis.",
 };
 
 export type CompteurDossier = { code: string; libelle: string; description: string; nombre: number };

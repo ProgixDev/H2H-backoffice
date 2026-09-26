@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@8f22d19 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@f14e2a1 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260926009000_la_fiche_complete.sql
+// Base : 20260926010000_une_notification_se_suit.sql
 
 export type Json =
   | string
@@ -8366,6 +8366,29 @@ export type Database = {
         }[]
       }
       bo_moi: { Args: never; Returns: Json }
+      bo_notifications_lister: {
+        Args: { p_filtre?: string; p_inclure_test?: boolean }
+        Returns: {
+          consultee_le: string
+          destinataire: string
+          est_test: boolean
+          etat: string
+          id: string
+          le: string
+          modele: string
+          non_parvenue: boolean
+          objet_id: string
+          objet_ref: string
+          objet_table: string
+          obligatoire: boolean
+          push_appareils: number
+          push_erreur: string
+          push_statut: string
+          push_tentatives: number
+          titre: string
+          type: string
+        }[]
+      }
       bo_operation_lire: {
         Args: { p_objet_id: string; p_objet_table: string }
         Returns: Json
@@ -9463,6 +9486,18 @@ export type Database = {
         }[]
       }
       notifications_a_repousser: { Args: { p_ids: string[] }; Returns: number }
+      notifications_accuses: { Args: { p_accuses: Json }; Returns: number }
+      notifications_accuses_a_verifier: {
+        Args: { p_limite?: number }
+        Returns: {
+          jeton: string
+          ticket: string
+        }[]
+      }
+      notifications_push_resultats: {
+        Args: { p_resultats: Json }
+        Returns: number
+      }
       open_order_claim: {
         Args: {
           p_consult_authorized: boolean

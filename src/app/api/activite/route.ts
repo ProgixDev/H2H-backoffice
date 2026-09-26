@@ -3,11 +3,12 @@ import {
   compterOperations,
   listerEcheances,
   listerEvenements,
+  listerNotifications,
   listerOperations,
   listerReglesDelai,
   listerTaches,
 } from "@/lib/activite/lectures";
-import { filtresDepuis } from "@/lib/activite/types";
+import { FILTRES_NOTIFICATIONS, filtresDepuis, type FiltreNotifications } from "@/lib/activite/types";
 import { RefusBO } from "@/lib/db/rpc";
 
 // 🔴 JAMAIS EN CACHE : chaque réponse dépend de l'équipier et de l'instant.
@@ -27,6 +28,13 @@ export async function GET(requete: NextRequest) {
     if (p.get("vue") === "echeances") {
       const [echeances, regles] = await Promise.all([listerEcheances(filtres.inclureTest), listerReglesDelai()]);
       return reponse({ echeances, regles });
+    }
+    if (p.get("vue") === "notifications") {
+      const filtre = p.get("filtre");
+      const connu = (FILTRES_NOTIFICATIONS as readonly string[]).includes(filtre ?? "");
+      return reponse({
+        notifications: await listerNotifications(connu ? (filtre as FiltreNotifications) : null, filtres.inclureTest),
+      });
     }
     if (p.get("vue") === "taches") {
       return reponse({ taches: await listerTaches() });

@@ -41,8 +41,10 @@ export default async function PageActivite({
   if (filtres.inclureTest) cle.set("test", "true");
 
   // On LIT dans le try, on construit l'écran après (règle `react-hooks/error-boundaries`).
+  // Seule la vue « Opérations en cours » s'ouvre sur cette lecture : les autres lisent la leur.
   let initial: ReponseOperations | null = null;
-  if (p.get("vue") !== "evenements") {
+  const vue = p.get("vue");
+  if (!vue || vue === "operations") {
     try {
       const [compteurs, operations] = await Promise.all([
         compterOperations(filtres.inclureTest),
