@@ -18,6 +18,7 @@ import {
   type Operation,
   type ReponseEvenements,
   type ReponseOperations,
+  type ReponseEcheances,
   type ReponseTaches,
 } from "@/lib/activite/types";
 import { BandeauCompteurs } from "./BandeauCompteurs";
@@ -25,11 +26,12 @@ import { lireActivite, useMaintenant } from "./commun";
 import { FicheOperation } from "./FicheOperation";
 import { FilEvenements } from "./FilEvenements";
 import { ListeOperations } from "./ListeOperations";
+import { ListeEcheances } from "./ListeEcheances";
 import { ListeTaches } from "./ListeTaches";
 
 // Les filtres vivent dans l'adresse : ils survivent à l'actualisation (§4).
 const PARSEURS = {
-  vue: parseAsStringLiteral(["operations", "evenements", "taches"] as const).withDefault("operations"),
+  vue: parseAsStringLiteral(["operations", "evenements", "echeances", "taches"] as const).withDefault("operations"),
   compteur: parseAsString,
   service: parseAsStringLiteral(SERVICES),
   q: parseAsString,
@@ -123,12 +125,22 @@ export function ActiviteEnDirect({ initial, initialCle, peutInclureTest, peutTra
     refetchIntervalInBackground: true,
   });
 
+  const lesEcheances = useQuery({
+    queryKey: ["activite-echeances", inclureTest],
+    queryFn: ({ signal }) =>
+      lireActivite<ReponseEcheances>(new URLSearchParams({ vue: "echeances", test: String(inclureTest) }), signal),
+    enabled: f.vue === "echeances",
+    refetchInterval: RYTHME,
+    refetchIntervalInBackground: true,
+  });
+
   // L'horloge de la base : les comptes à rebours s'y calent, pas sur celle du poste.
   const calcule = operations.data?.compteurs[0]?.calcule_le;
   const decalage = calcule && operations.dataUpdatedAt ? Date.parse(calcule) - operations.dataUpdatedAt : 0;
   const maintenant = maintenantLocal + decalage;
 
-  const lecture = f.vue === "operations" ? operations : f.vue === "taches" ? taches : evenements;
+  const lecture =
+    f.vue === "operations" ? operations : f.vue === "taches" ? taches : f.vue === "echeances" ? lesEcheances : evenements;
   const etat = etatSynchro(lecture.dataUpdatedAt, lecture.isError, maintenantLocal);
 
   const affichees = gele ?? operations.data;
@@ -175,6 +187,7 @@ export function ActiviteEnDirect({ initial, initialCle, peutInclureTest, peutTra
           <TabsList>
             <TabsTrigger value="operations">Opérations en cours</TabsTrigger>
             <TabsTrigger value="evenements">Derniers événements</TabsTrigger>
+            <TabsTrigger value="echeances">Échéances</TabsTrigger>
             <TabsTrigger value="taches">Travaux automatiques</TabsTrigger>
           </TabsList>
         </Tabs>
@@ -288,6 +301,24 @@ export function ActiviteEnDirect({ initial, initialCle, peutInclureTest, peutTra
             </>
           )}
         </>
+      ) : f.vue === "echeances" ? (
+        !lesEcheances.data ? (
+          lesEcheances.isError ? (
+            <LectureEchouee message={lesEcheances.error.message} />
+          ) : (
+            <div className="grid gap-2">
+              {Array.from({ length: 4 }, (_, i) => (
+                <Skeleton key={i} className="h-16 rounded-xl" />
+              ))}
+            </div>
+          )
+        ) : (
+          <ListeEcheances
+            echeances={lesEcheances.data.echeances}
+            regles={lesEcheances.data.regles}
+            maintenant={maintenant}
+          />
+        )
       ) : f.vue === "taches" ? (
         !taches.data ? (
           taches.isError ? (

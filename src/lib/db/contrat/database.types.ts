@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@b852cfb : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@1fad849 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260926007000_a_traiter.sql
+// Base : 20260926008000_les_echeances_se_centralisent.sql
 
 export type Json =
   | string
@@ -8219,6 +8219,16 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      bo_echeances_lister: {
+        Args: { p_inclure_test?: boolean; p_regle?: string; p_statut?: string }
+        Returns: Database["public"]["CompositeTypes"]["bo_echeance"][]
+        SetofOptions: {
+          from: "*"
+          to: "bo_echeance"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       bo_equipe_demander: {
         Args: {
           p_attribuer: boolean
@@ -8378,6 +8388,16 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "bo_operation"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      bo_regles_delai: {
+        Args: never
+        Returns: unknown[]
+        SetofOptions: {
+          from: "*"
+          to: "regles_delai"
           isOneToOne: false
           isSetofReturn: true
         }
@@ -11136,6 +11156,19 @@ export type Database = {
         echeance: string | null
         alerte_libelle: string | null
         dernier_evenement_le: string | null
+        est_test: boolean | null
+      }
+      bo_echeance: {
+        regle: string | null
+        regle_libelle: string | null
+        genre: string | null
+        objet_table: string | null
+        objet_id: string | null
+        ref: string | null
+        fin: string | null
+        statut: string | null
+        executeur: string | null
+        acteur: string | null
         est_test: boolean | null
       }
       bo_operation: {

@@ -1,7 +1,7 @@
 import "server-only";
 import { rpc } from "@/lib/db/rpc";
 import { supabaseServeur } from "@/lib/supabase/serveur";
-import type { Compteur, Evenement, FiltresActivite, Operation, Tache } from "./types";
+import type { Compteur, Echeance, Evenement, FiltresActivite, Operation, RegleDelai, Tache } from "./types";
 
 /**
  * Les opérations en cours (ou récemment terminées), filtrées.
@@ -41,4 +41,14 @@ export async function listerEvenements(o: {
 /** Les travaux planifiés et leur santé : dernier passage, dernière erreur, muets. */
 export async function listerTaches(): Promise<Tache[]> {
   return rpc<Tache[]>(await supabaseServeur(), "bo_taches_automatiques");
+}
+
+/** Les échéances en cours, les non exécutées d'abord (§7). */
+export async function listerEcheances(inclureTest: boolean): Promise<Echeance[]> {
+  return rpc<Echeance[]>(await supabaseServeur(), "bo_echeances_lister", { p_inclure_test: inclureTest });
+}
+
+/** Le registre des règles de délai, tel qu'il s'applique aujourd'hui. */
+export async function listerReglesDelai(): Promise<RegleDelai[]> {
+  return rpc<RegleDelai[]>(await supabaseServeur(), "bo_regles_delai");
 }

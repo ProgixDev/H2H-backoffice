@@ -94,6 +94,43 @@ export type ReponseOperations = { compteurs: Compteur[]; operations: Operation[]
 export type ReponseEvenements = { evenements: Evenement[] };
 export type ReponseTaches = { taches: Tache[] };
 
+/** Une échéance en cours (`bo_echeances_lister`). */
+export type Echeance = {
+  regle: string;
+  regle_libelle: string;
+  genre: "utilisateur" | "interne" | "prestataire";
+  objet_table: "orders" | "courtage_listings" | "live_sessions" | "dossiers";
+  objet_id: string;
+  ref: string;
+  fin: string;
+  statut: "a_venir" | "echue" | "non_executee";
+  executeur: string | null;
+  acteur: string;
+  est_test: boolean;
+};
+
+/** Une règle du registre des délais (`bo_regles_delai`, §7). */
+export type RegleDelai = {
+  code: string;
+  version: number;
+  libelle: string;
+  genre: Echeance["genre"];
+  duree: number | null;
+  unite: "minutes" | "heures" | "jours_calendaires" | "jours_ouvres" | null;
+  parametre: string | null;
+  declencheur: string;
+  rappels: string | null;
+  arret: string | null;
+  action_echeance: string;
+  executeur: string | null;
+  grace_minutes: number | null;
+  acteur: string;
+  document: string | null;
+  effective_from: string;
+};
+
+export type ReponseEcheances = { echeances: Echeance[]; regles: RegleDelai[] };
+
 export const LIBELLE_SERVICE: Record<Service, string> = {
   marketplace: "Marketplace",
   logistic: "H2H Logistic",

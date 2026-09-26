@@ -1,5 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { compterOperations, listerEvenements, listerOperations, listerTaches } from "@/lib/activite/lectures";
+import {
+  compterOperations,
+  listerEcheances,
+  listerEvenements,
+  listerOperations,
+  listerReglesDelai,
+  listerTaches,
+} from "@/lib/activite/lectures";
 import { filtresDepuis } from "@/lib/activite/types";
 import { RefusBO } from "@/lib/db/rpc";
 
@@ -17,6 +24,10 @@ export async function GET(requete: NextRequest) {
   const p = requete.nextUrl.searchParams;
   const filtres = filtresDepuis(p);
   try {
+    if (p.get("vue") === "echeances") {
+      const [echeances, regles] = await Promise.all([listerEcheances(filtres.inclureTest), listerReglesDelai()]);
+      return reponse({ echeances, regles });
+    }
     if (p.get("vue") === "taches") {
       return reponse({ taches: await listerTaches() });
     }
