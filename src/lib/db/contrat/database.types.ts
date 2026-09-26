@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@1fad849 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@8f22d19 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260926008000_les_echeances_se_centralisent.sql
+// Base : 20260926009000_la_fiche_complete.sql
 
 export type Json =
   | string
@@ -8366,6 +8366,23 @@ export type Database = {
         }[]
       }
       bo_moi: { Args: never; Returns: Json }
+      bo_operation_lire: {
+        Args: { p_objet_id: string; p_objet_table: string }
+        Returns: Json
+      }
+      bo_operation_trouver: {
+        Args: { p_reference: string }
+        Returns: {
+          correspondance: string
+          cree_le: string
+          est_test: boolean
+          objet_id: string
+          objet_table: string
+          ref: string
+          titre: string
+          type: string
+        }[]
+      }
       bo_operations_compteurs: {
         Args: { p_inclure_test?: boolean }
         Returns: {
@@ -11170,6 +11187,16 @@ export type Database = {
         executeur: string | null
         acteur: string | null
         est_test: boolean | null
+      }
+      bo_fait: {
+        le: string | null
+        source: string | null
+        libelle: string | null
+        detail: string | null
+        montant_cents: number | null
+        acteur_type: string | null
+        acteur: string | null
+        interne: boolean | null
       }
       bo_operation: {
         ref: string | null

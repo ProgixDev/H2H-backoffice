@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { FlaskConical, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { MenuCompte } from "@/components/bo/MenuCompte";
+import { RechercheOperation } from "@/components/operations/RechercheOperation";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -20,7 +21,12 @@ import { rubriqueDe } from "@/lib/navigation";
  * pouvoir croire qu'il agit sur des données réelles.
  */
 export function BarreHaute({ moi }: { moi: MoiMembre }) {
-  const rubrique = rubriqueDe(usePathname());
+  const chemin = usePathname();
+  const rubrique = rubriqueDe(chemin);
+  // La fiche complète n'est pas une rubrique du menu : elle s'ouvre depuis toutes les autres (§6).
+  const titre =
+    rubrique?.titre ??
+    (chemin === "/operations" ? "Rechercher une opération" : chemin.startsWith("/operations/") ? "Fiche d’opération" : "Back-office");
   const { resolvedTheme, setTheme } = useTheme();
   const sombre = resolvedTheme === "dark";
   const modeTest = moi.est_test || moi.origine !== "production" || moi.emetteur !== "production";
@@ -30,7 +36,7 @@ export function BarreHaute({ moi }: { moi: MoiMembre }) {
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-1 h-4 data-vertical:self-center" />
-      <h1 className="text-h3 font-semibold">{rubrique?.titre ?? "Back-office"}</h1>
+      <h1 className="text-h3 font-semibold">{titre}</h1>
       {modeTest && (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -47,6 +53,11 @@ export function BarreHaute({ moi }: { moi: MoiMembre }) {
         </Tooltip>
       )}
       <div className="ml-auto flex items-center gap-2">
+        {moi.permissions.includes("activite.lire") && (
+          <div className="hidden md:block">
+            <RechercheOperation compacte />
+          </div>
+        )}
         <span className="hidden text-right leading-tight md:block">
           <span className="block text-legende font-medium">{moi.email}</span>
           <span className="block text-[11px] text-muted-foreground">{roles}</span>

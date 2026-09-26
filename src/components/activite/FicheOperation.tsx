@@ -1,40 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { FileText } from "lucide-react";
 import { LectureEchouee } from "@/components/bo/LectureEchouee";
+import { QuatreQuestions } from "@/components/bo/QuatreQuestions";
 import { StatutPastille } from "@/components/bo/StatutPastille";
+import { ActionsTicket } from "@/components/operations/ActionsTicket";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useGeste } from "@/lib/db/useGeste";
-import { ouvrirDossier } from "@/lib/dossiers/actions";
 import { euros } from "@/lib/litiges/types";
-import { LIBELLE_ACTEUR, LIBELLE_SERVICE, LIBELLE_TYPE, type Operation, type ReponseEvenements } from "@/lib/activite/types";
-import { lireActivite, tonEtape, TON_ALERTE } from "./commun";
-import { Echeance } from "./Echeance";
+import { LIBELLE_SERVICE, LIBELLE_TYPE, type Operation, type ReponseEvenements } from "@/lib/activite/types";
+import { cheminFiche } from "@/lib/operations/types";
+import { lireActivite } from "./commun";
 import { FilEvenements } from "./FilEvenements";
-
-const ROLE = { acheteur: "Acheteur", vendeur: "Vendeur", cotransporteur: "Cotransporteur" } as const;
-
-function Question({ titre, children }: { titre: string; children: React.ReactNode }) {
-  return (
-    <section className="grid gap-1 rounded-xl border p-3">
-      <h3 className="text-legende font-semibold text-muted-foreground">{titre}</h3>
-      <div className="text-corps">{children}</div>
-    </section>
-  );
-}
 
 /**
  * Une opération, ouverte depuis la liste : les quatre questions (§1), puis la
  * chronologie. Tant qu'elle est ouverte, la liste derrière ne bouge pas.
  *
  * ⚠️ LES ACTIONS SENSIBLES NE SE FONT PAS ICI (§4) : elles passent par la fiche
- * complète, qui arrive avec une tranche suivante. D'ici, on crée un ticket ou
- * on prend le dossier — dans « À traiter ».
+ * complète. D'ici, on l'ouvre, on crée un ticket ou on prend le dossier.
  */
 export function FicheOperation({
   operation: o,
@@ -60,6 +47,7 @@ export function FicheOperation({
     enabled: o !== null && o.objet_table !== "taches",
     refetchInterval: 15_000,
   });
+  const avecFiche = o !== null && o.objet_table !== "taches";
 
   return (
     <Sheet open={o !== null} onOpenChange={(ouvert) => !ouvert && surFermeture()}>
@@ -79,37 +67,23 @@ export function FicheOperation({
             </SheetHeader>
 
             <div className="grid gap-3 p-4">
-              <Question titre="Que se passe-t-il ?">
-                <span className="flex flex-wrap items-center gap-2">
-                  <StatutPastille ton={tonEtape(o)}>{o.etape_libelle}</StatutPastille>
-                  {o.alerte && <StatutPastille ton={TON_ALERTE[o.alerte]}>{o.alerte_libelle}</StatutPastille>}
-                </span>
-                <p className="mt-1 text-muted-foreground">
-                  {o.finance_libelle}
-                  {o.localisation ? ` · ${o.localisation}` : ""}
-                </p>
-              </Question>
-              <Question titre="Qui est concerné ?">
-                <ul className="grid gap-0.5">
-                  {o.participants.map((p) => (
-                    <li key={p.role}>
-                      <span className="text-muted-foreground">{ROLE[p.role]} :</span> {p.pseudo ?? "(compte effacé)"}
-                    </li>
-                  ))}
-                </ul>
-              </Question>
-              <Question titre="Quelle action est attendue ?">
-                {o.action_attendue ?? "Aucune : l’opération est terminée."}
-                {o.acteur_attendu && <p className="text-muted-foreground">{LIBELLE_ACTEUR[o.acteur_attendu]}</p>}
-              </Question>
-              <Question titre="Avant quelle échéance ?">
-                <Echeance iso={o.echeance} maintenant={maintenant} />
-              </Question>
+              <QuatreQuestions operation={o} participants={o.participants} maintenant={maintenant} />
 
-              {peutTraiter ? (
-                <ActionsTicket key={o.objet_id} o={o} />
+              {avecFiche && peutTraiter ? (
+                <ActionsTicket key={o.objet_id} o={o}>
+                  <OuvrirFiche reference={o.ref} />
+                </ActionsTicket>
               ) : (
-                <p className="text-legende text-muted-foreground">Votre rôle permet de lire, pas de traiter.</p>
+                <div className="grid gap-2">
+                  {avecFiche && (
+                    <div>
+                      <OuvrirFiche reference={o.ref} />
+                    </div>
+                  )}
+                  {!peutTraiter && (
+                    <p className="text-legende text-muted-foreground">Votre rôle permet de lire, pas de traiter.</p>
+                  )}
+                </div>
               )}
 
               <h3 className="mt-2 text-h3 font-semibold">Chronologie</h3>
@@ -126,8 +100,8 @@ export function FicheOperation({
                 <LectureEchouee message={chrono.error.message} />
               ) : chrono.data.evenements.length === 0 ? (
                 <p className="text-corps text-muted-foreground">
-                  Aucun événement enregistré depuis la mise en service du journal (26/09/2026). Dernière mise à
-                  jour : {o.dernier_evenement_le ? new Date(o.dernier_evenement_le).toLocaleString("fr-FR") : "—"}.
+                  Aucun changement d’état journalisé depuis la mise en service du journal (26/09/2026). La
+                  chronologie complète, reconstituée depuis les dates de l’application, est dans la fiche.
                 </p>
               ) : (
                 <FilEvenements evenements={chrono.data.evenements} maintenant={maintenant} avecReference={false} />
@@ -140,63 +114,13 @@ export function FicheOperation({
   );
 }
 
-/**
- * « Créer un ticket » et « M'attribuer le dossier » (§4). La base rend le
- * dossier déjà ouvert sur l'opération plutôt qu'un doublon ; on y va ensuite.
- */
-function ActionsTicket({ o }: { o: Operation }) {
-  const router = useRouter();
-  const ouvrir = useGeste(ouvrirDossier);
-  const [motif, setMotif] = useState("");
-  const [saisie, setSaisie] = useState(false);
-
-  async function aller(attribuer: boolean, texte: string, succes: string) {
-    const r = await ouvrir.lancer(
-      {
-        objetTable: o.objet_table,
-        objetId: o.objet_id,
-        titre: null,
-        motif: texte,
-        priorite: "normale",
-        securite: false,
-        attribuer,
-      },
-      succes,
-    );
-    if (r?.ok) router.push(`/a-traiter?dossier=${(r.donnees as { dossier: string }).dossier}`);
-  }
-
+/** La fiche complète (§6) : tous les onglets, en pleine page. */
+function OuvrirFiche({ reference }: { reference: string }) {
   return (
-    <div className="grid gap-2">
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" disabled title="La fiche complète arrive avec une tranche suivante.">
-          Ouvrir le dossier
-        </Button>
-        <Button variant="outline" size="sm" disabled={ouvrir.enCours} onClick={() => setSaisie((s) => !s)}>
-          Créer un ticket
-        </Button>
-        <Button
-          size="sm"
-          disabled={ouvrir.enCours}
-          onClick={() =>
-            aller(true, o.alerte_libelle ?? o.action_attendue ?? o.etape_libelle, "Le dossier vous est attribué.")
-          }
-        >
-          M’attribuer le dossier
-        </Button>
-      </div>
-      {saisie && (
-        <div className="flex gap-2">
-          <Input value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Pourquoi ce ticket ?" aria-label="Motif du ticket" />
-          <Button
-            size="sm"
-            disabled={motif.trim().length < 3 || ouvrir.enCours}
-            onClick={() => aller(false, motif.trim(), "Ticket créé.")}
-          >
-            Créer
-          </Button>
-        </div>
-      )}
-    </div>
+    <Button variant="outline" size="sm" asChild>
+      <Link href={cheminFiche(reference)}>
+        <FileText /> Ouvrir la fiche complète
+      </Link>
+    </Button>
   );
 }

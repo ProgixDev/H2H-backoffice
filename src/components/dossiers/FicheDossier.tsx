@@ -25,6 +25,7 @@ import {
   prioriserDossier,
 } from "@/lib/dossiers/actions";
 import {
+  CATEGORIE_COURTE,
   EQUIPES,
   LIBELLE_EQUIPE,
   LIBELLE_PRIORITE,
@@ -32,6 +33,7 @@ import {
   type EvenementDossier,
   type Priorite,
 } from "@/lib/dossiers/types";
+import { cheminFiche } from "@/lib/operations/types";
 import { TON_CATEGORIE, TON_PRIORITE } from "./tons";
 
 const GENRE: Record<EvenementDossier["genre"], string> = {
@@ -135,7 +137,7 @@ export function FicheDossier({
               <SheetTitle className="flex flex-wrap items-center gap-2 pr-8">
                 <span className="tabular-nums">{d.ref}</span>
                 <StatutPastille ton={TON_CATEGORIE[d.categorie] ?? "neutre"}>
-                  {d.statut === "clos" ? "Clos" : (CATEGORIES[d.categorie] ?? d.categorie)}
+                  {d.statut === "clos" ? "Clos" : (CATEGORIE_COURTE[d.categorie] ?? d.categorie)}
                 </StatutPastille>
                 <StatutPastille ton={TON_PRIORITE[d.priorite]}>{LIBELLE_PRIORITE[d.priorite]}</StatutPastille>
                 {d.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
@@ -170,9 +172,9 @@ export function FicheDossier({
                   {d.escalade_vers ? ` · escaladé vers ${LIBELLE_EQUIPE[d.escalade_vers] ?? d.escalade_vers}` : ""}
                   {" · "}Responsable : {d.responsable_nom ?? "personne"}
                 </p>
-                {d.objet_table && d.objet_table !== "taches" && (
-                  <Link href={`/activite-en-direct?q=${encodeURIComponent(d.objet_ref ?? "")}`} className="text-legende font-semibold text-h2h-primary">
-                    Voir l’opération dans Activité en direct
+                {d.objet_table && d.objet_table !== "taches" && d.objet_ref && (
+                  <Link href={cheminFiche(d.objet_ref)} className="text-legende font-semibold text-h2h-primary">
+                    Ouvrir la fiche complète de l’opération
                   </Link>
                 )}
               </Bloc>
@@ -361,15 +363,3 @@ export function FicheDossier({
     </Sheet>
   );
 }
-
-// Les libellés courts des groupes, pour la pastille (le bandeau a les longs).
-const CATEGORIES: Record<string, string> = {
-  urgence_securite: "Urgence sécurité",
-  echec: "En échec",
-  contestation: "Contestation",
-  echeance_depassee: "Échéance dépassée",
-  reponse_recue: "Réponse reçue",
-  echeance_proche: "Échéance proche",
-  sans_responsable: "Sans responsable",
-  pret_decision: "Prêt pour décision",
-};

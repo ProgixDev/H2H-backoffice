@@ -6,6 +6,7 @@ import { parseAsBoolean, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { cn } from "cn";
 import { Pause, Play, Search } from "lucide-react";
 import { AnimationH2H } from "@/components/marque/AnimationH2H";
+import { IndicateurSynchro } from "@/components/bo/IndicateurSynchro";
 import { LectureEchouee } from "@/components/bo/LectureEchouee";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -391,29 +392,5 @@ function Puce({ actif, surClic, children }: { actif: boolean; surClic: () => voi
     >
       {children}
     </button>
-  );
-}
-
-const COULEUR_SYNCHRO = { a_jour: "var(--h2h-success)", degrade: "var(--h2h-warning)", perime: "var(--h2h-error)" };
-const LIBELLE_SYNCHRO = { a_jour: "À jour", degrade: "Lecture ralentie", perime: "Plus à jour" };
-
-/** La dernière synchronisation, toujours visible (§4). */
-function IndicateurSynchro({
-  etat,
-  derniere,
-  maintenant,
-}: {
-  etat: keyof typeof COULEUR_SYNCHRO;
-  derniere: number;
-  maintenant: number;
-}) {
-  return (
-    <span className="inline-flex items-center gap-2 text-legende text-muted-foreground" aria-live="polite">
-      <span className="size-2 rounded-full" style={{ backgroundColor: COULEUR_SYNCHRO[etat] }} aria-hidden />
-      <span>
-        <span className="font-semibold text-foreground">{LIBELLE_SYNCHRO[etat]}</span>
-        {derniere > 0 && ` · synchronisé ${ilYA(derniere, maintenant)}`}
-      </span>
-    </span>
   );
 }

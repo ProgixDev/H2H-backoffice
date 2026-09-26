@@ -13,6 +13,18 @@ export const LIBELLE_PERIMETRE: Record<Perimetre, string> = {
 export type Priorite = "normale" | "haute" | "urgence";
 export const LIBELLE_PRIORITE: Record<Priorite, string> = { normale: "Normale", haute: "Haute", urgence: "Urgence" };
 
+// Les libellés courts des groupes du §5.1, pour la pastille (le bandeau a les longs).
+export const CATEGORIE_COURTE: Record<string, string> = {
+  urgence_securite: "Urgence sécurité",
+  echec: "En échec",
+  contestation: "Contestation",
+  echeance_depassee: "Échéance dépassée",
+  reponse_recue: "Réponse reçue",
+  echeance_proche: "Échéance proche",
+  sans_responsable: "Sans responsable",
+  pret_decision: "Prêt pour décision",
+};
+
 export const EQUIPES = ["support", "logistique", "finance", "moderation", "direction"] as const;
 export const LIBELLE_EQUIPE: Record<string, string> = {
   support: "Support",
