@@ -3,10 +3,11 @@ import { BarreHaute } from "@/components/bo/BarreHaute";
 import { BarreLaterale } from "@/components/bo/BarreLaterale";
 import { FournisseurDonnees } from "@/components/bo/FournisseurDonnees";
 import { LectureEchouee } from "@/components/bo/LectureEchouee";
+import { FournisseurTempsReel } from "@/components/bo/TempsReel";
 import { FournisseurVerification } from "@/components/bo/VerificationIdentite";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { chargerMoi } from "@/lib/equipe/moi";
-import type { Moi } from "@/lib/equipe/types";
+import { peut, type Moi } from "@/lib/equipe/types";
 
 // 🔴 RIEN N'EST PRÉ-RENDU NI MIS EN CACHE ICI : chaque page dépend de
 // l'équipier qui la demande, et une révocation vaut dès la requête suivante.
@@ -37,13 +38,16 @@ export default async function LayoutBackOffice({ children }: { children: React.R
   return (
     <FournisseurVerification>
       <FournisseurDonnees>
-        <SidebarProvider>
-          <BarreLaterale permissions={moi.permissions} />
-          <SidebarInset>
-            <BarreHaute moi={moi} />
-            <main className="flex-1 p-4 md:p-6">{children}</main>
-          </SidebarInset>
-        </SidebarProvider>
+        {/* Le canal privé du monde de l'équipier : tout ce qui bouge se relit aussitôt. */}
+        <FournisseurTempsReel monde={moi.est_test ? "test" : "reel"} ecoute={peut(moi, "activite.lire")}>
+          <SidebarProvider>
+            <BarreLaterale permissions={moi.permissions} />
+            <SidebarInset>
+              <BarreHaute moi={moi} />
+              <main className="flex-1 p-4 md:p-6">{children}</main>
+            </SidebarInset>
+          </SidebarProvider>
+        </FournisseurTempsReel>
       </FournisseurDonnees>
     </FournisseurVerification>
   );
