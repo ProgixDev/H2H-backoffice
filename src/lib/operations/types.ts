@@ -404,6 +404,8 @@ export type Documents = {
     ajoutee_le: string;
   }[] | null;
   pieces_incidents: { incident: string; formulaire: string; pieces: number; declare_le: string | null }[] | null;
+  /** Les photos de la remise et de l'absence : leur ligne, jamais leur chemin. */
+  photos_remise: { nature: "photo_remise" | "photo_absence"; id: string; le: string | null; libelle: string }[] | null;
 };
 
 // ── Échanges ────────────────────────────────────────────────────────────────
@@ -564,3 +566,62 @@ export function cheminFiche(ref: string, onglet?: Onglet): string {
   const base = `/operations/${encodeURIComponent(ref)}`;
   return onglet && onglet !== "resume" ? `${base}?onglet=${onglet}` : base;
 }
+
+// ── Les consultations (§21) ─────────────────────────────────────────────────
+// Ce que `bo_reveler`, `bo_ouvrir_piece` et `bo_echanges_lire` rendent
+// (migration 20260926011000 de hand-to-hand). Chacune est une consultation
+// journalisée, avec un motif.
+
+/** Les données qu'un équipier peut révéler — le registre `ref.bo_champs_sensibles`. */
+export const CHAMPS_SENSIBLES = [
+  "acheteur.nom",
+  "acheteur.email",
+  "acheteur.telephone",
+  "acheteur.identite_verifiee",
+  "vendeur.nom",
+  "vendeur.email",
+  "vendeur.telephone",
+  "vendeur.identite_verifiee",
+  "cotransporteur.nom",
+  "cotransporteur.email",
+  "cotransporteur.telephone",
+  "livraison.adresse",
+  "attestation.vendeur",
+  "attestation.acheteur",
+] as const;
+export type ChampSensible = (typeof CHAMPS_SENSIBLES)[number];
+
+export type DonneeRevelee = { champ: ChampSensible; libelle: string; valeur: string | null };
+
+/** Les pièces qui s'ouvrent par un ticket de cinq minutes. */
+export type NaturePiece =
+  | "document_attestation"
+  | "photo_attestation"
+  | "preuve_litige"
+  | "piece_incident"
+  | "photo_remise"
+  | "photo_absence"
+  | "image_message";
+
+/** Une pièce ouverte : son adresse signée, valable une minute, pour le ticket pris. */
+export type PieceOuverte = { url: string; expire_le: string };
+
+export type MessageLu = {
+  id: string;
+  le: string;
+  type: E["message_type"];
+  auteur: string | null;
+  role: "acheteur" | "vendeur" | "cotransporteur" | null;
+  texte: string | null;
+  montant_cents: number | null;
+  statut_offre: E["offer_status"] | null;
+  /** L'image ne vient pas avec le message : elle s'ouvre à part (`image_message`). */
+  image: boolean;
+  duree_appel: string | null;
+};
+
+export type EchangesLus = {
+  conversation: { id: string; nature: E["conversation_kind"]; ouverte_le: string };
+  messages: MessageLu[];
+  tronquee: boolean;
+};

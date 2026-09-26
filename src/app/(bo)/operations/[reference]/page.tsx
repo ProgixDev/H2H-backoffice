@@ -54,7 +54,12 @@ export default async function PageFiche({ params }: Params) {
   if (fiche && cible) {
     return (
       <div className="mx-auto grid max-w-[1400px] gap-4">
-        <FicheComplete initial={fiche} table={cible.objet_table} id={cible.objet_id} />
+        <FicheComplete
+          initial={fiche}
+          table={cible.objet_table}
+          id={cible.objet_id}
+          peutReveler={peut(moi, "donnees.reveler")}
+        />
       </div>
     );
   }

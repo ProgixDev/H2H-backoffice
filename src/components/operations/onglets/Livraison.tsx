@@ -9,6 +9,7 @@ import {
 } from "@/lib/operations/libelles";
 import type { Fait, Livraison } from "@/lib/operations/types";
 import { Aucun, Bloc, Champs, Montant, Quand, Reference } from "../commun";
+import { DonneeMasquee } from "../sensibles";
 import { ListeFaits } from "./Chronologie";
 
 const tentative = (n: number | null, max: number | null) => (n === null ? null : max ? `${n} sur ${max}` : String(n));
@@ -19,7 +20,8 @@ const tentative = (n: number | null, max: number | null) => (n === null ? null :
  *
  * 🔴 NI CODE, NI POSITION, NI ADRESSE (R4.15) : la commune de destination dit
  * où va le colis ; une remise hors point de rendez-vous dit seulement qu'elle
- * l'est. L'adresse se révélera une à une, avec un motif et une trace.
+ * l'est. L'adresse de livraison se révèle à part, pour un motif, et la
+ * consultation est journalisée.
  */
 export function OngletLivraison({ l, parcours, maintenant }: { l: Livraison; parcours: Fait[]; maintenant: number }) {
   return (
@@ -31,7 +33,8 @@ export function OngletLivraison({ l, parcours, maintenant }: { l: Livraison; par
             ["Mode", l.mode ? LIBELLE_MODE[l.mode] : null],
             ["Transporteur", l.transporteur ? LIBELLE_TRANSPORTEUR[l.transporteur] : null],
             ["Numéro de suivi", l.suivi ? <Reference key="s" valeur={l.suivi} /> : null],
-            ["Destination", l.ville_destination ? `${l.ville_destination} · adresse masquée` : "Adresse masquée"],
+            ["Destination", l.ville_destination],
+            ["Adresse de livraison", <DonneeMasquee key="a" champ="livraison.adresse" />],
           ]}
         />
       </Bloc>

@@ -34,6 +34,7 @@ import { OngletLivraison } from "./onglets/Livraison";
 import { OngletNotes } from "./onglets/Notes";
 import { OngletPaiements } from "./onglets/Paiements";
 import { OngletResume } from "./onglets/Resume";
+import { CadreConsultations } from "./sensibles";
 
 const parseurOnglet = parseAsStringLiteral(ONGLETS).withDefault("resume");
 
@@ -44,8 +45,22 @@ const parseurOnglet = parseAsStringLiteral(ONGLETS).withDefault("resume");
  *
  * ⚠️ UN ONGLET FERMÉ DIT POURQUOI : la base rend `null` pour ce que le rôle ne
  * permet pas de lire, et l'écran le dit au lieu d'afficher un vide trompeur.
+ *
+ * 🔴 CE QUI EST MASQUÉ LE RESTE : identités, coordonnées, pièces et messages ne
+ * se consultent qu'un à un, pour un motif, et la base le journalise (§21).
  */
-export function FicheComplete({ initial, table, id }: { initial: Fiche; table: ObjetFiche; id: string }) {
+export function FicheComplete({
+  initial,
+  table,
+  id,
+  peutReveler,
+}: {
+  initial: Fiche;
+  table: ObjetFiche;
+  id: string;
+  /** L'équipier tient `donnees.reveler` : les boutons de consultation s'affichent. */
+  peutReveler: boolean;
+}) {
   const client = useQueryClient();
   const maintenant = useMaintenant();
   const [onglet, setOnglet] = useQueryState("onglet", parseurOnglet.withOptions({ history: "replace" }));
@@ -99,91 +114,93 @@ export function FicheComplete({ initial, table, id }: { initial: Fiche; table: O
 
       <QuatreQuestions operation={o} participants={f.participants} maintenant={maintenant} grille />
 
-      <Tabs value={actif} onValueChange={(v) => void setOnglet(v as typeof onglet)}>
-        <div className="overflow-x-auto">
-          <TabsList>
-            {onglets.map((x) => (
-              <TabsTrigger key={x} value={x}>
-                {LIBELLE_ONGLET[x]}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+      <CadreConsultations objet={id} peutReveler={peutReveler && table === "orders"}>
+        <Tabs value={actif} onValueChange={(v) => void setOnglet(v as typeof onglet)}>
+          <div className="overflow-x-auto">
+            <TabsList>
+              {onglets.map((x) => (
+                <TabsTrigger key={x} value={x}>
+                  {LIBELLE_ONGLET[x]}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
-        <TabsContent value="resume" className="pt-2">
-          <OngletResume f={f} maintenant={maintenant} />
-        </TabsContent>
+          <TabsContent value="resume" className="pt-2">
+            <OngletResume f={f} maintenant={maintenant} />
+          </TabsContent>
 
-        <TabsContent value="bien-et-accord" className="pt-2">
-          {f.bien === null ? (
-            table === "orders" ? (
-              <Reserve quoi="au détail de la transaction" permission="transactions.lire" />
+          <TabsContent value="bien-et-accord" className="pt-2">
+            {f.bien === null ? (
+              table === "orders" ? (
+                <Reserve quoi="au détail de la transaction" permission="transactions.lire" />
+              ) : table === "courtage_listings" ? (
+                <Reserve quoi="au détail des offres Flash" permission="flash.lire" />
+              ) : (
+                <Reserve quoi="au détail des lives" permission="live.lire" />
+              )
+            ) : table === "orders" ? (
+              <BienDunAchat b={f.bien as BienAchat} maintenant={maintenant} />
             ) : table === "courtage_listings" ? (
-              <Reserve quoi="au détail des offres Flash" permission="flash.lire" />
+              <BienDuneOffre b={f.bien as BienFlash} maintenant={maintenant} />
             ) : (
-              <Reserve quoi="au détail des lives" permission="live.lire" />
-            )
-          ) : table === "orders" ? (
-            <BienDunAchat b={f.bien as BienAchat} maintenant={maintenant} />
-          ) : table === "courtage_listings" ? (
-            <BienDuneOffre b={f.bien as BienFlash} maintenant={maintenant} />
-          ) : (
-            <BienDunLive b={f.bien as BienLive} maintenant={maintenant} />
+              <BienDunLive b={f.bien as BienLive} maintenant={maintenant} />
+            )}
+          </TabsContent>
+
+          <TabsContent value="chronologie" className="pt-2">
+            <ListeFaits faits={f.chronologie} tronquee={f.chronologie_tronquee} maintenant={maintenant} />
+          </TabsContent>
+
+          {table === "orders" && (
+            <>
+              <TabsContent value="paiements" className="pt-2">
+                {f.paiements ? (
+                  <OngletPaiements p={f.paiements} maintenant={maintenant} />
+                ) : (
+                  <Reserve quoi="aux paiements" permission="paiements.lire" />
+                )}
+              </TabsContent>
+              <TabsContent value="livraison" className="pt-2">
+                {f.livraison ? (
+                  <OngletLivraison
+                    l={f.livraison}
+                    parcours={f.chronologie.filter((x) => x.source === "remise")}
+                    maintenant={maintenant}
+                  />
+                ) : (
+                  <Reserve quoi="à la livraison" permission="logistique.lire ou transactions.lire" />
+                )}
+              </TabsContent>
+              <TabsContent value="documents" className="pt-2">
+                {f.documents && <OngletDocuments d={f.documents} maintenant={maintenant} />}
+              </TabsContent>
+              <TabsContent value="echanges" className="pt-2">
+                {f.echanges ? (
+                  <OngletEchanges e={f.echanges} maintenant={maintenant} />
+                ) : (
+                  <Reserve quoi="aux échanges" permission="litiges.lire" />
+                )}
+              </TabsContent>
+              <TabsContent value="litiges" className="pt-2">
+                {f.litiges ? (
+                  <OngletLitiges l={f.litiges} maintenant={maintenant} />
+                ) : (
+                  <Reserve quoi="aux litiges" permission="litiges.lire" />
+                )}
+              </TabsContent>
+            </>
           )}
-        </TabsContent>
 
-        <TabsContent value="chronologie" className="pt-2">
-          <ListeFaits faits={f.chronologie} tronquee={f.chronologie_tronquee} maintenant={maintenant} />
-        </TabsContent>
-
-        {table === "orders" && (
-          <>
-            <TabsContent value="paiements" className="pt-2">
-              {f.paiements ? (
-                <OngletPaiements p={f.paiements} maintenant={maintenant} />
-              ) : (
-                <Reserve quoi="aux paiements" permission="paiements.lire" />
-              )}
-            </TabsContent>
-            <TabsContent value="livraison" className="pt-2">
-              {f.livraison ? (
-                <OngletLivraison
-                  l={f.livraison}
-                  parcours={f.chronologie.filter((x) => x.source === "remise")}
-                  maintenant={maintenant}
-                />
-              ) : (
-                <Reserve quoi="à la livraison" permission="logistique.lire ou transactions.lire" />
-              )}
-            </TabsContent>
-            <TabsContent value="documents" className="pt-2">
-              {f.documents && <OngletDocuments d={f.documents} maintenant={maintenant} />}
-            </TabsContent>
-            <TabsContent value="echanges" className="pt-2">
-              {f.echanges ? (
-                <OngletEchanges e={f.echanges} maintenant={maintenant} />
-              ) : (
-                <Reserve quoi="aux échanges" permission="litiges.lire" />
-              )}
-            </TabsContent>
-            <TabsContent value="litiges" className="pt-2">
-              {f.litiges ? (
-                <OngletLitiges l={f.litiges} maintenant={maintenant} />
-              ) : (
-                <Reserve quoi="aux litiges" permission="litiges.lire" />
-              )}
-            </TabsContent>
-          </>
-        )}
-
-        <TabsContent value="notes-internes" className="pt-2">
-          {f.notes ? (
-            <OngletNotes n={f.notes} f={f} maintenant={maintenant} surGeste={relire} />
-          ) : (
-            <Reserve quoi="aux notes internes" permission="dossiers.lire" />
-          )}
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="notes-internes" className="pt-2">
+            {f.notes ? (
+              <OngletNotes n={f.notes} f={f} maintenant={maintenant} surGeste={relire} />
+            ) : (
+              <Reserve quoi="aux notes internes" permission="dossiers.lire" />
+            )}
+          </TabsContent>
+        </Tabs>
+      </CadreConsultations>
     </div>
   );
 }

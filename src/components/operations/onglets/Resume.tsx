@@ -5,9 +5,11 @@ import { TON_CATEGORIE, TON_PRIORITE } from "@/components/dossiers/tons";
 import { ilYA } from "@/lib/activite/temps";
 import { LIBELLE_SERVICE, LIBELLE_TYPE, type Echeance as EcheanceEnCours } from "@/lib/activite/types";
 import { CATEGORIE_COURTE, LIBELLE_EQUIPE, LIBELLE_PRIORITE } from "@/lib/dossiers/types";
+import { LIBELLE_ROLE_PARTICIPANT } from "@/lib/operations/libelles";
 import type { Fiche } from "@/lib/operations/types";
 import { ActionsTicket } from "../ActionsTicket";
 import { Aucun, Bloc, Champs, Montant, Quand } from "../commun";
+import { DonneeMasquee } from "../sensibles";
 
 const STATUT_ECHEANCE: Record<EcheanceEnCours["statut"], { ton: Ton; libelle: string }> = {
   non_executee: { ton: "erreur", libelle: "Non exécutée" },
@@ -76,6 +78,36 @@ export function OngletResume({ f, maintenant }: { f: Fiche; maintenant: number }
           </ul>
         )}
       </Bloc>
+
+      {achat && f.participants.length > 0 && (
+        <Bloc titre="Coordonnées des participants" className="lg:col-span-2">
+          <p className="text-legende text-muted-foreground">
+            Masquées. Chacune se révèle à part, pour un motif, et la consultation est inscrite au journal d’audit.
+          </p>
+          <div className="grid gap-3 md:grid-cols-3">
+            {f.participants.map((p) => (
+              <div key={`${p.role}:${p.profil}`} className="grid gap-2 rounded-lg border p-3">
+                <span className="font-semibold">
+                  {LIBELLE_ROLE_PARTICIPANT[p.role]} · {p.compte_efface ? "compte effacé" : (p.pseudo ?? "sans pseudo")}
+                </span>
+                <Champs
+                  colonnes={2}
+                  items={[
+                    ["Nom", <DonneeMasquee key="n" champ={`${p.role}.nom`} />],
+                    ["E-mail", <DonneeMasquee key="e" champ={`${p.role}.email`} />],
+                    ["Téléphone", <DonneeMasquee key="t" champ={`${p.role}.telephone`} />],
+                    ...(p.role === "cotransporteur"
+                      ? []
+                      : ([
+                          ["Identité vérifiée", <DonneeMasquee key="i" champ={`${p.role}.identite_verifiee`} />],
+                        ] as [string, React.ReactNode][])),
+                  ]}
+                />
+              </div>
+            ))}
+          </div>
+        </Bloc>
+      )}
 
       <Bloc titre="Dossiers de l’équipe" className="lg:col-span-2">
         {f.dossiers.length === 0 ? (

@@ -2,21 +2,22 @@ import { MessagesSquare } from "lucide-react";
 import { LIBELLE_CONVERSATION } from "@/lib/operations/libelles";
 import type { Echanges } from "@/lib/operations/types";
 import { Aucun, Bloc, Champs, ouiNon, Quand } from "../commun";
+import { LectureEchanges } from "../LectureEchanges";
 
 /**
- * Échanges : les conversations liées à l'achat, sans leur contenu.
+ * Échanges : les conversations liées à l'achat.
  *
- * 🔴 AUCUN MESSAGE N'EST LU ICI. Leur lecture arrivera avec les lectures
- * encadrées : seulement pour un litige où l'acheteur l'a autorisée, et chaque
- * lecture inscrite au journal d'audit.
+ * 🔴 UN MESSAGE NE SE LIT QU'AVEC LE LITIGE DE L'ACHETEUR, qui l'autorise en le
+ * déposant — et chaque lecture est inscrite au journal d'audit, avec son motif.
  */
 export function OngletEchanges({ e, maintenant }: { e: Echanges; maintenant: number }) {
+  const consentie = e.consultation_acheteur === true;
   return (
     <div className="grid gap-4">
       <p className="flex items-start gap-2 rounded-xl border border-dashed p-3 text-legende text-muted-foreground">
         <MessagesSquare className="mt-0.5 size-4 shrink-0" />
-        Le contenu des messages n’est pas affiché. Il ne pourra l’être que pour un litige dont l’acheteur a autorisé la
-        consultation, et chaque lecture sera tracée.
+        Le contenu des messages ne se lit que pour un litige : en l’ouvrant, l’acheteur autorise HandtoHand à consulter
+        les échanges de la transaction. Chaque lecture est inscrite au journal d’audit.
       </p>
 
       <Bloc titre="Consentements">
@@ -35,7 +36,7 @@ export function OngletEchanges({ e, maintenant }: { e: Echanges; maintenant: num
         ) : (
           <ul className="grid gap-2">
             {e.conversations.map((c) => (
-              <li key={c.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border p-3 text-corps">
+              <li key={c.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border p-3 text-corps">
                 <span className="font-medium">{LIBELLE_CONVERSATION[c.nature]}</span>
                 <span className="tabular-nums">
                   {c.messages} message{c.messages > 1 ? "s" : ""}
@@ -44,6 +45,14 @@ export function OngletEchanges({ e, maintenant }: { e: Echanges; maintenant: num
                   ouverte <Quand iso={c.ouverte_le} maintenant={maintenant} />
                   {c.dernier_message_le && <> · dernier message <Quand iso={c.dernier_message_le} maintenant={maintenant} /></>}
                 </span>
+                {c.messages > 0 && (
+                  <LectureEchanges
+                    conversation={c.id}
+                    libelle={LIBELLE_CONVERSATION[c.nature]}
+                    consentie={consentie}
+                    maintenant={maintenant}
+                  />
+                )}
               </li>
             ))}
           </ul>

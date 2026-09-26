@@ -6,7 +6,7 @@
 // (`components_logistics_journalexpedition.etat`, `app_checkout_attestation.statuses`),
 // les phases du litige aussi (`components_claim_status`).
 import type { Database } from "@/lib/db/contrat/database.types";
-import type { SourceFait } from "./types";
+import type { ChampSensible, SourceFait } from "./types";
 
 type E = Database["public"]["Enums"];
 
@@ -390,3 +390,29 @@ export function libelleSiege(cle: string): string {
   const [role, etat] = cle.split(".");
   return (LIBELLE_SIEGE as Record<string, Record<string, string>>)[role]?.[etat] ?? cle;
 }
+
+// ── Les consultations ───────────────────────────────────────────────────────
+
+/** Ce que chaque donnée masquée désigne — les libellés du registre `ref.bo_champs_sensibles`. */
+export const LIBELLE_CHAMP_SENSIBLE: Record<ChampSensible, string> = {
+  "acheteur.nom": "Nom de l’acheteur",
+  "acheteur.email": "E-mail de l’acheteur",
+  "acheteur.telephone": "Téléphone de l’acheteur",
+  "acheteur.identite_verifiee": "Identité vérifiée de l’acheteur",
+  "vendeur.nom": "Nom du vendeur",
+  "vendeur.email": "E-mail du vendeur",
+  "vendeur.telephone": "Téléphone du vendeur",
+  "vendeur.identite_verifiee": "Identité vérifiée du vendeur",
+  "cotransporteur.nom": "Nom du cotransporteur",
+  "cotransporteur.email": "E-mail du cotransporteur",
+  "cotransporteur.telephone": "Téléphone du cotransporteur",
+  "livraison.adresse": "Adresse de livraison",
+  "attestation.vendeur": "Vendeur sur l’attestation",
+  "attestation.acheteur": "Acheteur sur l’attestation",
+};
+
+export const LIBELLE_ROLE_PARTICIPANT: Record<"acheteur" | "vendeur" | "cotransporteur", string> = {
+  acheteur: "Acheteur",
+  vendeur: "Vendeur",
+  cotransporteur: "Cotransporteur particulier",
+};

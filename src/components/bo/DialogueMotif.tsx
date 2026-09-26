@@ -22,6 +22,8 @@ type Props = {
   destructif?: boolean;
   /** Le motif est-il obligatoire ? (Un refus, une suspension : toujours.) */
   motifObligatoire?: boolean;
+  /** La longueur que la base exige du motif (trois caractères, cinq pour une consultation). */
+  longueurMin?: number;
   enCours?: boolean;
   surConfirmation: (motif: string) => void;
 };
@@ -41,11 +43,12 @@ export function DialogueMotif({
   libelleAction,
   destructif,
   motifObligatoire = true,
+  longueurMin = 3,
   enCours,
   surConfirmation,
 }: Props) {
   const [motif, setMotif] = useState("");
-  const valide = !motifObligatoire || motif.trim().length >= 3;
+  const valide = !motifObligatoire || motif.trim().length >= longueurMin;
 
   return (
     <Dialog

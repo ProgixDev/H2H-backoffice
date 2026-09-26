@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@f14e2a1 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@b1c7c4b : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260926010000_une_notification_se_suit.sql
+// Base : 20260926011000_une_donnee_sensible_se_revele.sql
 
 export type Json =
   | string
@@ -8219,6 +8219,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      bo_echanges_lire: {
+        Args: { p_conversation: string; p_motif: string; p_objet_id: string }
+        Returns: Json
+      }
       bo_echeances_lister: {
         Args: { p_inclure_test?: boolean; p_regle?: string; p_statut?: string }
         Returns: Database["public"]["CompositeTypes"]["bo_echeance"][]
@@ -8432,6 +8436,16 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      bo_ouvrir_piece: {
+        Args: {
+          p_motif: string
+          p_nature: string
+          p_objet_id: string
+          p_piece: string
+          p_rang: number
+        }
+        Returns: Json
+      }
       bo_regles_delai: {
         Args: never
         Returns: unknown[]
@@ -8443,6 +8457,16 @@ export type Database = {
         }
       }
       bo_rejoindre: { Args: never; Returns: Json }
+      bo_reveler: {
+        Args: {
+          p_champ: string
+          p_motif: string
+          p_objet_id: string
+          p_objet_table: string
+          p_piece?: string
+        }
+        Returns: Json
+      }
       bo_taches_automatiques: {
         Args: never
         Returns: {

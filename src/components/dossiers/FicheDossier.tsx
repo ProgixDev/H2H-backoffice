@@ -312,22 +312,29 @@ export function FicheDossier({
                     </div>
                   </Bloc>
 
-                  {d.source === "manuel" && (
-                    <Bloc titre="Clore le ticket">
+                  {(d.source === "manuel" || d.source === "securite") && (
+                    <Bloc titre={d.source === "securite" ? "Clore l’alerte" : "Clore le ticket"}>
                       <div className="flex gap-2">
                         <Input value={motifCloture} onChange={(e) => setMotifCloture(e.target.value)} placeholder="Comment il a été réglé" aria-label="Motif de clôture" />
                         <Button
                           size="sm"
                           variant="outline"
                           disabled={motifCloture.trim().length < 3 || clore.enCours}
-                          onClick={() => faire(clore.lancer({ dossier: d.id, motif: motifCloture.trim() }, "Ticket clos."))}
+                          onClick={() =>
+                            faire(
+                              clore.lancer(
+                                { dossier: d.id, motif: motifCloture.trim() },
+                                d.source === "securite" ? "Alerte close." : "Ticket clos.",
+                              ),
+                            )
+                          }
                         >
                           Clore
                         </Button>
                       </div>
                     </Bloc>
                   )}
-                  {d.source !== "manuel" && (
+                  {d.source !== "manuel" && d.source !== "securite" && (
                     <p className="text-legende text-muted-foreground">{CLOTURE_AUTOMATIQUE[d.source]}</p>
                   )}
                 </>
