@@ -3,6 +3,7 @@ import { ActiviteEnDirect } from "@/components/activite/ActiviteEnDirect";
 import { AccesRefuse, equipierPourRubrique } from "@/components/bo/PageRubrique";
 import { compterOperations, listerOperations } from "@/lib/activite/lectures";
 import { filtresDepuis, type ReponseOperations } from "@/lib/activite/types";
+import { peut } from "@/lib/equipe/types";
 import { rubriqueObligatoire } from "@/lib/navigation";
 
 const rubrique = rubriqueObligatoire("/activite-en-direct");
@@ -60,7 +61,12 @@ export default async function PageActivite({
         Toutes les opérations en cours, relues toutes les quinze secondes. Cliquez un compteur pour filtrer la liste
         sur ce qu’il compte, une ligne pour voir qui doit agir, avant quand, et ce qui s’est passé.
       </p>
-      <ActiviteEnDirect initial={initial} initialCle={cle.toString()} peutInclureTest={peutInclureTest} />
+      <ActiviteEnDirect
+        initial={initial}
+        initialCle={cle.toString()}
+        peutInclureTest={peutInclureTest}
+        peutTraiter={peut(moi, "dossiers.traiter")}
+      />
     </div>
   );
 }

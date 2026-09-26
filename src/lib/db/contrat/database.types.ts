@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@e51a6f7 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@b852cfb : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260926006000_les_operations_automatiques_se_voient.sql
+// Base : 20260926007000_a_traiter.sql
 
 export type Json =
   | string
@@ -8142,6 +8142,83 @@ export type Database = {
           ville: string
         }[]
       }
+      bo_dossier_attribuer: {
+        Args: {
+          p_cle: string
+          p_id: string
+          p_responsable: string
+          p_responsable_attendu: string
+        }
+        Returns: Json
+      }
+      bo_dossier_clore: {
+        Args: { p_cle: string; p_id: string; p_motif: string }
+        Returns: Json
+      }
+      bo_dossier_demander_preuve: {
+        Args: {
+          p_cle: string
+          p_destinataire: string
+          p_id: string
+          p_message: string
+        }
+        Returns: Json
+      }
+      bo_dossier_escalader: {
+        Args: { p_cle: string; p_id: string; p_motif: string; p_vers: string }
+        Returns: Json
+      }
+      bo_dossier_lire: { Args: { p_id: string }; Returns: Json }
+      bo_dossier_noter: {
+        Args: { p_cle: string; p_id: string; p_texte: string }
+        Returns: Json
+      }
+      bo_dossier_ouvrir: {
+        Args: {
+          p_attribuer: boolean
+          p_cle: string
+          p_motif: string
+          p_objet_id: string
+          p_objet_table: string
+          p_priorite: string
+          p_securite: boolean
+          p_titre: string
+        }
+        Returns: Json
+      }
+      bo_dossier_prioriser: {
+        Args: {
+          p_cle: string
+          p_id: string
+          p_motif: string
+          p_priorite: string
+        }
+        Returns: Json
+      }
+      bo_dossiers_compteurs: {
+        Args: { p_inclure_test?: boolean; p_perimetre?: string }
+        Returns: {
+          code: string
+          description: string
+          libelle: string
+          nombre: number
+        }[]
+      }
+      bo_dossiers_lister: {
+        Args: {
+          p_categorie?: string
+          p_inclure_clos?: boolean
+          p_inclure_test?: boolean
+          p_perimetre?: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["bo_dossier"][]
+        SetofOptions: {
+          from: "*"
+          to: "bo_dossier"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       bo_equipe_demander: {
         Args: {
           p_attribuer: boolean
@@ -11032,6 +11109,35 @@ export type Database = {
         | "courtage"
     }
     CompositeTypes: {
+      bo_dossier: {
+        id: string | null
+        ref: string | null
+        source: string | null
+        titre: string | null
+        motif: string | null
+        categorie: string | null
+        priorite: string | null
+        securite: boolean | null
+        equipe: string | null
+        responsable: string | null
+        responsable_nom: string | null
+        escalade_vers: string | null
+        echeance_traitement: string | null
+        reponse_recue_le: string | null
+        statut: string | null
+        cree_le: string | null
+        clos_le: string | null
+        objet_table: string | null
+        objet_id: string | null
+        objet_ref: string | null
+        etape_libelle: string | null
+        action_attendue: string | null
+        acteur_attendu: string | null
+        echeance: string | null
+        alerte_libelle: string | null
+        dernier_evenement_le: string | null
+        est_test: boolean | null
+      }
       bo_operation: {
         ref: string | null
         type: string | null

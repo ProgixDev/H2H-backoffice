@@ -45,6 +45,8 @@ type Props = {
   initialCle: string;
   /** Un équipier réel peut demander à voir aussi le test ; un équipier de test ne voit que lui. */
   peutInclureTest: boolean;
+  /** Créer un ticket, s'attribuer un dossier : `dossiers.traiter`. */
+  peutTraiter: boolean;
 };
 
 const enAttente = (gele: Operation[], vivant: Operation[]) => {
@@ -64,7 +66,7 @@ const enAttente = (gele: Operation[], vivant: Operation[]) => {
  * continuent de tourner. Ouvrir une opération gèle aussi la liste : la ligne
  * sur laquelle on intervient ne se déplace pas sous le curseur.
  */
-export function ActiviteEnDirect({ initial, initialCle, peutInclureTest }: Props) {
+export function ActiviteEnDirect({ initial, initialCle, peutInclureTest, peutTraiter }: Props) {
   const [f, setF] = useQueryStates(PARSEURS, { history: "replace" });
   const [saisie, setSaisie] = useState(f.q ?? "");
   const minuteur = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -334,7 +336,13 @@ export function ActiviteEnDirect({ initial, initialCle, peutInclureTest }: Props
         </div>
       )}
 
-      <FicheOperation operation={selection} inclureTest={inclureTest} maintenant={maintenant} surFermeture={fermer} />
+      <FicheOperation
+        operation={selection}
+        inclureTest={inclureTest}
+        peutTraiter={peutTraiter}
+        maintenant={maintenant}
+        surFermeture={fermer}
+      />
     </div>
   );
 }

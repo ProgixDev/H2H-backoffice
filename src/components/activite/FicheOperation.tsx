@@ -1,11 +1,16 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { LectureEchouee } from "@/components/bo/LectureEchouee";
 import { StatutPastille } from "@/components/bo/StatutPastille";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useGeste } from "@/lib/db/useGeste";
+import { ouvrirDossier } from "@/lib/dossiers/actions";
 import { euros } from "@/lib/litiges/types";
 import { LIBELLE_ACTEUR, LIBELLE_SERVICE, LIBELLE_TYPE, type Operation, type ReponseEvenements } from "@/lib/activite/types";
 import { lireActivite, tonEtape, TON_ALERTE } from "./commun";
@@ -28,16 +33,19 @@ function Question({ titre, children }: { titre: string; children: React.ReactNod
  * chronologie. Tant qu'elle est ouverte, la liste derrière ne bouge pas.
  *
  * ⚠️ LES ACTIONS SENSIBLES NE SE FONT PAS ICI (§4) : elles passent par la fiche
- * complète, qui arrive avec la tranche suivante. Les boutons le disent.
+ * complète, qui arrive avec une tranche suivante. D'ici, on crée un ticket ou
+ * on prend le dossier — dans « À traiter ».
  */
 export function FicheOperation({
   operation: o,
   inclureTest,
+  peutTraiter,
   maintenant,
   surFermeture,
 }: {
   operation: Operation | null;
   inclureTest: boolean;
+  peutTraiter: boolean;
   maintenant: number;
   surFermeture: () => void;
 }) {
@@ -98,16 +106,11 @@ export function FicheOperation({
                 <Echeance iso={o.echeance} maintenant={maintenant} />
               </Question>
 
-              <div className="flex flex-wrap gap-2">
-                {["Ouvrir le dossier", "Créer un ticket", "M’attribuer le dossier"].map((a) => (
-                  <Button key={a} variant="outline" size="sm" disabled>
-                    {a}
-                  </Button>
-                ))}
-              </div>
-              <p className="text-legende text-muted-foreground">
-                La fiche complète, les tickets et l’attribution arrivent avec la tranche suivante (« À traiter »).
-              </p>
+              {peutTraiter ? (
+                <ActionsTicket key={o.objet_id} o={o} />
+              ) : (
+                <p className="text-legende text-muted-foreground">Votre rôle permet de lire, pas de traiter.</p>
+              )}
 
               <h3 className="mt-2 text-h3 font-semibold">Chronologie</h3>
               {o.objet_table === "taches" ? (
@@ -134,5 +137,66 @@ export function FicheOperation({
         )}
       </SheetContent>
     </Sheet>
+  );
+}
+
+/**
+ * « Créer un ticket » et « M'attribuer le dossier » (§4). La base rend le
+ * dossier déjà ouvert sur l'opération plutôt qu'un doublon ; on y va ensuite.
+ */
+function ActionsTicket({ o }: { o: Operation }) {
+  const router = useRouter();
+  const ouvrir = useGeste(ouvrirDossier);
+  const [motif, setMotif] = useState("");
+  const [saisie, setSaisie] = useState(false);
+
+  async function aller(attribuer: boolean, texte: string, succes: string) {
+    const r = await ouvrir.lancer(
+      {
+        objetTable: o.objet_table,
+        objetId: o.objet_id,
+        titre: null,
+        motif: texte,
+        priorite: "normale",
+        securite: false,
+        attribuer,
+      },
+      succes,
+    );
+    if (r?.ok) router.push(`/a-traiter?dossier=${(r.donnees as { dossier: string }).dossier}`);
+  }
+
+  return (
+    <div className="grid gap-2">
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" disabled title="La fiche complète arrive avec une tranche suivante.">
+          Ouvrir le dossier
+        </Button>
+        <Button variant="outline" size="sm" disabled={ouvrir.enCours} onClick={() => setSaisie((s) => !s)}>
+          Créer un ticket
+        </Button>
+        <Button
+          size="sm"
+          disabled={ouvrir.enCours}
+          onClick={() =>
+            aller(true, o.alerte_libelle ?? o.action_attendue ?? o.etape_libelle, "Le dossier vous est attribué.")
+          }
+        >
+          M’attribuer le dossier
+        </Button>
+      </div>
+      {saisie && (
+        <div className="flex gap-2">
+          <Input value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Pourquoi ce ticket ?" aria-label="Motif du ticket" />
+          <Button
+            size="sm"
+            disabled={motif.trim().length < 3 || ouvrir.enCours}
+            onClick={() => aller(false, motif.trim(), "Ticket créé.")}
+          >
+            Créer
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

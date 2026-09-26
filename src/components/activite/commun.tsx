@@ -15,10 +15,10 @@ export class ErreurLecture extends Error {
   }
 }
 
-export async function lireActivite<T>(params: URLSearchParams, signal?: AbortSignal): Promise<T> {
+export async function lireActivite<T>(params: URLSearchParams, signal?: AbortSignal, route = "/api/activite"): Promise<T> {
   let r: Response;
   try {
-    r = await fetch(`/api/activite?${params}`, { signal, cache: "no-store" });
+    r = await fetch(`${route}?${params}`, { signal, cache: "no-store" });
   } catch (e) {
     if (signal?.aborted) throw e;
     throw new ErreurLecture("Le réseau ne répond pas.", "BO_RESEAU", 0);
