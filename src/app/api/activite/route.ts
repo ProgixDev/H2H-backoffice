@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { compterOperations, listerEvenements, listerOperations } from "@/lib/activite/lectures";
+import { compterOperations, listerEvenements, listerOperations, listerTaches } from "@/lib/activite/lectures";
 import { filtresDepuis } from "@/lib/activite/types";
 import { RefusBO } from "@/lib/db/rpc";
 
@@ -17,6 +17,9 @@ export async function GET(requete: NextRequest) {
   const p = requete.nextUrl.searchParams;
   const filtres = filtresDepuis(p);
   try {
+    if (p.get("vue") === "taches") {
+      return reponse({ taches: await listerTaches() });
+    }
     if (p.get("vue") === "evenements") {
       const avant = Number(p.get("avant"));
       const evenements = await listerEvenements({

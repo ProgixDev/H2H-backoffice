@@ -48,7 +48,8 @@ export function FicheOperation({
         new URLSearchParams({ vue: "evenements", objet: o!.objet_id, test: String(inclureTest) }),
         signal,
       ),
-    enabled: o !== null,
+    // Un travail planifié n'a pas de chronologie d'événements : son journal est dans l'onglet des travaux.
+    enabled: o !== null && o.objet_table !== "taches",
     refetchInterval: 15_000,
   });
 
@@ -109,7 +110,11 @@ export function FicheOperation({
               </p>
 
               <h3 className="mt-2 text-h3 font-semibold">Chronologie</h3>
-              {chrono.isPending ? (
+              {o.objet_table === "taches" ? (
+                <p className="text-corps text-muted-foreground">
+                  Les passages de ce travail et leurs erreurs sont dans l’onglet « Travaux automatiques ».
+                </p>
+              ) : chrono.isPending ? (
                 <div className="grid gap-2">
                   <Skeleton className="h-10" />
                   <Skeleton className="h-10" />

@@ -1,8 +1,9 @@
 // Les formes que rendent `bo_operations_lister`, `bo_operations_compteurs` et
 // `bo_evenements_lister` (migration 20260926005000 de hand-to-hand).
 
+/** Les services qu'on filtre. Une ligne peut aussi être « plateforme » : un travail planifié en échec. */
 export const SERVICES = ["marketplace", "logistic", "flash", "live"] as const;
-export type Service = (typeof SERVICES)[number];
+export type Service = (typeof SERVICES)[number] | "plateforme";
 
 export type Acteur =
   | "acheteur"
@@ -19,7 +20,7 @@ export type Operation = {
   ref: string;
   type: string;
   service: Service;
-  objet_table: "orders" | "courtage_listings" | "live_sessions";
+  objet_table: "orders" | "courtage_listings" | "live_sessions" | "taches";
   objet_id: string;
   bien_titre: string | null;
   bien_image: string | null;
@@ -65,6 +66,21 @@ export type Evenement = {
   est_test: boolean;
 };
 
+/** Un travail planifié et sa santé (`bo_taches_automatiques`). */
+export type Tache = {
+  code: string;
+  libelle: string;
+  description: string;
+  periode_minutes: number;
+  etat: "ok" | "erreur" | "muette";
+  dernier_passage: string | null;
+  dernier_succes: string | null;
+  derniere_erreur: string | null;
+  derniere_erreur_le: string | null;
+  executions_24h: number;
+  erreurs_24h: number;
+};
+
 export type FiltresActivite = {
   compteur: string | null;
   service: Service | null;
@@ -76,12 +92,14 @@ export type FiltresActivite = {
 /** Ce que la route `/api/activite` rend. */
 export type ReponseOperations = { compteurs: Compteur[]; operations: Operation[] };
 export type ReponseEvenements = { evenements: Evenement[] };
+export type ReponseTaches = { taches: Tache[] };
 
 export const LIBELLE_SERVICE: Record<Service, string> = {
   marketplace: "Marketplace",
   logistic: "H2H Logistic",
   flash: "Offre Flash",
   live: "Live",
+  plateforme: "Plateforme",
 };
 
 export const LIBELLE_TYPE: Record<string, string> = {
@@ -95,6 +113,7 @@ export const LIBELLE_TYPE: Record<string, string> = {
   litige: "Litige",
   flash: "Offre Flash",
   live: "Live",
+  automatique: "Travail automatique",
 };
 
 export const LIBELLE_ACTEUR: Record<Acteur, string> = {

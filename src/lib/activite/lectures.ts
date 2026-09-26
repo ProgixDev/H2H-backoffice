@@ -1,7 +1,7 @@
 import "server-only";
 import { rpc } from "@/lib/db/rpc";
 import { supabaseServeur } from "@/lib/supabase/serveur";
-import type { Compteur, Evenement, FiltresActivite, Operation } from "./types";
+import type { Compteur, Evenement, FiltresActivite, Operation, Tache } from "./types";
 
 /**
  * Les opérations en cours (ou récemment terminées), filtrées.
@@ -36,4 +36,9 @@ export async function listerEvenements(o: {
     p_objet_id: o.objet ?? null,
     p_inclure_test: o.inclureTest,
   });
+}
+
+/** Les travaux planifiés et leur santé : dernier passage, dernière erreur, muets. */
+export async function listerTaches(): Promise<Tache[]> {
+  return rpc<Tache[]>(await supabaseServeur(), "bo_taches_automatiques");
 }

@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@565fd7f : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@e51a6f7 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260926005000_l_activite_en_direct.sql
+// Base : 20260926006000_les_operations_automatiques_se_voient.sql
 
 export type Json =
   | string
@@ -8306,6 +8306,22 @@ export type Database = {
         }
       }
       bo_rejoindre: { Args: never; Returns: Json }
+      bo_taches_automatiques: {
+        Args: never
+        Returns: {
+          code: string
+          dernier_passage: string
+          dernier_succes: string
+          derniere_erreur: string
+          derniere_erreur_le: string
+          description: string
+          erreurs_24h: number
+          etat: string
+          executions_24h: number
+          libelle: string
+          periode_minutes: number
+        }[]
+      }
       bo_transporteur_regler: {
         Args: {
           p_cle: string
