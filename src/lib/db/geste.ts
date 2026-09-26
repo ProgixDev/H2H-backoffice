@@ -2,7 +2,7 @@ import "server-only";
 import { reverificationError } from "@clerk/nextjs/server";
 import { REVERIFICATION_BO } from "@/lib/connexion/reverification";
 import { revalidatePath } from "next/cache";
-import { refusEnResultat, rpc, RefusBO, type Resultat } from "@/lib/db/rpc";
+import { refusEnResultat, rpc, RefusBO, type AppelRpc, type Resultat } from "@/lib/db/rpc";
 import { supabaseServeur } from "@/lib/supabase/serveur";
 
 /**
@@ -24,12 +24,11 @@ import { supabaseServeur } from "@/lib/supabase/serveur";
  * d'entrée appelable depuis le navigateur.
  */
 export async function geste<T>(
-  nom: string,
-  args: Record<string, unknown>,
   chemins: string[],
+  ...appel: AppelRpc
 ): Promise<Resultat<T> | ReturnType<typeof reverificationError>> {
   try {
-    const donnees = await rpc<T>(await supabaseServeur(), nom, args);
+    const donnees = await rpc<T>(await supabaseServeur(), ...appel);
     for (const c of chemins) revalidatePath(c);
     return { ok: true, donnees };
   } catch (e) {

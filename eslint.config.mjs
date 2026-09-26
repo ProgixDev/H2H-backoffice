@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Le contrat avec la base : généré dans hand-to-hand, recopié tel quel.
+    "src/lib/db/contrat/**",
   ]),
 ]);
 

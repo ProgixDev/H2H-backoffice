@@ -11,7 +11,8 @@
     "sync:marque": "node scripts/sync-marque.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sync:contrat": "node scripts/sync-contrat.mjs"
   },
   "dependencies": {
     "@clerk/localizations": "^4.20.0",

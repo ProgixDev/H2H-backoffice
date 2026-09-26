@@ -10,10 +10,10 @@ const CHEMIN = "/utilisateurs";
  * personne — la note d'acceptation reste au journal de l'équipe (R6.3).
  */
 export async function trancherDemandeDeRole(p: { demande: string; approuver: boolean; motif: string; cle: string }) {
-  return geste<{ demande: string; statut: string }>("bo_demande_de_role_trancher", {
+  return geste<{ demande: string; statut: string }>([CHEMIN], "bo_demande_de_role_trancher", {
     p_id: p.demande,
     p_approuver: p.approuver,
     p_motif: p.motif,
     p_cle: p.cle,
-  }, [CHEMIN]);
+  });
 }

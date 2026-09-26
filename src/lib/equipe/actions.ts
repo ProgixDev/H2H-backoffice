@@ -2,15 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { geste as gesteBO } from "@/lib/db/geste";
-import { refusEnResultat, rpc } from "@/lib/db/rpc";
+import { refusEnResultat, rpc, type AppelRpc } from "@/lib/db/rpc";
 import { supabaseServeur } from "@/lib/supabase/serveur";
 import type { Role } from "./types";
 
 // Les gestes de la page « Équipe et journal d'audit ». La clé « une seule
 // fois », la vérification d'identité et le rafraîchissement sont ceux de
 // `geste` (`@/lib/db/geste`), commun à toutes les rubriques.
-function geste<T>(nom: string, args: Record<string, unknown>) {
-  return gesteBO<T>(nom, args, ["/equipe-et-audit"]);
+function geste<T>(...appel: AppelRpc) {
+  return gesteBO<T>(["/equipe-et-audit"], ...appel);
 }
 
 export async function rejoindreEquipe() {

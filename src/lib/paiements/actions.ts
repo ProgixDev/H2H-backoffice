@@ -18,11 +18,11 @@ export async function reglerFactureTransporteur(p: {
   total: number;
   cle: string;
 }) {
-  return geste<{ reglement: string; total_cents: number; commandes: number }>("bo_transporteur_regler", {
+  return geste<{ reglement: string; total_cents: number; commandes: number }>([CHEMIN], "bo_transporteur_regler", {
     p_transporteur: p.transporteur,
     p_reference: p.reference,
     p_commandes: p.commandes,
     p_total_attendu_cents: p.total,
     p_cle: p.cle,
-  }, [CHEMIN]);
+  });
 }

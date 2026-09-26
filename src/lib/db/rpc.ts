@@ -1,4 +1,27 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/db/contrat/database.types";
+
+// ── Le contrat avec la base ─────────────────────────────────────────────────
+//
+// 🔴 LE NOM ET LES ARGUMENTS D'UN APPEL SE VÉRIFIENT À LA COMPILATION, contre
+// les types générés dans hand-to-hand (`npm run sync:contrat`). Un argument
+// renommé ou ajouté là-bas casse la vérification de types ici, pas la
+// production.
+//
+// ⚠️ LES VALEURS PEUVENT ÊTRE NULLES. Les types générés ne le disent pas pour un
+// paramètre, mais la base l'accepte (motif absent, repère facultatif…) : ce qui
+// dérive entre deux dépôts, ce sont les NOMS, et c'est eux qu'on tient.
+type Fonctions = Database["public"]["Functions"];
+export type NomRpc = keyof Fonctions & string;
+type ArgsBruts<N extends NomRpc> = Fonctions[N] extends { Args: infer A } ? A : never;
+type Nullables<A> = { [K in keyof A]: A[K] | null };
+
+/** Un appel à la base : son nom, puis ses arguments s'il en a. */
+export type AppelRpc = {
+  [N in NomRpc]: [ArgsBruts<N>] extends [never]
+    ? [nom: N]
+    : [nom: N, args: Nullables<ArgsBruts<N>>];
+}[NomRpc];
 
 /**
  * Un refus de la base, avec l'INDICE qu'elle y attache.
@@ -18,11 +41,8 @@ export class RefusBO extends Error {
   }
 }
 
-export async function rpc<T>(
-  client: SupabaseClient,
-  nom: string,
-  args?: Record<string, unknown>,
-): Promise<T> {
+export async function rpc<T>(client: SupabaseClient, ...appel: AppelRpc): Promise<T> {
+  const [nom, args] = appel as [string, Record<string, unknown> | undefined];
   const { data, error } = await client.rpc(nom, args);
   if (error) throw new RefusBO(error.message, error.hint || null, error.code || null);
   return data as T;

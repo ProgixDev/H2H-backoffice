@@ -23,14 +23,14 @@ export async function deciderLitige(p: {
   phaseAttendue: string;
   cle: string;
 }) {
-  return geste<{ a_rembourser_cents: number }>("bo_litige_decider", {
+  return geste<{ a_rembourser_cents: number }>([CHEMIN], "bo_litige_decider", {
     p_claim_id: p.dossier,
     p_decision: p.decision,
     p_montant_cents: p.montantCents,
     p_motif: p.motif,
     p_phase_attendue: p.phaseAttendue,
     p_cle: p.cle,
-  }, [CHEMIN]);
+  });
 }
 
 type ReponseRemboursement = {
