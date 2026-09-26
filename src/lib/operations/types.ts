@@ -9,7 +9,7 @@
 import type { Database } from "@/lib/db/contrat/database.types";
 import type { Echeance, Operation } from "@/lib/activite/types";
 import type { Priorite } from "@/lib/dossiers/types";
-import type { AttenteFonds, EtatFonds, Retenue } from "@/lib/paiements/types";
+import type { AttenteFonds, EtatFonds, Retenue, StatutOrdre } from "@/lib/paiements/types";
 
 type E = Database["public"]["Enums"];
 
@@ -310,6 +310,45 @@ export type Paiements = {
       motif_levee: string | null;
     }[];
   };
+  /** Les ordres financiers de l'achat (migration 20260926014000), du plus récent au plus ancien. */
+  ordres: {
+    id: string;
+    ref: string;
+    nature: "remboursement";
+    statut: StatutOrdre;
+    montant_cents: number;
+    litige: boolean;
+    /** Le motif INTERNE de l'équipe. */
+    motif: string;
+    demande_par: string | null;
+    cree_le: string;
+    demande_le: string | null;
+    termine_le: string | null;
+    erreur: string | null;
+    stripe: string | null;
+    tentatives: number;
+    reel: boolean;
+    reprise: Record<string, unknown> | null;
+    validation: {
+      id: string;
+      statut: string;
+      expire_le: string;
+      valideur: string | null;
+      decide_le: string | null;
+      motif_decision: string | null;
+      peut_decider: boolean;
+    } | null;
+    essais: {
+      numero: number;
+      le: string;
+      resultat: "reussi" | "en_attente" | "echoue" | "inconnu" | null;
+      erreur: string | null;
+      stripe: string | null;
+      verifications: number;
+    }[];
+  }[];
+  /** Ce qu'un nouvel ordre pourrait encore rendre, ordres en route déduits. */
+  remboursable_cents: number;
 };
 
 // ── Livraison ───────────────────────────────────────────────────────────────

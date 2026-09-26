@@ -1,7 +1,7 @@
 import "server-only";
 import { rpc } from "@/lib/db/rpc";
 import { supabaseServeur } from "@/lib/supabase/serveur";
-import type { DuTransporteur, FiltreFonds, FondsAVerser } from "./types";
+import type { DuTransporteur, FiltreFonds, FondsAVerser, OrdreFinancier, StatutOrdre } from "./types";
 
 /**
  * Ce qui reste dû aux transporteurs tiers, commande par commande — le grand
@@ -22,4 +22,12 @@ export async function listerTransporteursARegler(): Promise<DuTransporteur[]> {
  */
 export async function listerFondsAVerser(etat: FiltreFonds | null): Promise<FondsAVerser[]> {
   return rpc<FondsAVerser[]>(await supabaseServeur(), "bo_fonds_lister", { p_etat: etat, p_inclure_test: false });
+}
+
+/**
+ * Les ordres financiers : ce qui attend d'abord — en échec, en validation,
+ * demandé, en cours —, puis le reste. `peut_decider` vient de la base.
+ */
+export async function listerOrdres(statut: StatutOrdre | null): Promise<OrdreFinancier[]> {
+  return rpc<OrdreFinancier[]>(await supabaseServeur(), "bo_ordres_lister", { p_statut: statut, p_inclure_test: false });
 }

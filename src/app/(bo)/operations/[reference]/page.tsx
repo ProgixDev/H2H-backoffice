@@ -61,6 +61,7 @@ export default async function PageFiche({ params }: Params) {
           peutReveler={peut(moi, "donnees.reveler")}
           peutRetenir={peut(moi, "fonds.retenir")}
           peutLiberer={peut(moi, "fonds.liberer")}
+          peutRembourser={peut(moi, "remboursements.preparer")}
         />
       </div>
     );

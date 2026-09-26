@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { AnimationH2H } from "@/components/marque/AnimationH2H";
-import { DialogueConfirmation } from "@/components/bo/DialogueConfirmation";
 import { StatutPastille, type Ton } from "@/components/bo/StatutPastille";
 import { Button } from "@/components/ui/button";
 import { useGeste } from "@/lib/db/useGeste";
-import { deciderLitige, emettreRemboursement } from "@/lib/litiges/actions";
+import { deciderLitige } from "@/lib/litiges/actions";
+import { BoutonRembourserLitige } from "@/components/paiements/GestesOrdres";
+import { TON_ORDRE } from "@/components/paiements/OrdresFinanciers";
+import { LIBELLE_STATUT_ORDRE } from "@/lib/paiements/types";
 import {
   euros,
   libelleMotif,
@@ -38,7 +40,11 @@ const quand = (iso: string | null) =>
 type Props = { litiges: Litige[]; peutDecider: boolean; peutRembourser: boolean };
 
 /**
- * Les dossiers de réclamation, l'arbitrage et l'émission du remboursement.
+ * Les dossiers de réclamation, l'arbitrage et la demande du remboursement.
+ *
+ * ⚠️ LE REMBOURSEMENT SE DEMANDE, IL NE PART PAS D'ICI : c'est un ordre
+ * financier, validé au-delà de 100 €, exécuté par `stripe-ordres`. Son dernier
+ * ordre dit où il en est ; un ordre en échec se relance depuis Paiements.
  *
  * 🔴 LES BOUTONS NE PROTÈGENT RIEN : chaque geste repasse par la base, qui
  * vérifie la permission, la double authentification, le conflit d'intérêts et
@@ -46,9 +52,7 @@ type Props = { litiges: Litige[]; peutDecider: boolean; peutRembourser: boolean 
  */
 export function ListeLitiges({ litiges, peutDecider, peutRembourser }: Props) {
   const [arbitrage, setArbitrage] = useState<Litige | null>(null);
-  const [emission, setEmission] = useState<Litige | null>(null);
   const decider = useGeste(deciderLitige);
-  const emettre = useGeste(emettreRemboursement);
 
   if (litiges.length === 0) {
     return (
@@ -64,8 +68,9 @@ export function ListeLitiges({ litiges, peutDecider, peutRembourser }: Props) {
     <>
       <ul className="grid gap-3">
         {litiges.map((l) => {
-          // Une réservation ouverte se relance au même montant — c'est elle qui partira.
-          const aEmettre = l.reservation_cents ?? l.a_emettre_cents;
+          // Un ordre vivant — ou une réservation de l'écran mobile — porte déjà le remboursement.
+          const enRoute = l.reservation_cents !== null
+            || (l.ordre_statut !== null && l.ordre_statut !== "reussi");
           return (
             <li key={l.id} className="rounded-xl border bg-card p-4" style={{ boxShadow: "var(--ombre-carte)" }}>
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -93,10 +98,21 @@ export function ListeLitiges({ litiges, peutDecider, peutRembourser }: Props) {
                   </span>
                   {l.reservation_cents !== null && (
                     <span className="text-legende text-h2h-warning">
-                      Un remboursement de {euros(l.reservation_cents)} est en cours depuis le{" "}
-                      {quand(l.reservation_depuis)} : le relancer le reprend, sans risque de double
-                      remboursement.
+                      Un remboursement de {euros(l.reservation_cents)} lancé depuis l’application mobile est en
+                      cours depuis le {quand(l.reservation_depuis)}.
                     </span>
+                  )}
+                  {l.ordre_statut && l.ordre_cents !== null && (
+                    <span className="flex flex-wrap items-center gap-2 text-legende text-muted-foreground">
+                      <StatutPastille ton={TON_ORDRE[l.ordre_statut]}>
+                        {l.ordre_ref} · {LIBELLE_STATUT_ORDRE[l.ordre_statut]}
+                      </StatutPastille>
+                      {euros(l.ordre_cents)} depuis le {quand(l.ordre_depuis)}
+                      {l.ordre_statut === "echoue" && " — relancez-le ou annulez-le depuis Paiements et comptabilité"}
+                    </span>
+                  )}
+                  {l.ordre_erreur && l.ordre_statut === "echoue" && (
+                    <span className="text-legende text-h2h-error">{l.ordre_erreur}</span>
                   )}
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2">
@@ -105,8 +121,8 @@ export function ListeLitiges({ litiges, peutDecider, peutRembourser }: Props) {
                       Arbitrer
                     </Button>
                   )}
-                  {peutRembourser && aEmettre > 0 && (
-                    <Button onClick={() => setEmission(l)}>Émettre {euros(aEmettre)}</Button>
+                  {peutRembourser && !enRoute && l.a_emettre_cents > 0 && (
+                    <BoutonRembourserLitige commande={l.commande_id} litige={l.id} montant={l.a_emettre_cents} />
                   )}
                 </div>
               </div>
@@ -129,26 +145,6 @@ export function ListeLitiges({ litiges, peutDecider, peutRembourser }: Props) {
         }}
       />
 
-      <DialogueConfirmation
-        ouvert={emission !== null}
-        surFermeture={() => setEmission(null)}
-        titre="Émettre le remboursement ?"
-        description={
-          emission && (
-            <>
-              L’argent partira immédiatement vers l’acheteur de la commande {emission.numero_commande} :{" "}
-              <strong>{euros(emission.reservation_cents ?? emission.a_emettre_cents)}</strong>.
-            </>
-          )
-        }
-        libelleAction="Émettre"
-        enCours={emettre.enCours}
-        surConfirmation={async () => {
-          if (!emission) return;
-          const r = await emettre.lancer({ dossier: emission.id }, "Remboursement émis.");
-          if (r) setEmission(null);
-        }}
-      />
     </>
   );
 }

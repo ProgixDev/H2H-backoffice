@@ -56,6 +56,7 @@ export function FicheComplete({
   peutReveler,
   peutRetenir = false,
   peutLiberer = false,
+  peutRembourser = false,
 }: {
   initial: Fiche;
   table: ObjetFiche;
@@ -66,6 +67,8 @@ export function FicheComplete({
   peutRetenir?: boolean;
   /** `fonds.liberer` : lever une retenue de l'équipe. */
   peutLiberer?: boolean;
+  /** `remboursements.preparer` : demander un remboursement hors litige, relancer, annuler. */
+  peutRembourser?: boolean;
 }) {
   const client = useQueryClient();
   const maintenant = useMaintenant();
@@ -168,6 +171,7 @@ export function FicheComplete({
                     commande={id}
                     peutRetenir={peutRetenir}
                     peutLiberer={peutLiberer}
+                    peutRembourser={peutRembourser}
                     surGeste={relire}
                   />
                 ) : (

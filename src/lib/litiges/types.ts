@@ -27,9 +27,16 @@ export type Litige = {
   restant_cents: number;
   /** Ce qui partirait vraiment si l'on émettait maintenant. */
   a_emettre_cents: number;
-  /** Une tentative de remboursement réservée, pas encore aboutie : la relance la reprend. */
+  /** Une réservation de l'écran mobile du support, pas encore aboutie. */
   reservation_cents: number | null;
   reservation_depuis: string | null;
+  /** Le dernier ordre financier du litige (annulés exclus) : son statut dit où en est l'argent. */
+  ordre_id: string | null;
+  ordre_ref: string | null;
+  ordre_statut: "en_validation" | "demande" | "en_cours" | "reussi" | "echoue" | null;
+  ordre_cents: number | null;
+  ordre_depuis: string | null;
+  ordre_erreur: string | null;
   acheteur: string | null;
   vendeur: string | null;
   est_test: boolean;

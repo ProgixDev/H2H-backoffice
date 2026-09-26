@@ -9,14 +9,17 @@ import { Button } from "@/components/ui/button";
 import { deciderValidation } from "@/lib/equipe/actions";
 import { LIBELLE_ROLE, type Role, type Validation } from "@/lib/equipe/types";
 import { useGeste } from "@/lib/db/useGeste";
+import { euros } from "@/lib/paiements/types";
 
 const quand = (iso: string) =>
   new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 function detail(v: Validation): string {
-  const p = v.parametres as { role?: Role; roles?: Role[] };
+  const p = v.parametres as { role?: Role; roles?: Role[]; montant_cents?: number };
   if (p.role) return LIBELLE_ROLE[p.role];
   if (p.roles) return p.roles.map((r) => LIBELLE_ROLE[r]).join(" · ");
+  // Un remboursement (ordre financier) : son montant.
+  if (typeof p.montant_cents === "number") return euros(p.montant_cents);
   return "";
 }
 
@@ -68,7 +71,7 @@ export function ListeValidations({ validations }: { validations: Validation[] })
                 </Button>
               </div>
             ) : (
-              <StatutPastille ton="neutre">En attente d’un autre membre de la Direction</StatutPastille>
+              <StatutPastille ton="neutre">En attente d’une seconde personne</StatutPastille>
             )}
           </div>
         </li>

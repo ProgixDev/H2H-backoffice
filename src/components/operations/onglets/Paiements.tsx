@@ -1,6 +1,13 @@
 import { StatutPastille, type Ton } from "@/components/bo/StatutPastille";
 import { TON_FONDS } from "@/components/paiements/FondsAVerser";
 import { BoutonLever, BoutonRetenir } from "@/components/paiements/GestesFonds";
+import {
+  BoutonAnnulerOrdre,
+  BoutonRelancer,
+  BoutonRembourser,
+  BoutonsValidation,
+} from "@/components/paiements/GestesOrdres";
+import { TON_ORDRE } from "@/components/paiements/OrdresFinanciers";
 import type { Database } from "@/lib/db/contrat/database.types";
 import {
   LIBELLE_COMPTE,
@@ -10,7 +17,7 @@ import {
   LIBELLE_PAIEMENT,
 } from "@/lib/operations/libelles";
 import type { Paiements } from "@/lib/operations/types";
-import { LIBELLE_ATTENTE, LIBELLE_ETAT_FONDS, LIBELLE_ROLE_FONDS } from "@/lib/paiements/types";
+import { LIBELLE_ATTENTE, LIBELLE_ETAT_FONDS, LIBELLE_ROLE_FONDS, LIBELLE_STATUT_ORDRE } from "@/lib/paiements/types";
 import { Aucun, Bloc, Montant, Quand, Reference, Tableau } from "../commun";
 
 // ⚠️ UNE ISSUE DÉFAVORABLE N'EST JAMAIS VERTE.
@@ -32,6 +39,8 @@ type Gestes = {
   commande: string;
   peutRetenir: boolean;
   peutLiberer: boolean;
+  /** `remboursements.preparer` : demander hors litige, relancer, annuler. */
+  peutRembourser: boolean;
   /** Relire la fiche après un geste. */
   surGeste: () => void;
 };
@@ -41,13 +50,24 @@ type Gestes = {
  * leurs demandes, les oppositions, et les écritures du grand livre — la vérité
  * de l'argent de cet achat.
  *
- * ⚠️ UN SEUL GESTE ICI : retenir ou lever une retenue de l'équipe. Aucun argent
- * ne part de cet onglet.
+ * ⚠️ AUCUN ARGENT NE PART DE CET ONGLET : on y retient ou libère des fonds, et
+ * on y DEMANDE un remboursement — un ordre financier, qu'une seconde personne
+ * valide et que `stripe-ordres` exécute.
  */
 export function OngletPaiements({ p, maintenant, ...gestes }: { p: Paiements; maintenant: number } & Gestes) {
   return (
     <div className="grid gap-4">
       {p.fonds && <EtatDesFonds f={p.fonds} maintenant={maintenant} {...gestes} />}
+      {p.ordres && (
+        <OrdresDeLAchat
+          ordres={p.ordres}
+          restant={p.remboursable_cents}
+          maintenant={maintenant}
+          commande={gestes.commande}
+          peutRembourser={gestes.peutRembourser}
+          surGeste={gestes.surGeste}
+        />
+      )}
 
       <Bloc titre="Paiements">
         {p.paiements.length === 0 ? (
@@ -290,6 +310,117 @@ function EtatDesFonds({
             ))}
           </ul>
         </div>
+      )}
+    </Bloc>
+  );
+}
+
+const LIBELLE_ESSAI: Record<string, string> = {
+  reussi: "exécuté",
+  en_attente: "créé, en attente chez Stripe",
+  echoue: "refusé",
+  inconnu: "sans réponse sûre — vérifié avant tout renvoi",
+};
+
+/**
+ * Les ordres financiers de l'achat (§16) : chaque remboursement, ses
+ * tentatives chez Stripe, sa validation — et les gestes qui restent possibles.
+ *
+ * 🔴 UN ORDRE PARTI CHEZ STRIPE NE S'ANNULE PLUS ; un ordre en échec se relance
+ * (une clé neuve, après vérification chez Stripe) ou s'annule.
+ */
+function OrdresDeLAchat({
+  ordres,
+  restant,
+  maintenant,
+  commande,
+  peutRembourser,
+  surGeste,
+}: {
+  ordres: Paiements["ordres"];
+  restant: number;
+  maintenant: number;
+  commande: string;
+  peutRembourser: boolean;
+  surGeste: () => void;
+}) {
+  const vivant = ordres.some((o) => ["en_validation", "demande", "en_cours", "echoue"].includes(o.statut));
+  return (
+    <Bloc
+      titre="Ordres financiers"
+      aside={
+        peutRembourser && !vivant ? (
+          <BoutonRembourser commande={commande} restant={restant} surGeste={surGeste} />
+        ) : undefined
+      }
+    >
+      {ordres.length === 0 ? (
+        <Aucun>Aucun remboursement demandé par l’équipe sur cet achat.</Aucun>
+      ) : (
+        <ul className="grid gap-2">
+          {ordres.map((o) => (
+            <li key={o.id} className="grid gap-1 rounded-lg border p-3">
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold tabular-nums">{o.ref}</span>
+                <StatutPastille ton={TON_ORDRE[o.statut]}>{LIBELLE_STATUT_ORDRE[o.statut]}</StatutPastille>
+                <Montant cents={o.montant_cents} fort />
+                <StatutPastille ton="neutre">{o.litige ? "Litige" : "Hors litige"}</StatutPastille>
+                {o.reel === false && <StatutPastille ton="attention">TEST</StatutPastille>}
+                {o.stripe && <Reference valeur={o.stripe} />}
+              </span>
+              <span className="text-legende text-muted-foreground">
+                Demandé <Quand iso={o.cree_le} maintenant={maintenant} />
+                {o.demande_par ? ` par ${o.demande_par}` : ""} · « {o.motif} »
+              </span>
+              {o.validation && (
+                <span className="text-legende text-muted-foreground">
+                  {o.validation.statut === "en_attente" ? (
+                    <>
+                      Attend une seconde personne (Finance ou Direction), jusqu’à{" "}
+                      <Quand iso={o.validation.expire_le} maintenant={maintenant} />
+                    </>
+                  ) : (
+                    <>
+                      Validation : {o.validation.statut}
+                      {o.validation.valideur ? ` par ${o.validation.valideur}` : ""}
+                      {o.validation.motif_decision ? ` · « ${o.validation.motif_decision} »` : ""}
+                    </>
+                  )}
+                </span>
+              )}
+              {o.essais.length > 0 && (
+                <ul className="grid gap-0.5 text-legende text-muted-foreground">
+                  {o.essais.map((e) => (
+                    <li key={e.numero}>
+                      Tentative {e.numero} · <Quand iso={e.le} maintenant={maintenant} /> ·{" "}
+                      {e.resultat ? LIBELLE_ESSAI[e.resultat] : "en vol"}
+                      {e.verifications > 0 ? ` · vérifiée ${e.verifications} fois` : ""}
+                      {e.erreur ? ` · ${e.erreur}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {o.erreur && <span className="text-legende text-h2h-error">{o.erreur}</span>}
+              {o.reprise && "dette" in o.reprise && (
+                <span className="text-legende text-h2h-warning">
+                  Le vendeur avait déjà été versé et la somme n’a pas pu être reprise : une dette est inscrite, qui
+                  retient ses prochains versements.
+                </span>
+              )}
+              <span className="flex flex-wrap gap-2">
+                {o.statut === "en_validation" && o.validation?.peut_decider && (
+                  <BoutonsValidation validation={o.validation.id} surGeste={surGeste} taille="xs" />
+                )}
+                {peutRembourser && o.statut === "echoue" && (
+                  <BoutonRelancer ordre={o.id} surGeste={surGeste} taille="xs" />
+                )}
+                {peutRembourser && ["en_validation", "demande", "echoue"].includes(o.statut) && (
+                  <BoutonAnnulerOrdre ordre={o.id} surGeste={surGeste} taille="xs" />
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
     </Bloc>
   );

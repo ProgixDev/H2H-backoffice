@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@f1ef32b : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@9409f46 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260926013000_les_fonds_se_retiennent.sql
+// Base : 20260926014000_un_remboursement_devient_un_ordre.sql
 
 export type Json =
   | string
@@ -8389,6 +8389,12 @@ export type Database = {
           id: string
           motif: string
           numero_commande: string
+          ordre_cents: number
+          ordre_depuis: string
+          ordre_erreur: string
+          ordre_id: string
+          ordre_ref: string
+          ordre_statut: string
           ouvert_le: string
           phase: string
           reservation_cents: number
@@ -8466,6 +8472,41 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      bo_ordre_annuler: {
+        Args: { p_cle: string; p_motif: string; p_ordre: string }
+        Returns: Json
+      }
+      bo_ordre_relancer: {
+        Args: { p_cle: string; p_motif: string; p_ordre: string }
+        Returns: Json
+      }
+      bo_ordres_lister: {
+        Args: { p_inclure_test?: boolean; p_statut?: string }
+        Returns: {
+          commande_id: string
+          cree_le: string
+          demande_le: string
+          demande_par: string
+          erreur: string
+          est_test: boolean
+          id: string
+          litige: boolean
+          montant_cents: number
+          motif: string
+          nature: string
+          ordre_ref: string
+          peut_decider: boolean
+          reel: boolean
+          reference: string
+          statut: string
+          stripe: string
+          tentatives: number
+          termine_le: string
+          validation_expire_le: string
+          validation_id: string
+          validation_statut: string
+        }[]
+      }
       bo_ouvrir_piece: {
         Args: {
           p_motif: string
@@ -8487,6 +8528,16 @@ export type Database = {
         }
       }
       bo_rejoindre: { Args: never; Returns: Json }
+      bo_remboursement_demander: {
+        Args: {
+          p_claim: string
+          p_cle: string
+          p_montant_cents: number
+          p_motif: string
+          p_order: string
+        }
+        Returns: Json
+      }
       bo_reveler: {
         Args: {
           p_champ: string
@@ -10583,6 +10634,37 @@ export type Database = {
           kind: string
           livemode: boolean
           payment_intent_id: string
+        }[]
+      }
+      stripe_ordre_reprise: {
+        Args: { p_ordre: string; p_resultat: Json }
+        Returns: boolean
+      }
+      stripe_ordre_resultat: {
+        Args: {
+          p_erreur?: string
+          p_ordre: string
+          p_resultat: string
+          p_stripe_id?: string
+          p_tentative: number
+        }
+        Returns: boolean
+      }
+      stripe_ordres_a_traiter: {
+        Args: { p_limite?: number }
+        Returns: {
+          action: string
+          claim_id: string
+          cle: string
+          deja_tente: boolean
+          livemode: boolean
+          montant_cents: number
+          nature: string
+          order_id: string
+          ordre_id: string
+          payment_intent: string
+          stripe_objet_id: string
+          tentative: number
         }[]
       }
       stripe_part_vendeur_encaissee: {

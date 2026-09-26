@@ -102,3 +102,50 @@ export const LIBELLE_ROLE_FONDS: Record<FondsAVerser["role"], string> = {
   vendeur: "Vendeur",
   cotransporteur: "Cotransporteur",
 };
+
+// ── Les ordres financiers (`bo_ordres_lister`, migration 20260926014000) ────
+//
+// §16.5 : « demandé, en cours, réussi, échoué » sont des statuts distincts ;
+// avant eux la validation, après eux l'annulation.
+
+export const STATUTS_ORDRE = ["en_validation", "demande", "en_cours", "reussi", "echoue", "annule"] as const;
+export type StatutOrdre = (typeof STATUTS_ORDRE)[number];
+
+export const LIBELLE_STATUT_ORDRE: Record<StatutOrdre, string> = {
+  en_validation: "En validation",
+  demande: "Demandé",
+  en_cours: "En cours chez Stripe",
+  reussi: "Réussi",
+  echoue: "Échoué",
+  annule: "Annulé",
+};
+
+/** Un ordre financier, tel que la liste de Paiements le lit. */
+export type OrdreFinancier = {
+  id: string;
+  /** OF-000042. */
+  ordre_ref: string;
+  nature: "remboursement";
+  statut: StatutOrdre;
+  commande_id: string;
+  reference: string;
+  litige: boolean;
+  montant_cents: number;
+  /** Le motif INTERNE de l'équipe — jamais montré à l'acheteur. */
+  motif: string;
+  demande_par: string | null;
+  cree_le: string;
+  demande_le: string | null;
+  termine_le: string | null;
+  tentatives: number;
+  erreur: string | null;
+  /** L'identifiant du remboursement chez Stripe, une fois réussi. */
+  stripe: string | null;
+  validation_id: string | null;
+  validation_statut: string | null;
+  validation_expire_le: string | null;
+  /** La base le dit : une autre personne, qui tient le rôle de valider. */
+  peut_decider: boolean;
+  reel: boolean;
+  est_test: boolean;
+};

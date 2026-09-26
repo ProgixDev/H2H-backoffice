@@ -1,5 +1,5 @@
 {
-  "_origine": "hand-to-hand@f1ef32b",
+  "_origine": "hand-to-hand@9409f46",
   "_lire": "Les fonctions publiques que seul le back-office (dépôt H2H-backoffice) appelle. `aucuneRpcOrpheline.test.ts` les admet parce qu'elles sont inscrites ici ; le back-office vérifie de son côté que chacune est bien appelée depuis le fichier indiqué. Une fonction retirée du back-office doit l'être d'ici — sinon la garde reste ouverte pour rien.",
   "fonctions": {
     "bo_moi": "src/lib/equipe/moi.ts",
@@ -47,6 +47,10 @@
     "bo_echanges_lire": "src/lib/operations/sensibles.ts",
     "bo_fonds_lister": "src/lib/paiements/lectures.ts",
     "bo_fonds_retenir": "src/lib/paiements/actions.ts",
-    "bo_fonds_liberer": "src/lib/paiements/actions.ts"
+    "bo_fonds_liberer": "src/lib/paiements/actions.ts",
+    "bo_remboursement_demander": "src/lib/paiements/actions.ts",
+    "bo_ordre_annuler": "src/lib/paiements/actions.ts",
+    "bo_ordre_relancer": "src/lib/paiements/actions.ts",
+    "bo_ordres_lister": "src/lib/paiements/lectures.ts"
   }
 }
