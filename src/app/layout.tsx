@@ -47,7 +47,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             elements: { socialButtonsRoot: { display: "none" }, dividerRow: { display: "none" } },
           }}
         >
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          {/* Clair par défaut, quel que soit le réglage de l'ordinateur ; le
+              bouton de la barre du haut passe au sombre, et ce choix se garde.
+              La clé est neuve : les préférences d'avant ne s'appliquent plus. */}
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+            storageKey="h2h-bo-theme"
+            disableTransitionOnChange
+          >
           <TooltipProvider>{children}</TooltipProvider>
           <Toaster />
           </ThemeProvider>
