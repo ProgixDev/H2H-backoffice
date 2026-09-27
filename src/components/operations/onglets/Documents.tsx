@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FileLock2 } from "lucide-react";
 import { StatutPastille } from "@/components/bo/StatutPastille";
 import { LIBELLE_ATTESTATION, LIBELLE_DECISION_ACHETEUR, LIBELLE_PARTIE, LIBELLE_RECU } from "@/lib/operations/libelles";
@@ -23,7 +24,16 @@ export function OngletDocuments({ d, maintenant }: { d: Documents; maintenant: n
         fichier, et une trace au journal d’audit.
       </p>
 
-      <Bloc titre="Attestations de vente">
+      <Bloc
+        titre="Attestations de vente"
+        aside={
+          d.attestations && d.attestations.length > 0 && (
+            <Link href="/transactions?vue=attestations" className="text-legende font-medium text-h2h-primary hover:underline">
+              Comparer, relancer, demander un remplacement
+            </Link>
+          )
+        }
+      >
         {d.attestations === null ? (
           <Reserve quoi="aux attestations" permission="attestations.lire" />
         ) : d.attestations.length === 0 ? (
@@ -62,7 +72,6 @@ export function OngletDocuments({ d, maintenant }: { d: Documents; maintenant: n
                       "Pas encore généré"
                     ),
                   ],
-                  ["Preuve de signature", a.preuve_signature ? "Disponible" : null],
                   ["Empreinte", a.empreinte ? <code key="e" className="text-legende">{a.empreinte}…</code> : null],
                   ["Vendeur sur l’attestation", <DonneeMasquee key="lv" champ="attestation.vendeur" piece={a.id} />],
                   ["Acheteur sur l’attestation", <DonneeMasquee key="la" champ="attestation.acheteur" piece={a.id} />],
@@ -74,12 +83,12 @@ export function OngletDocuments({ d, maintenant }: { d: Documents; maintenant: n
                   <ul className="flex flex-wrap gap-2">
                     {a.photos.map((p) => (
                       <li key={p.id} className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-legende">
+                        {/* ⚠️ Toute photo est prise dans l'application (la base l'exige), et
+                            seule celle d'un identifiant confirme sa lisibilité : « illisible »
+                            ne se déduit pas d'une case que la photo n'avait pas à cocher. */}
                         <span>
                           {p.emplacement}
-                          <span className="text-muted-foreground">
-                            {" "}· {p.dans_l_application ? "prise dans l’application" : "importée"}
-                            {p.lisible === false ? " · illisible" : ""}
-                          </span>
+                          {p.lisible && <span className="text-muted-foreground"> · lisibilité confirmée</span>}
                         </span>
                         <BoutonPiece nature="photo_attestation" piece={p.id} libelle={`Photo « ${p.emplacement} »`} />
                       </li>

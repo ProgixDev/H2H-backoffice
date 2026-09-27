@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@6cd8684 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@45e97bd : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260927001000_les_transactions_se_suivent.sql
+// Base : 20260927002000_les_attestations_se_suivent.sql
 
 export type Json =
   | string
@@ -8084,6 +8084,40 @@ export type Database = {
         }
       }
       basculer_en_ligne: { Args: { p_en_ligne: boolean }; Returns: boolean }
+      bo_attestation_demander_remplacement: {
+        Args: { p_attestation: string; p_cle: string; p_motif: string }
+        Returns: Json
+      }
+      bo_attestation_relancer: {
+        Args: { p_attestation: string; p_cle: string }
+        Returns: Json
+      }
+      bo_attestations_lister: {
+        Args: { p_filtre?: string; p_inclure_test?: boolean }
+        Returns: {
+          acheteur: string
+          attendu: string
+          attestation_id: string
+          commande_id: string
+          derniere_relance: string
+          derniere_relance_le: string
+          document: boolean
+          erreur: string
+          est_test: boolean
+          historique: Json
+          libelle: string
+          maj_le: string
+          numero: string
+          ouverte_le: string
+          relances: Json
+          remplacement_demande_le: string
+          statut: string
+          statut_commande: string
+          vendeur: string
+          version: number
+          versions: number
+        }[]
+      }
       bo_candidature_relais_trancher: {
         Args: {
           p_approuver: boolean
