@@ -299,6 +299,34 @@ export const LIBELLE_TYPE_ANNONCE: Record<E["listing_type"], string> = {
   flash: "Offre Flash",
 };
 
+// ⚠️ L'APPLICATION N'A PAS DE MOTS POUR L'ÉTAT D'UNE COMMANDE : ils s'écrivent ici,
+// une fois, et l'étape de l'Activité en direct reste la lecture principale.
+export const LIBELLE_STATUT_COMMANDE: Record<E["order_status"], string> = {
+  pending: "En attente du paiement",
+  awaiting_seller: "En attente du vendeur",
+  confirmed: "Confirmée",
+  picked_up: "Colis pris en charge",
+  in_transit: "En acheminement",
+  at_hub: "Au point de retrait",
+  out_for_delivery: "En cours de remise",
+  delivered: "Livrée",
+  cancelled: "Annulée",
+  refunded: "Remboursée",
+};
+
+// La réponse à une offre, comme dans la bulle de la messagerie.
+export const LIBELLE_OFFRE: Record<E["offer_status"], string> = {
+  pending: "Sans réponse",
+  accepted: "Acceptée",
+  rejected: "Refusée",
+};
+
+export const LIBELLE_DEMANDE_ACCES: Record<E["access_request_status"], string> = {
+  pending: "En attente",
+  granted: "Accordé",
+  refused: "Refusé",
+};
+
 export const LIBELLE_FLASH: Record<E["courtage_status"], string> = {
   propositions_open: "Offres ouvertes",
   cap_reached: "Plafond atteint",

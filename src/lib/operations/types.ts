@@ -145,6 +145,33 @@ export type BienAchat = {
     part_cotransporteur_cents: number | null;
     part_plateforme_cents: number | null;
   } | null;
+  negociation: Negociation;
+};
+
+/**
+ * Ce qui a précédé l'accord (R10.4, migration 20260927001000) : les offres de la
+ * messagerie entre ces deux-là sur ce bien, avant l'achat — jamais le texte d'un
+ * message —, l'accès demandé, et pour une Offre Flash, les propositions et l'accès.
+ */
+export type Negociation = {
+  type_annonce: E["listing_type"] | null;
+  prix_paye_cents: number | null;
+  offres: {
+    montant_cents: number;
+    statut: E["offer_status"] | null;
+    de: "acheteur" | "vendeur" | null;
+    le: string;
+  }[];
+  acces: { statut: E["access_request_status"]; demande_le: string; decide_le: string | null } | null;
+  flash: {
+    propositions: { montant_cents: number; retiree: boolean; le: string }[];
+    acces: {
+      mode: E["courtage_selection_mode"];
+      statut: E["purchase_access_status"];
+      accorde_le: string;
+      expire_le: string;
+    } | null;
+  } | null;
 };
 
 export type AchatNe = { id: string; ref: string; statut: string; total_cents: number; cree_le: string };

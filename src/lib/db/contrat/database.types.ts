@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@38226cf : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@6cd8684 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260926015000_le_dossier_de_litige.sql
+// Base : 20260927001000_les_transactions_se_suivent.sql
 
 export type Json =
   | string
@@ -8660,6 +8660,47 @@ export type Database = {
           executions_24h: number
           libelle: string
           periode_minutes: number
+        }[]
+      }
+      bo_transaction_annuler: {
+        Args: {
+          p_cle: string
+          p_motif: string
+          p_order: string
+          p_statut_attendu: string
+        }
+        Returns: Json
+      }
+      bo_transactions_lister: {
+        Args: {
+          p_au?: string
+          p_du?: string
+          p_etat?: string
+          p_inclure_test?: boolean
+          p_mode?: string
+          p_recherche?: string
+        }
+        Returns: {
+          acheminement: string
+          acheteur: string
+          alerte: string
+          annulable: boolean
+          annulation_bloquee: string
+          bien_image: string
+          bien_titre: string
+          cree_le: string
+          est_test: boolean
+          etat: string
+          id: string
+          mode: string
+          modele_frais: string
+          numero: string
+          piste_courante: string
+          pistes: Json
+          statut: string
+          total_cents: number
+          type_annonce: string
+          vendeur: string
         }[]
       }
       bo_transporteur_regler: {

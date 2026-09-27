@@ -1,17 +1,27 @@
 import Link from "next/link";
 import { StatutPastille } from "@/components/bo/StatutPastille";
-import { cheminFiche, type AchatNe, type BienAchat, type BienFlash, type BienLive } from "@/lib/operations/types";
+import {
+  cheminFiche,
+  type AchatNe,
+  type BienAchat,
+  type BienFlash,
+  type BienLive,
+  type Negociation,
+} from "@/lib/operations/types";
 import {
   LIBELLE_ACCES,
   LIBELLE_ANNONCE,
+  LIBELLE_DEMANDE_ACCES,
   LIBELLE_DIFFUSION,
   LIBELLE_ETAT_ARTICLE,
   LIBELLE_FLASH,
   LIBELLE_FORMAT_LIVE,
   LIBELLE_ISSUE_ARTICLE,
   LIBELLE_LIVE,
+  LIBELLE_OFFRE,
   LIBELLE_PHASE_ARTICLE,
   LIBELLE_REMISE_PREFEREE,
+  LIBELLE_ROLE_PARTICIPANT,
   LIBELLE_SELECTION,
   LIBELLE_SELECTION_LIVE,
   LIBELLE_TYPE_ANNONCE,
@@ -20,6 +30,96 @@ import {
 import { Aucun, Bloc, Champs, Montant, ouiNon, Paires, Quand, Tableau } from "../commun";
 
 const pct = (n: number | null) => (n === null ? null : `${n} %`);
+
+/**
+ * La négociation (R10.4) : ce qui a précédé l'accord, entre l'acheteur et le
+ * vendeur, sur ce bien. Une offre se lit par son montant ; le texte des messages
+ * ne s'ouvre que dans l'onglet Échanges, avec le consentement de l'acheteur.
+ *
+ * ⚠️ UNE OFFRE ACCEPTÉE NE FIXE PAS LE PRIX DE LA COMMANDE : l'acheteur paie le
+ * prix de l'annonce. L'écart se dit, il ne se corrige pas ici.
+ */
+function BlocNegociation({ n, maintenant }: { n: Negociation; maintenant: number }) {
+  const acceptee = n.offres.findLast((o) => o.statut === "accepted");
+  const ecart = acceptee && n.prix_paye_cents !== null && acceptee.montant_cents !== n.prix_paye_cents;
+  const rien = n.offres.length === 0 && !n.acces && !n.flash;
+  return (
+    <Bloc
+      titre="La négociation"
+      className="lg:col-span-2"
+      aside={
+        n.type_annonce && (
+          <span className="text-legende text-muted-foreground">Annonce : {LIBELLE_TYPE_ANNONCE[n.type_annonce]}</span>
+        )
+      }
+    >
+      {rien ? (
+        <Aucun>Aucune négociation : ni offre dans la messagerie avant l’achat, ni demande d’accès.</Aucun>
+      ) : (
+        <>
+          {n.offres.length > 0 && (
+            <Tableau entetes={["Offre", "Faite par", "Réponse", "Le"]} largeur={520}>
+              {n.offres.map((o, i) => (
+                <tr key={i}>
+                  <td><Montant cents={o.montant_cents} fort /></td>
+                  <td>{o.de ? LIBELLE_ROLE_PARTICIPANT[o.de] : "—"}</td>
+                  <td>{o.statut ? LIBELLE_OFFRE[o.statut] : "—"}</td>
+                  <td><Quand iso={o.le} maintenant={maintenant} /></td>
+                </tr>
+              ))}
+            </Tableau>
+          )}
+          {ecart && (
+            <StatutPastille ton="attention" className="justify-self-start">
+              Offre acceptée à <Montant cents={acceptee.montant_cents} /> : l’acheteur a payé{" "}
+              <Montant cents={n.prix_paye_cents} />, le prix de l’annonce
+            </StatutPastille>
+          )}
+          {n.acces && (
+            <Champs
+              items={[
+                ["Accès demandé", <Quand key="d" iso={n.acces.demande_le} maintenant={maintenant} />],
+                ["Réponse", LIBELLE_DEMANDE_ACCES[n.acces.statut]],
+                ["Le", <Quand key="r" iso={n.acces.decide_le} maintenant={maintenant} />],
+              ]}
+            />
+          )}
+          {n.flash && (
+            <div className="grid gap-2">
+              <span className="text-legende font-semibold text-muted-foreground">Offre Flash</span>
+              {n.flash.propositions.length === 0 ? (
+                <Aucun>Aucune proposition de l’acheteur.</Aucun>
+              ) : (
+                <Tableau entetes={["Proposition", "Le", "État"]} largeur={420}>
+                  {n.flash.propositions.map((x, i) => (
+                    <tr key={i}>
+                      <td><Montant cents={x.montant_cents} fort /></td>
+                      <td><Quand iso={x.le} maintenant={maintenant} /></td>
+                      <td className="text-muted-foreground">{x.retiree ? "retirée" : "active"}</td>
+                    </tr>
+                  ))}
+                </Tableau>
+              )}
+              {n.flash.acces && (
+                <Champs
+                  items={[
+                    ["Accès", LIBELLE_SELECTION[n.flash.acces.mode]],
+                    ["Accordé", <Quand key="a" iso={n.flash.acces.accorde_le} maintenant={maintenant} />],
+                    ["État", LIBELLE_ACCES[n.flash.acces.statut]],
+                  ]}
+                />
+              )}
+            </div>
+          )}
+        </>
+      )}
+      <p className="text-legende text-muted-foreground">
+        L’application ne fixe aucune limite aux offres (ni plancher, ni nombre). Le texte des messages se lit dans
+        l’onglet Échanges, avec le consentement de l’acheteur.
+      </p>
+    </Bloc>
+  );
+}
 
 /**
  * Bien et accord d'un achat (R6.2) : l'annonce FIGÉE au moment de l'accord, ce
@@ -115,6 +215,8 @@ export function BienDunAchat({ b, maintenant }: { b: BienAchat; maintenant: numb
           </>
         )}
       </Bloc>
+
+      <BlocNegociation n={b.negociation} maintenant={maintenant} />
 
       <Bloc titre="L’accord : prix et répartition des frais" className="lg:col-span-2">
         <Champs
