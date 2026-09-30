@@ -13,13 +13,16 @@ vi.mock("@/lib/annonces/actions", () => ({
   retablirAnnonce: vi.fn(),
   retirerAnnonce: vi.fn(),
   demanderCorrection: vi.fn(),
+  autoriserPublication: vi.fn(),
+  refuserPublication: vi.fn(),
 }));
 
 const { GestesModeration } = await import("./GestesModeration");
 
 const ID = "ff000000-0000-4000-a000-00000000aa01";
 const possibles = (p: Partial<ModerationFiche["possibles"]>): ModerationFiche["possibles"] => ({
-  moderer: true, raison: null, masquer: false, retablir: false, retirer: false, corriger: false, ...p,
+  moderer: true, raison: null, masquer: false, retablir: false, retirer: false, corriger: false, autoriser: false,
+  refuser: false, ...p,
 });
 const rendre = (p: ModerationFiche["possibles"]) =>
   renderToStaticMarkup(<GestesModeration id={ID} nature="annonce" possibles={p} />);
@@ -39,6 +42,18 @@ describe("les gestes de modération", () => {
     expect(g).toContain("Retirer");
     expect(g).not.toContain("Masquer");
     expect(g).not.toContain("Demander une correction");
+  });
+
+  it("une annonce qui attend sa vérification : autoriser, refuser, demander une correction — rien d'autre", () => {
+    const g = rendre(possibles({ autoriser: true, refuser: true, corriger: true }));
+    expect(g).toContain("Autoriser la publication");
+    expect(g).toContain("Refuser la publication");
+    expect(g).toContain("Demander une correction");
+    expect(g).not.toContain("Masquer");
+    expect(g).not.toContain("Retirer");
+    expect(g).not.toContain("Rétablir");
+    // Ailleurs, ni l'un ni l'autre.
+    expect(rendre(possibles({ masquer: true, retirer: true }))).not.toContain("la publication");
   });
 
   it("sans droit, ou sur sa propre annonce : la raison, aucun bouton", () => {

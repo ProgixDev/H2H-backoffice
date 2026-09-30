@@ -17,9 +17,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useGeste } from "@/lib/db/useGeste";
 import {
+  autoriserPublication,
   demanderCorrection,
   examinerRecoursModeration,
   masquerAnnonce,
+  refuserPublication,
   retablirAnnonce,
   retirerAnnonce,
 } from "@/lib/annonces/actions";
@@ -35,50 +37,66 @@ const MESSAGE_MIN = 10;
 const MESSAGE_MAX = 2000;
 const MOTIF_MIN = 5;
 
-type Geste = "masquer" | "retirer" | "corriger";
+type Geste = "masquer" | "retirer" | "corriger" | "refuser";
 type Saisie = { correction: MotifCorrection | null; message: string; motif: string };
 
 const TITRE: Record<Geste, string> = {
   masquer: "Masquer",
   retirer: "Retirer",
   corriger: "Demander une correction",
+  refuser: "Refuser la publication",
 };
 
-function description(g: Geste, quoi: string): string {
+/** Le titre de la fenêtre : le geste, et ce qu'il vise quand il le nomme. */
+const titre = (g: Geste, quoi: string) => (g === "masquer" || g === "retirer" ? `${TITRE[g]} ${quoi}` : TITRE[g]);
+
+function description(g: Geste, quoi: string, enVerification: boolean): string {
+  const Quoi = `${quoi.charAt(0).toUpperCase()}${quoi.slice(1)}`;
   switch (g) {
     case "masquer":
       return `Personne d’autre que son auteur ne verra plus ${quoi} : elle ne s’achète, ne s’offre ni ne se discute plus. Ce qui est déjà engagé autour d’elle va au bout. L’auteur reçoit votre message ; l’équipe peut la rétablir.`;
     case "retirer":
       return `C’est définitif : ${quoi} ne reviendra pas, sauf si un recours est accepté, et elle ne se modifie plus. Ce qui est déjà engagé autour d’elle va au bout. L’auteur reçoit votre message.`;
     case "corriger":
-      return `${quoi.charAt(0).toUpperCase()}${quoi.slice(1)} reste en ligne. L’auteur reçoit votre demande, et la modification qu’il fait ensuite ne lui est pas facturée.`;
+      return enVerification
+        ? `${Quoi} attend toujours sa vérification. L’auteur reçoit votre demande ; la modification qu’il fait ensuite ne lui est pas facturée, et elle arrive au dossier « À traiter ».`
+        : `${Quoi} reste en ligne. L’auteur reçoit votre demande, et la modification qu’il fait ensuite ne lui est pas facturée.`;
+    case "refuser":
+      return `${Quoi} ne sera pas publiée : elle ne se montrera pas et ne se modifie plus. Seul un recours accepté la publierait. L’auteur reçoit votre message, avec la manière de contester.`;
   }
 }
 
 /**
  * Les gestes de modération d'une annonce ou d'une recherche : masquer,
- * rétablir, retirer, demander une correction.
+ * rétablir, retirer, demander une correction — et, pour une annonce qui attend
+ * sa vérification (D25), autoriser ou refuser sa publication.
  *
  * ⚠️ L'ÉCRAN MONTRE CE QUE LA BASE PERMET (`possibles`) — et la base décide
- * encore : la permission, l'identité reconfirmée pour masquer et retirer, un
- * motif, un message, l'état, jamais sa propre annonce.
+ * encore : la permission, l'identité reconfirmée pour masquer, retirer et
+ * refuser, un motif, un message, l'état, jamais sa propre annonce.
  */
 export function GestesModeration({
   id,
   nature,
   possibles,
+  enVerification = false,
 }: {
   id: string;
   nature: NatureAnnonce;
   possibles: ModerationFiche["possibles"];
+  /** Elle attend sa vérification : une correction demandée ne la met pas en ligne. */
+  enVerification?: boolean;
 }) {
   const [geste, setGeste] = useState<Geste | null>(null);
   const [aRetablir, setARetablir] = useState(false);
+  const [aAutoriser, setAAutoriser] = useState(false);
   const masquer = useGeste(masquerAnnonce);
   const retirer = useGeste(retirerAnnonce);
   const corriger = useGeste(demanderCorrection);
+  const refuser = useGeste(refuserPublication);
   const retablirGeste = useGeste(retablirAnnonce);
-  const enCours = masquer.enCours || retirer.enCours || corriger.enCours;
+  const autoriserGeste = useGeste(autoriserPublication);
+  const enCours = masquer.enCours || retirer.enCours || corriger.enCours || refuser.enCours;
   const quoi = nature === "annonce" ? "cette annonce" : "cette recherche";
 
   if (!possibles.moderer) {
@@ -93,7 +111,9 @@ export function GestesModeration({
         ? await masquer.lancer(commun, "Masquée : l’auteur est prévenu.")
         : geste === "retirer"
           ? await retirer.lancer(commun, "Retirée : l’auteur est prévenu.")
-          : s.correction
+          : geste === "refuser"
+            ? await refuser.lancer(commun, "Publication refusée : l’auteur est prévenu.")
+            : s.correction
             ? await corriger.lancer({ ...commun, correction: s.correction }, "Correction demandée : l’auteur est prévenu.")
             : null;
     if (r?.ok) setGeste(null);
@@ -102,6 +122,12 @@ export function GestesModeration({
   return (
     <>
       <div className="flex flex-wrap gap-2">
+        {possibles.autoriser && <Button onClick={() => setAAutoriser(true)}>Autoriser la publication</Button>}
+        {possibles.refuser && (
+          <Button variant="destructive" onClick={() => setGeste("refuser")}>
+            Refuser la publication
+          </Button>
+        )}
         {possibles.corriger && (
           <Button variant="outline" onClick={() => setGeste("corriger")}>
             Demander une correction
@@ -126,6 +152,7 @@ export function GestesModeration({
       <DialogueModeration
         geste={geste}
         quoi={quoi}
+        enVerification={enVerification}
         enCours={enCours}
         surFermeture={() => setGeste(null)}
         surConfirmation={confirmer}
@@ -143,6 +170,19 @@ export function GestesModeration({
           if (r?.ok) setARetablir(false);
         }}
       />
+      <DialogueMotif
+        ouvert={aAutoriser}
+        surFermeture={() => setAAutoriser(false)}
+        titre={`Autoriser la publication de ${quoi} ?`}
+        description="Elle se montre à tous dès maintenant, et son auteur en est prévenu ; une Offre Flash commence sa fenêtre d’offres, entière. Ce motif reste au journal de l’équipe."
+        libelleAction="Autoriser"
+        longueurMin={MOTIF_MIN}
+        enCours={autoriserGeste.enCours}
+        surConfirmation={async (motif) => {
+          const r = await autoriserGeste.lancer({ annonce: id, motif }, "Publication autorisée : l’auteur est prévenu.");
+          if (r?.ok) setAAutoriser(false);
+        }}
+      />
     </>
   );
 }
@@ -150,12 +190,14 @@ export function GestesModeration({
 function DialogueModeration({
   geste,
   quoi,
+  enVerification,
   enCours,
   surFermeture,
   surConfirmation,
 }: {
   geste: Geste | null;
   quoi: string;
+  enVerification: boolean;
   enCours: boolean;
   surFermeture: () => void;
   surConfirmation: (s: Saisie) => void;
@@ -183,11 +225,8 @@ function DialogueModeration({
     <Dialog open={geste !== null} onOpenChange={(o) => !o && fermer()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {geste ? TITRE[geste] : ""}
-            {geste && geste !== "corriger" ? ` ${quoi}` : ""}
-          </DialogTitle>
-          <DialogDescription>{geste ? description(geste, quoi) : ""}</DialogDescription>
+          <DialogTitle>{geste ? titre(geste, quoi) : ""}</DialogTitle>
+          <DialogDescription>{geste ? description(geste, quoi, enVerification) : ""}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
           {geste === "corriger" && (
@@ -245,7 +284,7 @@ function DialogueModeration({
             Annuler
           </Button>
           <Button
-            variant={geste === "retirer" ? "destructive" : "default"}
+            variant={geste === "retirer" || geste === "refuser" ? "destructive" : "default"}
             disabled={!valide || enCours}
             onClick={() => surConfirmation({ correction, message: message.trim(), motif: motif.trim() })}
           >

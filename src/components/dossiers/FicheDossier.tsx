@@ -196,6 +196,12 @@ export function FicheDossier({
                     </Link>
                   )
                 )}
+                {/* Une publication qui attend l'équipe s'autorise ou se refuse sur la fiche de l'annonce. */}
+                {d.source === "verification" && d.objet_id && (
+                  <Link href={cheminAnnonce(d.objet_id)} className="text-legende font-semibold text-h2h-primary">
+                    Vérifier l’annonce sur sa fiche
+                  </Link>
+                )}
               </Bloc>
 
               {agir && (

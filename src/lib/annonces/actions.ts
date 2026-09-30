@@ -68,9 +68,35 @@ export async function demanderCorrection(p: {
 }
 
 /**
- * Examiner un recours contre un masquage ou un retrait — identité reconfirmée,
+ * Autoriser la publication d'une annonce qui attend sa vérification (D25) : elle
+ * se montre, sa publication date d'ici — sa fenêtre d'offres Flash commence
+ * entière —, l'auteur est prévenu, et le dossier « À traiter » se clôt.
+ */
+export async function autoriserPublication(p: { annonce: string; motif: string; cle: string }) {
+  return geste<ModerationPosee>(
+    [CHEMIN, cheminAnnonce(p.annonce), "/a-traiter", "/tableau-de-bord"],
+    "bo_annonce_autoriser",
+    { p_annonce: p.annonce, p_motif: p.motif, p_cle: p.cle },
+  );
+}
+
+/**
+ * Refuser la publication — identité reconfirmée. Elle ne se montrera pas et ne
+ * se modifie plus ; seul un recours accepté la publierait. L'auteur reçoit le
+ * message, et comment contester ; le dossier « À traiter » se clôt.
+ */
+export async function refuserPublication(p: { annonce: string; message: string; motif: string; cle: string }) {
+  return geste<ModerationPosee>(
+    [CHEMIN, cheminAnnonce(p.annonce), "/a-traiter", "/tableau-de-bord"],
+    "bo_annonce_refuser",
+    { p_annonce: p.annonce, p_message: p.message, p_motif: p.motif, p_cle: p.cle },
+  );
+}
+
+/**
+ * Examiner un recours contre un masquage, un retrait ou un refus de publication — identité reconfirmée,
  * jamais par l'auteur de la décision. Accepté, la décision est annulée, et
- * l'annonce se montre de nouveau si elle s'appliquait encore ; rejeté, elle est
+ * l'annonce se montre (de nouveau) si elle s'appliquait encore ; rejeté, elle est
  * maintenue. La réponse part à l'auteur, le motif reste au journal de l'équipe ;
  * le dossier « À traiter » se clôt.
  */

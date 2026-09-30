@@ -51,8 +51,11 @@ const LIGNE: AnnonceListe = {
 };
 
 const RIEN: ModerationFiche = {
-  etat: null, correction: null, historique: [], recours_a_examiner: 0,
-  possibles: { moderer: true, raison: null, masquer: true, retablir: false, retirer: true, corriger: true },
+  etat: null, verification: null, correction: null, historique: [], recours_a_examiner: 0,
+  possibles: {
+    moderer: true, raison: null, masquer: true, retablir: false, retirer: true, corriger: true, autoriser: false,
+    refuser: false,
+  },
 };
 
 const AUTEUR: FicheAnnonce["auteur"] = {
@@ -190,8 +193,16 @@ describe("la liste des annonces", () => {
       <FiltresListe f={{ vue: "annonces", q: null, filtre: null, categorie: null, test: false }} categories={null} testVisible={false} />,
     );
     expect(f).toContain('href="/annonces?filtre=moderees"');
-    expect(f).toContain("Masquées ou retirées");
+    expect(f).toContain("Modérées");
     expect(f).toContain('href="/annonces?filtre=corrections"');
+    // Les publications qui attendent l'équipe (D25) ; une recherche n'en a pas.
+    expect(f).toContain('href="/annonces?filtre=verification"');
+    expect(f).toContain("À vérifier avant publication");
+    const recherches = renderToStaticMarkup(
+      <FiltresListe f={{ vue: "recherches", q: null, filtre: null, categorie: null, test: false }} categories={null} testVisible={false} />,
+    );
+    expect(recherches).toContain("Masquées ou retirées");
+    expect(recherches).not.toContain("filtre=verification");
   });
 
   it("une liste vide se dit vide ; les filtres gardent la vue, la catégorie et le monde du test", () => {
@@ -274,6 +285,7 @@ describe("la fiche d'une annonce", () => {
 describe("la modération d'une fiche", () => {
   const MASQUEE: ModerationFiche = {
     etat: "masquee",
+    verification: null,
     correction: {
       id: "m2", code: "erreur_manifeste", libelle: "Erreur manifeste", message: "Le prix est celui d’un autre objet.",
       le: "2026-09-30T11:00:00Z", par: "mod1@handtohand.pro",
@@ -290,7 +302,10 @@ describe("la modération d'une fiche", () => {
         corrigee_le: "2026-09-29T12:00:00Z", en_vigueur: false, annulee: false, recours: null },
     ],
     recours_a_examiner: 0,
-    possibles: { moderer: true, raison: null, masquer: false, retablir: true, retirer: true, corriger: false },
+    possibles: {
+      moderer: true, raison: null, masquer: false, retablir: true, retirer: true, corriger: false, autoriser: false,
+      refuser: false,
+    },
   };
 
   it("sans mesure, elle le dit ; les gestes reçoivent ce que la base permet", () => {
@@ -402,6 +417,68 @@ describe("la fiche d'une recherche « Je cherche »", () => {
       <FicheAnnonceVue f={{ ...RECHERCHE, recherche: { ...RECHERCHE.recherche, expiree: true } }} />,
     );
     expect(expiree).toContain("Expirée");
+  });
+});
+
+describe("la vérification avant publication (D25)", () => {
+  const ATTEND: ModerationFiche = {
+    ...RIEN,
+    etat: "en_verification",
+    verification: {
+      dossier: "DOS-000042", dossier_id: "d0000000-0000-4000-a000-000000000042", depuis: "2026-09-30T09:00:00Z",
+      statut: "ouvert", clos_le: null, pourquoi: "Contrefaçons fréquentes : vérifier les photos et la facture",
+    },
+    possibles: { ...RIEN.possibles, masquer: false, retirer: false, autoriser: true, refuser: true },
+  };
+
+  it("une ligne dit qu'elle attend l'équipe ; le filtre la retrouve", () => {
+    const l = renderToStaticMarkup(
+      <ListeAnnonces annonces={[{ ...LIGNE, moderation: "en_verification" }]} filtree={false} lienCompte />,
+    );
+    expect(l).toContain("En vérification par l’équipe");
+    const r = renderToStaticMarkup(
+      <ListeAnnonces annonces={[{ ...LIGNE, moderation: "refusee" }]} filtree={false} lienCompte />,
+    );
+    expect(r).toContain("Refusée par l’équipe");
+  });
+
+  it("elle attend : pourquoi sa catégorie est vérifiée, son dossier « À traiter », autoriser ou refuser", () => {
+    const f = renderToStaticMarkup(<FicheAnnonceVue f={{ ...FICHE, moderation: ATTEND }} />);
+    expect(f).toContain("En vérification par l’équipe");
+    expect(f).toContain("sa catégorie est vérifiée avant publication");
+    expect(f).toContain("Contrefaçons fréquentes : vérifier les photos et la facture");
+    expect(f).toContain('href="/a-traiter?dossier=d0000000-0000-4000-a000-000000000042"');
+    expect(f).toContain("DOS-000042");
+    expect(f).toContain("attend la décision de l’équipe");
+    expect(f).toContain(`data-gestes="annonce:${ID}:${JSON.stringify(ATTEND.possibles).replace(/"/g, "&quot;")}"`);
+  });
+
+  it("refusée : une issue défavorable, la décision au journal, et le recours contre le refus", () => {
+    const recours: RecoursLu = {
+      id: "rec2", reference: "REC-000043", statut: "a_examiner", depose_le: "2026-10-01T09:00:00Z",
+      texte: "J’ai la facture de la boutique.", pieces: 1, examine_le: null, examine_par: null, reponse: null,
+      motif: null, dossier: "DOS-000044", examinable: true, raison: null, pieces_ouvrables: true,
+    };
+    const refusee: ModerationFiche = {
+      ...ATTEND,
+      etat: "refusee",
+      verification: { ...ATTEND.verification!, statut: "clos", clos_le: "2026-09-30T10:00:00Z" },
+      historique: [
+        { id: "m9", decision: "refuser", correction: null, correction_libelle: null,
+          message: "La facture manque.", motif: "Authenticité non établie", le: "2026-09-30T10:00:00Z",
+          par: "mod1@handtohand.pro", corrigee_le: null, en_vigueur: true, annulee: false, recours },
+      ],
+      recours_a_examiner: 1,
+      possibles: { ...ATTEND.possibles, autoriser: false, refuser: false, corriger: false },
+    };
+    const f = renderToStaticMarkup(<FicheAnnonceVue f={{ ...FICHE, moderation: refusee }} />);
+    expect(f).toContain("Refusée par l’équipe");
+    expect(f).toContain("seul un recours accepté la publierait");
+    expect(f).toContain("Vérifiée avant publication");
+    expect(f).toContain("décidée le");
+    expect(f).toContain("Publication refusée");
+    expect(f).toContain("Contre : le refus de publication du");
+    expect(f).toContain(`data-examiner="rec2:${ID}"`);
   });
 });
 

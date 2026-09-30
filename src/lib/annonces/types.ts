@@ -64,6 +64,7 @@ export const FILTRES_ANNONCES = [
   "moderees",
   "corrections",
   "recours",
+  "verification",
 ] as const;
 export type FiltreAnnonces = (typeof FILTRES_ANNONCES)[number];
 export const LIBELLE_FILTRE_ANNONCES: Record<FiltreAnnonces, string> = {
@@ -77,9 +78,10 @@ export const LIBELLE_FILTRE_ANNONCES: Record<FiltreAnnonces, string> = {
   flash: "Offres Flash",
   echange: "Échanges",
   mises_en_avant: "Mises en avant",
-  moderees: "Masquées ou retirées",
+  moderees: "Modérées",
   corrections: "Corrections",
   recours: "Recours à examiner",
+  verification: "À vérifier avant publication",
 };
 
 export const FILTRES_RECHERCHES = [
@@ -121,9 +123,19 @@ export type CategorieFiltre = {
 
 // ── La modération (20260930006000) ──────────────────────────────────────────
 
-/** Ce que l'équipe a posé sur une annonce ou une recherche. Nul : rien. */
-export type EtatModeration = "masquee" | "retiree";
-export type DecisionModeration = "masquer" | "retablir" | "retirer" | "demander_correction";
+/**
+ * Ce que l'équipe a posé sur une annonce ou une recherche. Nul : rien. Une
+ * annonce d'une catégorie vérifiée avant publication (20260930008000, D25) attend
+ * l'équipe à sa première mise en ligne, puis se montre ou reste refusée.
+ */
+export type EtatModeration = "masquee" | "retiree" | "en_verification" | "refusee";
+export type DecisionModeration =
+  | "masquer"
+  | "retablir"
+  | "retirer"
+  | "demander_correction"
+  | "autoriser"
+  | "refuser";
 
 /**
  * Les motifs d'une demande de correction : ceux que l'application nomme déjà
@@ -142,6 +154,19 @@ export type MotifCorrection = (typeof MOTIFS_CORRECTION)[number]["code"];
 /** La modération d'une fiche : où elle en est, la correction ouverte, l'historique, ce que l'équipier peut faire. */
 export type ModerationFiche = {
   etat: EtatModeration | null;
+  /**
+   * La vérification avant publication, si l'annonce y est passée : son dossier
+   * « À traiter », depuis quand, pourquoi sa catégorie est vérifiée (20260930008000).
+   */
+  verification: {
+    dossier: string;
+    dossier_id: string;
+    depuis: string;
+    statut: "ouvert" | "clos";
+    clos_le: string | null;
+    /** Nul si la catégorie n'est plus dans la liste. */
+    pourquoi: string | null;
+  } | null;
   correction: {
     id: string;
     code: MotifCorrection;
@@ -155,7 +180,7 @@ export type ModerationFiche = {
     decision: DecisionModeration;
     correction: MotifCorrection | null;
     correction_libelle: string | null;
-    /** Ce que l'équipe a écrit à l'auteur ; nul pour un rétablissement. */
+    /** Ce que l'équipe a écrit à l'auteur ; nul pour un rétablissement ou une autorisation. */
     message: string | null;
     /** Ce que l'équipe garde pour elle : l'auteur ne le lit jamais. */
     motif: string;
@@ -178,6 +203,9 @@ export type ModerationFiche = {
     retablir: boolean;
     retirer: boolean;
     corriger: boolean;
+    /** La publication qui attend l'équipe (20260930008000). */
+    autoriser: boolean;
+    refuser: boolean;
   };
 };
 
@@ -200,12 +228,26 @@ export type ModerationPosee = {
   etat: EtatModeration | null;
 };
 
-export const LIBELLE_ETAT_MODERATION: Record<EtatModeration, string> = { masquee: "Masquée", retiree: "Retirée" };
+export const LIBELLE_ETAT_MODERATION: Record<EtatModeration, string> = {
+  masquee: "Masquée",
+  retiree: "Retirée",
+  en_verification: "En vérification",
+  refusee: "Refusée",
+};
+/** Le ton d'un état : masquée, à surveiller ; en vérification, en cours ; retirée ou refusée, une issue défavorable. */
+export const TON_ETAT_MODERATION: Record<EtatModeration, "attention" | "actif" | "erreur"> = {
+  masquee: "attention",
+  retiree: "erreur",
+  en_verification: "actif",
+  refusee: "erreur",
+};
 export const LIBELLE_DECISION_MODERATION: Record<DecisionModeration, string> = {
   masquer: "Masquée",
   retablir: "Rétablie",
   retirer: "Retirée",
   demander_correction: "Correction demandée",
+  autoriser: "Publication autorisée",
+  refuser: "Publication refusée",
 };
 export const LIBELLE_CORRECTION: Record<NonNullable<AnnonceListe["correction"]>, string> = {
   demandee: "Correction demandée",

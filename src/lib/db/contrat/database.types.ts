@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@9ea63b9 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@919730c : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260930007000_une_moderation_se_conteste.sql
+// Base : 20260930008000_une_publication_se_verifie.sql
 
 export type Json =
   | string
@@ -8090,6 +8090,10 @@ export type Database = {
         }
       }
       basculer_en_ligne: { Args: { p_en_ligne: boolean }; Returns: boolean }
+      bo_annonce_autoriser: {
+        Args: { p_annonce: string; p_cle: string; p_motif: string }
+        Returns: Json
+      }
       bo_annonce_demander_correction: {
         Args: {
           p_annonce: string
@@ -8102,6 +8106,15 @@ export type Database = {
       }
       bo_annonce_lire: { Args: { p_id: string }; Returns: Json }
       bo_annonce_masquer: {
+        Args: {
+          p_annonce: string
+          p_cle: string
+          p_message: string
+          p_motif: string
+        }
+        Returns: Json
+      }
+      bo_annonce_refuser: {
         Args: {
           p_annonce: string
           p_cle: string
@@ -9034,6 +9047,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      categorie_verifiee: { Args: { p_categorie: string }; Returns: boolean }
       chercher_cotransporteurs: {
         Args: {
           p_product_id: string

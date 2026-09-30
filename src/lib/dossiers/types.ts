@@ -39,7 +39,16 @@ export const LIBELLE_EQUIPE: Record<string, string> = {
 export type Dossier = {
   id: string;
   ref: string;
-  source: "operation" | "tache" | "echeance" | "notification" | "manuel" | "securite" | "rapprochement" | "recours";
+  source:
+    | "operation"
+    | "tache"
+    | "echeance"
+    | "notification"
+    | "manuel"
+    | "securite"
+    | "rapprochement"
+    | "recours"
+    | "verification";
   titre: string;
   motif: string | null;
   categorie: string;
@@ -54,7 +63,10 @@ export type Dossier = {
   statut: "ouvert" | "clos";
   cree_le: string;
   clos_le: string | null;
-  /** Une opération, un travail automatique — ou l'annonce d'un recours contre une décision de modération. */
+  /**
+   * Une opération, un travail automatique — ou une annonce : celle d'un recours contre une décision de
+   * modération, celle qui attend sa vérification avant publication.
+   */
   objet_table: "orders" | "courtage_listings" | "live_sessions" | "taches" | "products" | "je_cherche_demandes" | null;
   objet_id: string | null;
   objet_ref: string | null;
@@ -77,6 +89,8 @@ export const CLOTURE_AUTOMATIQUE: Record<Exclude<Dossier["source"], "manuel" | "
     "Ce dossier se clôt tout seul quand l’écart disparaît d’un rapprochement suivant, ou quand la Finance l’explique (Paiements et comptabilité › Rapprochement).",
   recours:
     "Ce dossier se clôt tout seul quand le recours est examiné : sur la fiche du compte (Utilisateurs) pour une sanction, sur celle de l’annonce (Annonces) pour une décision de modération.",
+  verification:
+    "Ce dossier se clôt tout seul quand l’équipe autorise ou refuse la publication, sur la fiche de l’annonce (Annonces).",
 };
 
 export type CompteurDossier = { code: string; libelle: string; description: string; nombre: number };

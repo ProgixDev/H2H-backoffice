@@ -20,6 +20,7 @@ import {
   LIBELLE_DECISION_MODERATION,
   LIBELLE_ECHANGE,
   LIBELLE_ETAT_MODERATION,
+  TON_ETAT_MODERATION,
   LIBELLE_LIVRAISON,
   LIBELLE_MODE,
   LIBELLE_OPTION_ANNONCE,
@@ -125,13 +126,17 @@ function Remontees({ remontees }: { remontees: Remontee[] }) {
 const categorieDite = (c: Categorie) => (c ? (c.libelle ?? c.id) : null);
 
 /** Ce qu'un recours conteste, dit : « Contre : le masquage du 30/09/2026 10:00 ». */
-const DECISION_CONTESTEE: Record<string, string> = { masquer: "le masquage", retirer: "le retrait" };
+const DECISION_CONTESTEE: Record<string, string> = {
+  masquer: "le masquage",
+  retirer: "le retrait",
+  refuser: "le refus de publication",
+};
 
-/** L'état posé par l'équipe, en pastille : masquée, c'est à surveiller ; retirée, une issue défavorable. */
+/** L'état posé par l'équipe, en pastille, sur le ton de ce qu'il fait. */
 function PastilleModeration({ m }: { m: ModerationFiche }) {
   if (!m.etat) return null;
   return (
-    <StatutPastille ton={m.etat === "retiree" ? "erreur" : "attention"}>
+    <StatutPastille ton={TON_ETAT_MODERATION[m.etat]}>
       {LIBELLE_ETAT_MODERATION[m.etat]} par l’équipe
     </StatutPastille>
   );
@@ -154,8 +159,32 @@ function BlocModeration({ id, nature, m }: { id: string; nature: NatureAnnonce; 
           ? "Masquée : personne d’autre que son auteur ne la voit, et rien ne commence plus autour d’elle ; ce qui était engagé va au bout."
           : m.etat === "retiree"
             ? "Retirée pour de bon : seul un recours accepté la rendrait, et elle ne se modifie plus."
-            : "Aucune mesure en cours : elle se montre selon son statut."}
+            : m.etat === "en_verification"
+              ? "En vérification : sa catégorie est vérifiée avant publication. Personne d’autre que son auteur ne la voit, et rien ne commence autour d’elle ; elle se montrera dès que l’équipe l’autorisera."
+              : m.etat === "refusee"
+                ? "Publication refusée : elle ne se montrera pas et ne se modifie plus ; seul un recours accepté la publierait."
+                : "Aucune mesure en cours : elle se montre selon son statut."}
       </p>
+      {m.verification && (
+        <div className="grid gap-1 rounded-lg border p-3">
+          <span className="flex flex-wrap items-center gap-2">
+            <StatutPastille ton={m.verification.statut === "ouvert" ? "actif" : "neutre"}>
+              {m.verification.statut === "ouvert" ? "Vérification avant publication" : "Vérifiée avant publication"}
+            </StatutPastille>
+            <Link
+              href={`/a-traiter?dossier=${m.verification.dossier_id}`}
+              className="font-semibold tabular-nums text-h2h-primary"
+            >
+              {m.verification.dossier}
+            </Link>
+          </span>
+          {m.verification.pourquoi && <p className="text-corps">{m.verification.pourquoi}</p>}
+          <span className="text-legende text-muted-foreground">
+            Mise en ligne par son auteur le {dateHeure(m.verification.depuis)}
+            {m.verification.clos_le ? ` · décidée le ${dateHeure(m.verification.clos_le)}` : " · attend la décision de l’équipe"}
+          </span>
+        </div>
+      )}
       {m.correction && (
         <div className="grid gap-1 rounded-lg border p-3">
           <span className="flex flex-wrap items-center gap-2">
@@ -169,7 +198,7 @@ function BlocModeration({ id, nature, m }: { id: string; nature: NatureAnnonce; 
           </span>
         </div>
       )}
-      <GestesModeration id={id} nature={nature} possibles={m.possibles} />
+      <GestesModeration id={id} nature={nature} possibles={m.possibles} enVerification={m.etat === "en_verification"} />
       {m.historique.length > 0 && (
         <Tableau entetes={["Le", "Décision", "Message à l’auteur", "Motif interne", "Par"]}>
           {m.historique.map((h) => (

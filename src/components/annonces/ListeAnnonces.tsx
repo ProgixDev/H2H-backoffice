@@ -17,6 +17,7 @@ import {
   LIBELLE_FILTRE_RECHERCHES,
   LIBELLE_STATUT_RECHERCHE,
   LIBELLE_URGENCE,
+  TON_ETAT_MODERATION,
   adresseAnnonces,
   cheminAnnonce,
   type AnnonceListe,
@@ -184,7 +185,7 @@ export function ListeAnnonces({
                 </StatutPastille>
               )}
               {a.moderation && (
-                <StatutPastille ton={a.moderation === "retiree" ? "erreur" : "attention"}>
+                <StatutPastille ton={TON_ETAT_MODERATION[a.moderation]}>
                   {LIBELLE_ETAT_MODERATION[a.moderation]} par l’équipe
                 </StatutPastille>
               )}
