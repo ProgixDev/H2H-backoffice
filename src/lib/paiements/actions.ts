@@ -112,3 +112,18 @@ export async function relancerOrdre(p: { ordre: string; motif: string; cle: stri
     p_cle: p.cle,
   });
 }
+
+// ── Le rapprochement (migration 20260927003000) ─────────────────────────────
+
+/**
+ * Expliquer un écart de rapprochement (Finance, Direction ; identité
+ * reconfirmée) : il n'appelle pas de correction. Son dossier se clôt, et le
+ * même constat ne le rouvrira pas. RIEN NE BOUGE chez Stripe ni au grand livre.
+ */
+export async function expliquerEcart(p: { ecart: string; motif: string; cle: string }) {
+  return geste<{ ecart: string; statut: string }>([CHEMIN, "/a-traiter"], "bo_ecart_expliquer", {
+    p_ecart: p.ecart,
+    p_motif: p.motif,
+    p_cle: p.cle,
+  });
+}

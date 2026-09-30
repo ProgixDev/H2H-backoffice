@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@45e97bd : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@a122317 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260927002000_les_attestations_se_suivent.sql
+// Base : 20260927003000_les_comptes_se_rapprochent.sql
 
 export type Json =
   | string
@@ -8253,6 +8253,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      bo_ecart_expliquer: {
+        Args: { p_cle: string; p_ecart: string; p_motif: string }
+        Returns: Json
+      }
       bo_echanges_lire: {
         Args: { p_conversation: string; p_motif: string; p_objet_id: string }
         Returns: Json
@@ -8629,6 +8633,10 @@ export type Database = {
           p_piece: string
           p_rang: number
         }
+        Returns: Json
+      }
+      bo_rapprochement_lire: {
+        Args: { p_inclure_test?: boolean }
         Returns: Json
       }
       bo_regles_delai: {
@@ -10874,6 +10882,25 @@ export type Database = {
           montant_cents: number
           payable: boolean
         }[]
+      }
+      stripe_rapprochement_commencer: {
+        Args: { p_heures: number; p_livemode: boolean }
+        Returns: number
+      }
+      stripe_rapprochement_comparer: {
+        Args: {
+          p_paiements: Json
+          p_remboursements: Json
+          p_run: number
+          p_tout: boolean
+          p_transferts: Json
+          p_tronques: string[]
+        }
+        Returns: Json
+      }
+      stripe_rapprochement_finir: {
+        Args: { p_erreur: string; p_run: number }
+        Returns: undefined
       }
       stripe_remboursement_echoue: {
         Args: { p_erreur: string; p_reservation_id: string }

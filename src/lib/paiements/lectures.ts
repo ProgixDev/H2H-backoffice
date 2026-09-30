@@ -1,7 +1,7 @@
 import "server-only";
 import { rpc } from "@/lib/db/rpc";
 import { supabaseServeur } from "@/lib/supabase/serveur";
-import type { DuTransporteur, FiltreFonds, FondsAVerser, OrdreFinancier, StatutOrdre } from "./types";
+import type { DuTransporteur, FiltreFonds, FondsAVerser, OrdreFinancier, Rapprochement, StatutOrdre } from "./types";
 
 /**
  * Ce qui reste dû aux transporteurs tiers, commande par commande — le grand
@@ -30,4 +30,12 @@ export async function listerFondsAVerser(etat: FiltreFonds | null): Promise<Fond
  */
 export async function listerOrdres(statut: StatutOrdre | null): Promise<OrdreFinancier[]> {
   return rpc<OrdreFinancier[]>(await supabaseServeur(), "bo_ordres_lister", { p_statut: statut, p_inclure_test: false });
+}
+
+/**
+ * Le rapprochement avec Stripe : les passages des quatorze dernières nuits, et
+ * les écarts — ouverts d'abord, puis résolus ou expliqués depuis moins de trente jours.
+ */
+export async function lireRapprochement(): Promise<Rapprochement> {
+  return rpc<Rapprochement>(await supabaseServeur(), "bo_rapprochement_lire", { p_inclure_test: false });
 }

@@ -146,3 +146,71 @@ export type OrdreFinancier = {
   reel: boolean;
   est_test: boolean;
 };
+
+// ── Le rapprochement avec Stripe (`bo_rapprochement_lire`, migration 20260927003000) ──
+//
+// 🔴 LA BASE JUGE : la fonction de nuit lit Stripe, la base dit ce qui est un
+// écart. L'écran montre, et la Finance explique ; rien ne se corrige d'ici.
+
+export type NatureEcart =
+  | "paiement_inconnu"
+  | "paiement_statut"
+  | "paiement_montant"
+  | "paiement_absent"
+  | "remboursement_inconnu"
+  | "remboursement_echoue"
+  | "remboursement_montant"
+  | "remboursement_absent"
+  | "transfert_inconnu"
+  | "transfert_montant"
+  | "transfert_absent";
+
+export type StatutEcart = "ouvert" | "resolu" | "explique";
+
+/** Un passage de nuit, sur un compte Stripe. */
+export type PassageRapprochement = {
+  id: number;
+  livemode: boolean;
+  depuis: string;
+  jusqu_a: string;
+  demarre_le: string;
+  fini_le: string | null;
+  bilan: {
+    paiements: number;
+    remboursements: number;
+    transferts: number;
+    ecarts: number;
+    nouveaux: number;
+    resolus: number;
+    tronques: string[];
+    tout: boolean;
+  } | null;
+  erreur: string | null;
+};
+
+export type EcartRapprochement = {
+  id: string;
+  nature: NatureEcart;
+  libelle: string;
+  livemode: boolean;
+  objet_stripe: string;
+  commande_id: string | null;
+  commande_ref: string | null;
+  montant_stripe_cents: number | null;
+  montant_base_cents: number | null;
+  statut_stripe: string | null;
+  statut_base: string | null;
+  detail: string;
+  statut: StatutEcart;
+  constate_le: string;
+  vu_le: string;
+  resolu_le: string | null;
+  explique_par: string | null;
+  explique_le: string | null;
+  motif: string | null;
+  /** Nul quand rien ne dit le monde de l'objet (inconnu de la base). */
+  est_test: boolean | null;
+  dossier: string | null;
+};
+
+export type Rapprochement = { passages: PassageRapprochement[]; ecarts: EcartRapprochement[] };
