@@ -4,12 +4,13 @@
 // la liste et la fiche disent ce qu'elles doivent dire — le statut d'une
 // annonce à part de l'état de ses transactions (R9.3), ce que la base permet
 // pour le paiement et la livraison, les signalements sans qui a signalé, les
-// liens qui n'ouvrent que ce que l'équipier peut lire, et la modération dite
-// « à venir » plutôt qu'inventée.
+// liens qui n'ouvrent que ce que l'équipier peut lire, et la modération : son
+// état à part du statut, la correction qui attend, l'historique avec le message
+// lu par l'auteur et le motif gardé par l'équipe.
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import type { AnnonceListe, FicheAnnonce, FicheRecherche } from "@/lib/annonces/types";
+import type { AnnonceListe, FicheAnnonce, FicheRecherche, ModerationFiche } from "@/lib/annonces/types";
 import type { DetailIndicateur } from "@/lib/tableau/types";
 
 vi.mock("next/link", () => ({
@@ -20,6 +21,12 @@ vi.mock("next/link", () => ({
   ),
 }));
 vi.mock("@/components/marque/AnimationH2H", () => ({ AnimationH2H: () => <span data-animation /> }));
+// Les gestes se testent à part (`GestesModeration.test.tsx`) : ici, ce que la fiche leur passe.
+vi.mock("@/components/annonces/GestesModeration", () => ({
+  GestesModeration: ({ id, nature, possibles }: { id: string; nature: string; possibles: object }) => (
+    <span data-gestes={`${nature}:${id}:${JSON.stringify(possibles)}`} />
+  ),
+}));
 
 const { ListeAnnonces, FiltresListe } = await import("./ListeAnnonces");
 const { FicheAnnonceVue } = await import("./FicheAnnonce");
@@ -32,7 +39,13 @@ const LIGNE: AnnonceListe = {
   categorie: "electronique", categorie_libelle: "Mobiles & objets connectés", montant_cents: 3000, statut: "active",
   type: "fixed", mode: "sale", acces: "controlled", auteur: VENDEUSE, auteur_pseudo: "vendeuse_ff", ville: "Nice",
   cree_le: "2026-09-28T08:00:00Z", publiee_le: "2026-09-29T08:00:00Z", expire_le: null, vues: 12, favoris: 1,
-  signalements: 2, propositions: null, commandes_en_cours: 1, mise_en_avant: true, est_test: false,
+  signalements: 2, propositions: null, commandes_en_cours: 1, mise_en_avant: true, moderation: null, correction: null,
+  est_test: false,
+};
+
+const RIEN: ModerationFiche = {
+  etat: null, correction: null, historique: [],
+  possibles: { moderer: true, raison: null, masquer: true, retablir: false, retirer: true, corriger: true },
 };
 
 const AUTEUR: FicheAnnonce["auteur"] = {
@@ -44,6 +57,7 @@ const DROITS = { moderer: false, compte: true, operations: true };
 const FICHE: FicheAnnonce = {
   nature: "annonce",
   droits: DROITS,
+  moderation: RIEN,
   annonce: {
     id: ID, titre: "Lampe de bureau vintage", description: "Une lampe qui éclaire.", statut: "active", type: "fixed",
     mode: "sale", acces: "public", etat: "like_new", prix_cents: 3000, prix_origine_cents: null, negociable: false,
@@ -98,6 +112,7 @@ const FICHE: FicheAnnonce = {
 const RECHERCHE: FicheRecherche = {
   nature: "recherche",
   droits: DROITS,
+  moderation: RIEN,
   recherche: {
     id: "ff000000-0000-4000-a000-00000000bb01", titre: "Cherche une platine vinyle", description: "En bon état",
     statut: "propositions_recues", expiree: false, budget_max_cents: 8000, zones: ["06"], urgence: "this_week",
@@ -150,6 +165,26 @@ describe("la liste des annonces", () => {
     );
     expect(b).toContain("Brouillon");
     expect(b).toContain("jamais publiée");
+  });
+
+  it("une ligne dit la modération à part du statut, et la correction qui attend ou vient d'être faite", () => {
+    const m = renderToStaticMarkup(
+      <ListeAnnonces annonces={[{ ...LIGNE, moderation: "masquee", correction: "demandee" }]} filtree={false} lienCompte />,
+    );
+    expect(m).toContain("En ligne");
+    expect(m).toContain("Masquée par l’équipe");
+    expect(m).toContain("Correction demandée");
+    const r = renderToStaticMarkup(
+      <ListeAnnonces annonces={[{ ...LIGNE, moderation: "retiree", correction: "apportee" }]} filtree={false} lienCompte />,
+    );
+    expect(r).toContain("Retirée par l’équipe");
+    expect(r).toContain("Correction apportée");
+    const f = renderToStaticMarkup(
+      <FiltresListe f={{ vue: "annonces", q: null, filtre: null, categorie: null, test: false }} categories={null} testVisible={false} />,
+    );
+    expect(f).toContain('href="/annonces?filtre=moderees"');
+    expect(f).toContain("Masquées ou retirées");
+    expect(f).toContain('href="/annonces?filtre=corrections"');
   });
 
   it("une liste vide se dit vide ; les filtres gardent la vue, la catégorie et le monde du test", () => {
@@ -220,14 +255,83 @@ describe("la fiche d'une annonce", () => {
     expect(f).toContain("Qui a signalé ne se lit pas ici");
   });
 
-  it("la modération est dite à venir ; sans droit, ni compte ni opération ne s'ouvrent", () => {
-    const f = renderToStaticMarkup(<FicheAnnonceVue f={FICHE} />);
-    expect(f).toContain("ces gestes arrivent avec la suite de cette phase");
+  it("sans droit, ni compte ni opération ne s'ouvrent", () => {
     const muet = renderToStaticMarkup(
       <FicheAnnonceVue f={{ ...FICHE, droits: { moderer: false, compte: false, operations: false } }} />,
     );
     expect(muet).not.toContain("/utilisateurs/");
     expect(muet).not.toContain("/operations/");
+  });
+});
+
+describe("la modération d'une fiche", () => {
+  const MASQUEE: ModerationFiche = {
+    etat: "masquee",
+    correction: {
+      id: "m2", code: "erreur_manifeste", libelle: "Erreur manifeste", message: "Le prix est celui d’un autre objet.",
+      le: "2026-09-30T11:00:00Z", par: "mod1@handtohand.pro",
+    },
+    historique: [
+      { id: "m2", decision: "demander_correction", correction: "erreur_manifeste", correction_libelle: "Erreur manifeste",
+        message: "Le prix est celui d’un autre objet.", motif: "Vu au contrôle du matin", le: "2026-09-30T11:00:00Z",
+        par: "mod1@handtohand.pro", corrigee_le: null },
+      { id: "m1", decision: "masquer", correction: null, correction_libelle: null,
+        message: "Les photos ne correspondent pas à l’objet.", motif: "Deux signalements concordants", le: "2026-09-30T10:00:00Z",
+        par: "mod1@handtohand.pro", corrigee_le: null },
+      { id: "m0", decision: "demander_correction", correction: "doublon", correction_libelle: "Annonce en double",
+        message: "Publiée deux fois.", motif: "Doublon vérifié", le: "2026-09-29T10:00:00Z", par: null,
+        corrigee_le: "2026-09-29T12:00:00Z" },
+    ],
+    possibles: { moderer: true, raison: null, masquer: false, retablir: true, retirer: true, corriger: false },
+  };
+
+  it("sans mesure, elle le dit ; les gestes reçoivent ce que la base permet", () => {
+    const f = renderToStaticMarkup(<FicheAnnonceVue f={FICHE} />);
+    expect(f).toContain("Aucune mesure en cours");
+    expect(f).toContain(`data-gestes="annonce:${ID}:${JSON.stringify(RIEN.possibles).replace(/"/g, "&quot;")}"`);
+    expect(f).not.toContain("par l’équipe");
+    // Autoriser une publication, examiner un recours de modération : la suite, dite comme telle.
+    expect(f).toContain("ces gestes arrivent");
+  });
+
+  it("masquée : l'état, la correction qui attend, l'historique avec le message et le motif interne", () => {
+    const f = renderToStaticMarkup(<FicheAnnonceVue f={{ ...FICHE, moderation: MASQUEE }} />);
+    expect(f).toContain("Masquée par l’équipe");
+    expect(f).toContain("personne d’autre que son auteur ne la voit");
+    expect(f).toContain("Correction demandée");
+    expect(f).toContain("« Le prix est celui d’un autre objet. »");
+    expect(f).toContain("par mod1@handtohand.pro");
+    expect(f).toContain("ne lui sera pas facturée");
+    expect(f).toContain("Deux signalements concordants");
+    expect(f).toContain("Attend l’auteur");
+    expect(f).toContain("Corrigée le");
+    expect(f).toContain("Correction demandée · Erreur manifeste");
+    expect(f).toContain("Correction demandée · Annonce en double");
+    expect(f).toContain("Les photos ne correspondent pas à l’objet.");
+  });
+
+  it("retirée : une issue défavorable, et la correction restée sans suite", () => {
+    const retiree: ModerationFiche = {
+      ...MASQUEE, etat: "retiree", correction: null,
+      possibles: { ...MASQUEE.possibles, retablir: false, retirer: false },
+    };
+    const f = renderToStaticMarkup(<FicheAnnonceVue f={{ ...FICHE, moderation: retiree }} />);
+    expect(f).toContain("Retirée par l’équipe");
+    expect(f).toContain("seul un recours accepté la rendrait");
+    expect(f).toContain("Sans suite");
+    expect(f).not.toContain("Attend l’auteur");
+  });
+
+  it("une recherche se modère aussi ; la modification demandée se lit comme telle", () => {
+    const r = renderToStaticMarkup(<FicheAnnonceVue f={{ ...RECHERCHE, moderation: MASQUEE }} />);
+    expect(r).toContain("Masquée par l’équipe");
+    expect(r).toContain(`data-gestes="recherche:${RECHERCHE.recherche.id}:`);
+    const corrigee = renderToStaticMarkup(
+      <FicheAnnonceVue
+        f={{ ...FICHE, modifications: [{ ...FICHE.modifications[0], origine: "moderation", champs: ["title"] }] }}
+      />,
+    );
+    expect(corrigee).toContain("Le vendeur, sur demande de l’équipe");
   });
 });
 

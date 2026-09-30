@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GestesModeration } from "@/components/annonces/GestesModeration";
 import { StatutPastille } from "@/components/bo/StatutPastille";
 import { Aucun, Bloc, Champs, Montant, Reference, Tableau, ouiNon } from "@/components/operations/commun";
 import { dateHeure, jour } from "@/lib/dates";
@@ -15,7 +16,9 @@ import {
 import { cheminFiche } from "@/lib/operations/types";
 import {
   LIBELLE_ACCES,
+  LIBELLE_DECISION_MODERATION,
   LIBELLE_ECHANGE,
+  LIBELLE_ETAT_MODERATION,
   LIBELLE_LIVRAISON,
   LIBELLE_MODE,
   LIBELLE_OPTION_ANNONCE,
@@ -30,6 +33,8 @@ import {
   type Fiche,
   type FicheAnnonce,
   type FicheRecherche,
+  type ModerationFiche,
+  type NatureAnnonce,
   type Remontee,
 } from "@/lib/annonces/types";
 import { LIBELLE_PRIORITE_SIGNALEMENT, cheminCompte } from "@/lib/utilisateurs/types";
@@ -118,13 +123,73 @@ function Remontees({ remontees }: { remontees: Remontee[] }) {
 
 const categorieDite = (c: Categorie) => (c ? (c.libelle ?? c.id) : null);
 
-/** La modération n'arrive qu'avec la seconde moitié de la tranche : la fiche le dit. */
-function ModerationAVenir() {
+/** L'état posé par l'équipe, en pastille : masquée, c'est à surveiller ; retirée, une issue défavorable. */
+function PastilleModeration({ m }: { m: ModerationFiche }) {
+  if (!m.etat) return null;
+  return (
+    <StatutPastille ton={m.etat === "retiree" ? "erreur" : "attention"}>
+      {LIBELLE_ETAT_MODERATION[m.etat]} par l’équipe
+    </StatutPastille>
+  );
+}
+
+/**
+ * La modération (R9.2) : où elle en est, la correction qui attend l'auteur,
+ * l'historique des décisions — le message qu'il a lu et le motif que l'équipe
+ * garde —, et les gestes que la base permet à l'équipier qui lit.
+ */
+function BlocModeration({ id, nature, m }: { id: string; nature: NatureAnnonce; m: ModerationFiche }) {
   return (
     <Bloc titre="Modération">
-      <p className="text-corps text-muted-foreground">
-        Masquer, retirer, demander une correction, autoriser ou refuser une publication, examiner un recours : ces gestes
-        arrivent avec la suite de cette phase. Cette fiche se lit, elle ne modifie rien.
+      <p className="text-corps">
+        {m.etat === "masquee"
+          ? "Masquée : personne d’autre que son auteur ne la voit, et rien ne commence plus autour d’elle ; ce qui était engagé va au bout."
+          : m.etat === "retiree"
+            ? "Retirée pour de bon : seul un recours accepté la rendrait, et elle ne se modifie plus."
+            : "Aucune mesure en cours : elle se montre selon son statut."}
+      </p>
+      {m.correction && (
+        <div className="grid gap-1 rounded-lg border p-3">
+          <span className="flex flex-wrap items-center gap-2">
+            <StatutPastille ton="attention">Correction demandée</StatutPastille>
+            <span className="font-semibold">{m.correction.libelle}</span>
+          </span>
+          <p className="whitespace-pre-line text-corps">« {m.correction.message} »</p>
+          <span className="text-legende text-muted-foreground">
+            Demandée le {dateHeure(m.correction.le)}
+            {m.correction.par ? ` par ${m.correction.par}` : ""} · la modification que fera l’auteur ne lui sera pas facturée.
+          </span>
+        </div>
+      )}
+      <GestesModeration id={id} nature={nature} possibles={m.possibles} />
+      {m.historique.length > 0 && (
+        <Tableau entetes={["Le", "Décision", "Message à l’auteur", "Motif interne", "Par"]}>
+          {m.historique.map((h) => (
+            <tr key={h.id}>
+              <td className="whitespace-nowrap tabular-nums">{dateHeure(h.le)}</td>
+              <td>
+                {LIBELLE_DECISION_MODERATION[h.decision] ?? h.decision}
+                {h.correction_libelle ? ` · ${h.correction_libelle}` : ""}
+                {h.decision === "demander_correction" && (
+                  <span className="block text-legende text-muted-foreground">
+                    {h.corrigee_le
+                      ? `Corrigée le ${dateHeure(h.corrigee_le)}`
+                      : m.correction?.id === h.id
+                        ? "Attend l’auteur"
+                        : "Sans suite"}
+                  </span>
+                )}
+              </td>
+              <td className="whitespace-pre-line">{h.message ?? "—"}</td>
+              <td className="text-muted-foreground">{h.motif}</td>
+              <td>{h.par ?? "—"}</td>
+            </tr>
+          ))}
+        </Tableau>
+      )}
+      <p className="text-legende text-muted-foreground">
+        Autoriser ou refuser une publication, examiner un recours contre une décision de modération : ces gestes arrivent
+        avec la suite de cette phase.
       </p>
     </Bloc>
   );
@@ -145,6 +210,7 @@ function Annonce({ f }: { f: FicheAnnonce }) {
           </StatutPastille>
           <StatutPastille ton="neutre">{typeDit}</StatutPastille>
           {a.acces === "controlled" && <StatutPastille ton="neutre">{LIBELLE_ACCES.controlled}</StatutPastille>}
+          <PastilleModeration m={f.moderation} />
           {f.visibilite.mise_en_avant && <StatutPastille ton="marque">Mise en avant</StatutPastille>}
           {f.auteur.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
         </div>
@@ -170,7 +236,7 @@ function Annonce({ f }: { f: FicheAnnonce }) {
         </p>
       </section>
 
-      <ModerationAVenir />
+      <BlocModeration id={a.id} nature="annonce" m={f.moderation} />
 
       {/* ── Ce que l'acheteur voit ── */}
       <Bloc titre="Aperçu">
@@ -415,6 +481,7 @@ function Recherche({ f }: { f: FicheRecherche }) {
               : (LIBELLE_STATUT_RECHERCHE[r.statut] ?? r.statut)}
           </StatutPastille>
           <StatutPastille ton={r.urgence === "urgent" ? "attention" : "neutre"}>{LIBELLE_URGENCE[r.urgence]}</StatutPastille>
+          <PastilleModeration m={f.moderation} />
           {f.visibilite.mise_en_avant && <StatutPastille ton="marque">Mise en avant</StatutPastille>}
           {f.auteur.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
         </div>
@@ -440,7 +507,7 @@ function Recherche({ f }: { f: FicheRecherche }) {
         />
       </section>
 
-      <ModerationAVenir />
+      <BlocModeration id={r.id} nature="recherche" m={f.moderation} />
 
       <Bloc titre="Aperçu">
         {r.photos.length > 0 && (

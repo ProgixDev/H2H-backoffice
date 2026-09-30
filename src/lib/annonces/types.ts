@@ -1,5 +1,6 @@
 // Les annonces (§9) : ce que `bo_annonces_lister`, `bo_annonces_categories` et
-// `bo_annonce_lire` rendent (20260930005000), et les mots pour le dire.
+// `bo_annonce_lire` rendent (20260930005000), leur modération (20260930006000),
+// et les mots pour le dire.
 //
 // ⚠️ R9.3 : LE STATUT D'UNE ANNONCE N'EST PAS CELUI DE SES TRANSACTIONS. La
 // fiche montre chaque commande à part, avec son propre état.
@@ -39,6 +40,10 @@ export type AnnonceListe = {
   propositions: number | null;
   commandes_en_cours: number | null;
   mise_en_avant: boolean;
+  /** Posée par l'équipe, distincte du statut (R9.3). */
+  moderation: EtatModeration | null;
+  /** La correction qui attend l'auteur, ou celle qu'il vient d'apporter (14 jours), à vérifier. */
+  correction: "demandee" | "apportee" | null;
   est_test: boolean;
 };
 
@@ -53,6 +58,8 @@ export const FILTRES_ANNONCES = [
   "flash",
   "echange",
   "mises_en_avant",
+  "moderees",
+  "corrections",
 ] as const;
 export type FiltreAnnonces = (typeof FILTRES_ANNONCES)[number];
 export const LIBELLE_FILTRE_ANNONCES: Record<FiltreAnnonces, string> = {
@@ -66,15 +73,19 @@ export const LIBELLE_FILTRE_ANNONCES: Record<FiltreAnnonces, string> = {
   flash: "Offres Flash",
   echange: "Échanges",
   mises_en_avant: "Mises en avant",
+  moderees: "Masquées ou retirées",
+  corrections: "Corrections",
 };
 
-export const FILTRES_RECHERCHES = ["actives", "trouvees", "expirees", "annulees"] as const;
+export const FILTRES_RECHERCHES = ["actives", "trouvees", "expirees", "annulees", "moderees", "corrections"] as const;
 export type FiltreRecherches = (typeof FILTRES_RECHERCHES)[number];
 export const LIBELLE_FILTRE_RECHERCHES: Record<FiltreRecherches, string> = {
   actives: "Actives",
   trouvees: "Trouvées",
   expirees: "Expirées",
   annulees: "Annulées",
+  moderees: "Masquées ou retirées",
+  corrections: "Corrections",
 };
 
 export type VueAnnonces = "annonces" | "recherches";
@@ -92,6 +103,81 @@ export type CategorieFiltre = {
   famille: string | null;
   contact_seulement: boolean;
   annonces_en_ligne: number;
+};
+
+// ── La modération (20260930006000) ──────────────────────────────────────────
+
+/** Ce que l'équipe a posé sur une annonce ou une recherche. Nul : rien. */
+export type EtatModeration = "masquee" | "retiree";
+export type DecisionModeration = "masquer" | "retablir" | "retirer" | "demander_correction";
+
+/**
+ * Les motifs d'une demande de correction : ceux que l'application nomme déjà
+ * (`utils/correctionRequest.ts`), avec ses mots, et que la base vérifie.
+ */
+export const MOTIFS_CORRECTION = [
+  { code: "conformite", libelle: "Conformité de l’annonce" },
+  { code: "securite", libelle: "Sécurité" },
+  { code: "doublon", libelle: "Annonce en double" },
+  { code: "erreur_manifeste", libelle: "Erreur manifeste" },
+  { code: "fraude", libelle: "Suspicion de fraude" },
+  { code: "probleme_technique", libelle: "Problème technique" },
+] as const;
+export type MotifCorrection = (typeof MOTIFS_CORRECTION)[number]["code"];
+
+/** La modération d'une fiche : où elle en est, la correction ouverte, l'historique, ce que l'équipier peut faire. */
+export type ModerationFiche = {
+  etat: EtatModeration | null;
+  correction: {
+    id: string;
+    code: MotifCorrection;
+    libelle: string;
+    message: string;
+    le: string;
+    par: string | null;
+  } | null;
+  historique: {
+    id: string;
+    decision: DecisionModeration;
+    correction: MotifCorrection | null;
+    correction_libelle: string | null;
+    /** Ce que l'équipe a écrit à l'auteur ; nul pour un rétablissement. */
+    message: string | null;
+    /** Ce que l'équipe garde pour elle : l'auteur ne le lit jamais. */
+    motif: string;
+    le: string;
+    par: string | null;
+    corrigee_le: string | null;
+  }[];
+  possibles: {
+    moderer: boolean;
+    raison: string | null;
+    masquer: boolean;
+    retablir: boolean;
+    retirer: boolean;
+    corriger: boolean;
+  };
+};
+
+/** Ce que rend un geste de modération. */
+export type ModerationPosee = {
+  moderation: string;
+  cible: string;
+  nature: NatureAnnonce;
+  decision: DecisionModeration;
+  etat: EtatModeration | null;
+};
+
+export const LIBELLE_ETAT_MODERATION: Record<EtatModeration, string> = { masquee: "Masquée", retiree: "Retirée" };
+export const LIBELLE_DECISION_MODERATION: Record<DecisionModeration, string> = {
+  masquer: "Masquée",
+  retablir: "Rétablie",
+  retirer: "Retirée",
+  demander_correction: "Correction demandée",
+};
+export const LIBELLE_CORRECTION: Record<NonNullable<AnnonceListe["correction"]>, string> = {
+  demandee: "Correction demandée",
+  apportee: "Correction apportée",
 };
 
 // ── La fiche ────────────────────────────────────────────────────────────────
@@ -130,6 +216,7 @@ export type Remontee = {
 export type FicheAnnonce = {
   nature: "annonce";
   droits: Droits;
+  moderation: ModerationFiche;
   annonce: {
     id: string;
     titre: string;
@@ -232,6 +319,7 @@ export type FicheAnnonce = {
 export type FicheRecherche = {
   nature: "recherche";
   droits: Droits;
+  moderation: ModerationFiche;
   recherche: {
     id: string;
     titre: string;
@@ -304,7 +392,8 @@ export const LIBELLE_OPTION_ANNONCE: Record<E["listing_option_kind"], string> = 
 export const LIBELLE_ORIGINE_MODIFICATION: Record<E["listing_edit_origin"], string> = {
   seller: "Le vendeur",
   handtohand: "HandtoHand",
-  moderation: "La modération",
+  // C'est le vendeur qui modifie, gratuitement, parce que l'équipe l'a demandé.
+  moderation: "Le vendeur, sur demande de l’équipe",
 };
 export const LIBELLE_ECHANGE: Record<E["exchange_status"], string> = {
   pending: "en attente",

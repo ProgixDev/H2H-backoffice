@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@fbf4f94 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@4f29d54 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260930005000_une_annonce_se_lit.sql
+// Base : 20260930006000_une_annonce_se_modere.sql
 
 export type Json =
   | string
@@ -2509,6 +2509,7 @@ export type Database = {
           job_availability: string | null
           job_contract: string | null
           like_count: number
+          moderation: string | null
           photo_pack: Database["public"]["Enums"]["photo_pack"] | null
           proposals_count: number
           status: Database["public"]["Enums"]["je_cherche_status"]
@@ -2532,6 +2533,7 @@ export type Database = {
           job_availability?: string | null
           job_contract?: string | null
           like_count?: number
+          moderation?: string | null
           photo_pack?: Database["public"]["Enums"]["photo_pack"] | null
           proposals_count?: number
           status?: Database["public"]["Enums"]["je_cherche_status"]
@@ -2555,6 +2557,7 @@ export type Database = {
           job_availability?: string | null
           job_contract?: string | null
           like_count?: number
+          moderation?: string | null
           photo_pack?: Database["public"]["Enums"]["photo_pack"] | null
           proposals_count?: number
           status?: Database["public"]["Enums"]["je_cherche_status"]
@@ -5276,6 +5279,7 @@ export type Database = {
           like_count: number
           listing_type: Database["public"]["Enums"]["listing_type"]
           mode: Database["public"]["Enums"]["product_mode"]
+          moderation: string | null
           negotiable: boolean
           original_price_cents: number | null
           parcel_format: Database["public"]["Enums"]["parcel_format"] | null
@@ -5319,6 +5323,7 @@ export type Database = {
           like_count?: number
           listing_type?: Database["public"]["Enums"]["listing_type"]
           mode?: Database["public"]["Enums"]["product_mode"]
+          moderation?: string | null
           negotiable?: boolean
           original_price_cents?: number | null
           parcel_format?: Database["public"]["Enums"]["parcel_format"] | null
@@ -5362,6 +5367,7 @@ export type Database = {
           like_count?: number
           listing_type?: Database["public"]["Enums"]["listing_type"]
           mode?: Database["public"]["Enums"]["product_mode"]
+          moderation?: string | null
           negotiable?: boolean
           original_price_cents?: number | null
           parcel_format?: Database["public"]["Enums"]["parcel_format"] | null
@@ -8084,7 +8090,39 @@ export type Database = {
         }
       }
       basculer_en_ligne: { Args: { p_en_ligne: boolean }; Returns: boolean }
+      bo_annonce_demander_correction: {
+        Args: {
+          p_annonce: string
+          p_cle: string
+          p_correction: string
+          p_message: string
+          p_motif: string
+        }
+        Returns: Json
+      }
       bo_annonce_lire: { Args: { p_id: string }; Returns: Json }
+      bo_annonce_masquer: {
+        Args: {
+          p_annonce: string
+          p_cle: string
+          p_message: string
+          p_motif: string
+        }
+        Returns: Json
+      }
+      bo_annonce_retablir: {
+        Args: { p_annonce: string; p_cle: string; p_motif: string }
+        Returns: Json
+      }
+      bo_annonce_retirer: {
+        Args: {
+          p_annonce: string
+          p_cle: string
+          p_message: string
+          p_motif: string
+        }
+        Returns: Json
+      }
       bo_annonces_categories: {
         Args: never
         Returns: {
@@ -8110,6 +8148,7 @@ export type Database = {
           categorie: string
           categorie_libelle: string
           commandes_en_cours: number
+          correction: string
           cree_le: string
           est_test: boolean
           expire_le: string
@@ -8118,6 +8157,7 @@ export type Database = {
           image: string
           mise_en_avant: boolean
           mode: string
+          moderation: string
           montant_cents: number
           nature: string
           propositions: number
@@ -9872,6 +9912,7 @@ export type Database = {
       mes_sanctions: { Args: never; Returns: Json }
       mes_statistiques: { Args: never; Returns: Json }
       modele_frais_partage_actif: { Args: never; Returns: boolean }
+      moderation_annonce: { Args: { p_annonce: string }; Returns: Json }
       modifier_annonce: {
         Args: { p_changements: Json; p_product_id: string }
         Returns: {

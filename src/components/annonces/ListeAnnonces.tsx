@@ -11,6 +11,8 @@ import {
   FILTRES_ANNONCES,
   FILTRES_RECHERCHES,
   LIBELLE_ACCES,
+  LIBELLE_CORRECTION,
+  LIBELLE_ETAT_MODERATION,
   LIBELLE_FILTRE_ANNONCES,
   LIBELLE_FILTRE_RECHERCHES,
   LIBELLE_STATUT_RECHERCHE,
@@ -179,6 +181,16 @@ export function ListeAnnonces({
               ) : (
                 <StatutPastille ton={a.type === "urgent" ? "attention" : "neutre"}>
                   {libelle(LIBELLE_URGENCE, a.type)}
+                </StatutPastille>
+              )}
+              {a.moderation && (
+                <StatutPastille ton={a.moderation === "retiree" ? "erreur" : "attention"}>
+                  {LIBELLE_ETAT_MODERATION[a.moderation]} par l’équipe
+                </StatutPastille>
+              )}
+              {a.correction && (
+                <StatutPastille ton={a.correction === "demandee" ? "attention" : "neutre"}>
+                  {LIBELLE_CORRECTION[a.correction]}
                 </StatutPastille>
               )}
               {a.mise_en_avant && <StatutPastille ton="marque">Mise en avant</StatutPastille>}
