@@ -12,18 +12,18 @@ import type { ChampSensible, DonneeRevelee, NaturePiece, PieceOuverte } from "@/
 
 // ── Le cadre ────────────────────────────────────────────────────────────────
 
-type Cadre = { objet: string; peutReveler: boolean };
+type Cadre = { objet: string; peutReveler: boolean; table?: "orders" | "profiles" };
 const CadreSensible = createContext<Cadre | null>(null);
 
 /**
- * Le cadre des consultations d'un achat : l'achat, et si l'équipier tient
- * `donnees.reveler`.
+ * Le cadre des consultations : l'achat — ou le compte (`table="profiles"`) —
+ * dont on révèle les données, et si l'équipier tient `donnees.reveler`.
  *
  * ⚠️ L'ÉCRAN NE FAIT QUE MONTRER LE BOUTON : c'est la base qui autorise, pour
  * un motif, et qui journalise. Un bouton affiché à tort serait refusé.
  */
-export function CadreConsultations({ objet, peutReveler, children }: Cadre & { children: React.ReactNode }) {
-  return <CadreSensible.Provider value={{ objet, peutReveler }}>{children}</CadreSensible.Provider>;
+export function CadreConsultations({ objet, peutReveler, table, children }: Cadre & { children: React.ReactNode }) {
+  return <CadreSensible.Provider value={{ objet, peutReveler, table }}>{children}</CadreSensible.Provider>;
 }
 
 /** Le cadre des consultations, pour les écrans qui en ouvrent d'autres (les échanges). */
@@ -83,7 +83,7 @@ export function DonneeMasquee({ champ, piece }: { champ: ChampSensible; piece?: 
         longueurMin={5}
         enCours={enCours}
         surConfirmation={async (motif) => {
-          const r = await consulter({ objet: cadre.objet, champ, motif, piece: piece ?? null });
+          const r = await consulter({ objet: cadre.objet, table: cadre.table, champ, motif, piece: piece ?? null });
           if (r) {
             setRevelee(r);
             setDemande(false);

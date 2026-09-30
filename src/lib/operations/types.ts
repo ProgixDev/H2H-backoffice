@@ -731,6 +731,12 @@ export const CHAMPS_SENSIBLES = [
   "livraison.adresse",
   "attestation.vendeur",
   "attestation.acheteur",
+  // Les données d'un compte (migration 20260930002000) : révélées depuis sa fiche, jamais depuis un achat.
+  "compte.nom",
+  "compte.email",
+  "compte.telephone",
+  "compte.identite_verifiee",
+  "compte.adresses",
 ] as const;
 export type ChampSensible = (typeof CHAMPS_SENSIBLES)[number];
 

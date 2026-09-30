@@ -3,6 +3,7 @@ import { AnimationH2H } from "@/components/marque/AnimationH2H";
 import { StatutPastille } from "@/components/bo/StatutPastille";
 import { dateHeure } from "@/lib/dates";
 import { cheminFiche, type Onglet } from "@/lib/operations/types";
+import { cheminCompte } from "@/lib/utilisateurs/types";
 import {
   chiffre,
   entier,
@@ -111,7 +112,14 @@ export function LignesIndicateur({
                   )}
                   <td className="px-3 py-2">
                     <span className="flex flex-wrap items-center gap-2">
-                      {l.libelle}
+                      {/* Une ligne d'un indicateur d'utilisateurs est un compte : ouvrir ces lignes exigeait déjà de lire les comptes. */}
+                      {i.groupe === "utilisateurs" ? (
+                        <Link href={cheminCompte(l.id)} className="font-medium text-h2h-primary hover:underline">
+                          {l.libelle}
+                        </Link>
+                      ) : (
+                        l.libelle
+                      )}
                       {l.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
                     </span>
                   </td>

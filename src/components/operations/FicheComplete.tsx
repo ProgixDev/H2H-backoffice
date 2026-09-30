@@ -57,6 +57,7 @@ export function FicheComplete({
   peutRetenir = false,
   peutLiberer = false,
   peutRembourser = false,
+  peutLireComptes = false,
 }: {
   initial: Fiche;
   table: ObjetFiche;
@@ -69,6 +70,8 @@ export function FicheComplete({
   peutLiberer?: boolean;
   /** `remboursements.preparer` : demander un remboursement hors litige, relancer, annuler. */
   peutRembourser?: boolean;
+  /** `utilisateurs.lire` : le pseudonyme d'un participant ouvre la fiche de son compte. */
+  peutLireComptes?: boolean;
 }) {
   const client = useQueryClient();
   const maintenant = useMaintenant();
@@ -121,7 +124,13 @@ export function FicheComplete({
         />
       )}
 
-      <QuatreQuestions operation={o} participants={f.participants} maintenant={maintenant} grille />
+      <QuatreQuestions
+        operation={o}
+        participants={f.participants}
+        maintenant={maintenant}
+        grille
+        lienComptes={peutLireComptes}
+      />
 
       <CadreConsultations objet={id} peutReveler={peutReveler && table === "orders"}>
         <Tabs value={actif} onValueChange={(v) => void setOnglet(v as typeof onglet)}>

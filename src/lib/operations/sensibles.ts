@@ -1,34 +1,31 @@
 "use server";
 
-import { reverificationError } from "@clerk/nextjs/server";
-import { REVERIFICATION_BO } from "@/lib/connexion/reverification";
-import { refusEnResultat, rpc, RefusBO, type Resultat } from "@/lib/db/rpc";
+import { consulter } from "@/lib/db/consultation";
+import { rpc, RefusBO } from "@/lib/db/rpc";
 import { supabaseServeur } from "@/lib/supabase/serveur";
 import type { ChampSensible, DonneeRevelee, EchangesLus, NaturePiece, PieceOuverte } from "./types";
 
 // ── Les consultations (§21) ─────────────────────────────────────────────────
 //
-// 🔴 UNE CONSULTATION N'EST PAS UN GESTE : elle ne change rien, donc ni clé
-// « une seule fois », ni page à rafraîchir. Mais elle se JOURNALISE, avec son
-// motif : c'est la base qui l'écrit, au nom de l'équipier du jeton.
-//
-// ⚠️ LE SECOND FACTEUR SE DEMANDE COMME POUR UN GESTE : `BO_REVERIF` devient la
-// fenêtre de vérification, puis un nouvel essai.
+// Révéler une donnée, ouvrir une pièce, lire des échanges : chacune passe par
+// `consulter` (`lib/db/consultation.ts`), qui dit ce qu'une consultation est —
+// et n'est pas.
 
-async function consulter<T>(lire: () => Promise<T>) {
-  try {
-    return { ok: true, donnees: await lire() } satisfies Resultat<T>;
-  } catch (e) {
-    if (e instanceof RefusBO && e.indice === "BO_REVERIF") return reverificationError(REVERIFICATION_BO);
-    return refusEnResultat(e);
-  }
-}
-
-/** Une donnée masquée d'un achat, révélée pour un motif. */
-export async function revelerDonnee(p: { objet: string; champ: ChampSensible; motif: string; piece?: string | null }) {
+/**
+ * Une donnée masquée, révélée pour un motif : celle d'un achat (`orders`, par
+ * défaut) ou celle d'un compte (`profiles`). La base refuse l'une demandée
+ * au nom de l'autre.
+ */
+export async function revelerDonnee(p: {
+  objet: string;
+  table?: "orders" | "profiles";
+  champ: ChampSensible;
+  motif: string;
+  piece?: string | null;
+}) {
   return consulter(async () =>
     rpc<DonneeRevelee>(await supabaseServeur(), "bo_reveler", {
-      p_objet_table: "orders",
+      p_objet_table: p.table ?? "orders",
       p_objet_id: p.objet,
       p_champ: p.champ,
       p_motif: p.motif,

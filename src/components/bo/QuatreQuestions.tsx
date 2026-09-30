@@ -1,13 +1,17 @@
+import Link from "next/link";
 import { cn } from "cn";
 import { Echeance } from "@/components/activite/Echeance";
 import { tonEtape, TON_ALERTE } from "@/components/activite/commun";
 import { StatutPastille } from "@/components/bo/StatutPastille";
 import { LIBELLE_ACTEUR, type Operation } from "@/lib/activite/types";
+import { cheminCompte } from "@/lib/utilisateurs/types";
 
 const ROLE = { acheteur: "Acheteur", vendeur: "Vendeur", cotransporteur: "Cotransporteur particulier" } as const;
 
 type Participant = {
   role: keyof typeof ROLE;
+  /** Le compte, quand la fiche le donne : il s'ouvre pour qui lit les comptes. */
+  profil?: string;
   pseudo: string | null;
   est_test?: boolean;
   compte_efface?: boolean;
@@ -33,10 +37,13 @@ export function QuatreQuestions({
   participants,
   maintenant,
   grille = false,
+  lienComptes = false,
 }: {
   operation: Operation;
   participants: Participant[];
   maintenant: number;
+  /** `utilisateurs.lire` : le pseudonyme d'un participant ouvre la fiche de son compte. */
+  lienComptes?: boolean;
   /** Quatre colonnes sur un grand écran (la fiche), une pile sinon (le panneau). */
   grille?: boolean;
 }) {
@@ -60,7 +67,13 @@ export function QuatreQuestions({
             {participants.map((p, i) => (
               <li key={`${p.role}-${i}`} className="flex flex-wrap items-center gap-1.5">
                 <span className="text-muted-foreground">{ROLE[p.role]} :</span>
-                <span>{p.compte_efface ? "(compte effacé)" : (p.pseudo ?? "(compte effacé)")}</span>
+                {lienComptes && p.profil ? (
+                  <Link href={cheminCompte(p.profil)} className="font-medium text-h2h-primary hover:underline">
+                    {p.compte_efface ? "(compte effacé)" : (p.pseudo ?? "(compte effacé)")}
+                  </Link>
+                ) : (
+                  <span>{p.compte_efface ? "(compte effacé)" : (p.pseudo ?? "(compte effacé)")}</span>
+                )}
                 {p.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
               </li>
             ))}

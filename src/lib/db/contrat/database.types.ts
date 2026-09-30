@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@f7c703c : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@d1354e8 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260930001000_les_resultats_se_lisent.sql
+// Base : 20260930002000_un_compte_se_lit.sql
 
 export type Json =
   | string
@@ -8778,6 +8778,38 @@ export type Database = {
           mode_envoi: string
           numero: string
           retour_inclus: boolean
+        }[]
+      }
+      bo_utilisateur_lire: { Args: { p_profil: string }; Returns: Json }
+      bo_utilisateur_trouver_par_email: {
+        Args: { p_email: string; p_motif: string }
+        Returns: Json
+      }
+      bo_utilisateurs_lister: {
+        Args: {
+          p_filtre?: string
+          p_inclure_test?: boolean
+          p_recherche?: string
+        }
+        Returns: {
+          achats: number
+          annonces: number
+          avis: number
+          compte_versement: string
+          derniere_ouverture: string
+          efface: boolean
+          est_test: boolean
+          id: string
+          identite_verifiee: boolean
+          inscrit_le: string
+          note: number
+          pseudo: string
+          roles: Json
+          signalements: number
+          type_compte: string
+          ventes: number
+          ville: string
+          vitrine: boolean
         }[]
       }
       bo_validation_decider: {

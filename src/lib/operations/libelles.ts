@@ -437,6 +437,11 @@ export const LIBELLE_CHAMP_SENSIBLE: Record<ChampSensible, string> = {
   "livraison.adresse": "Adresse de livraison",
   "attestation.vendeur": "Vendeur sur l’attestation",
   "attestation.acheteur": "Acheteur sur l’attestation",
+  "compte.nom": "Nom",
+  "compte.email": "E-mail",
+  "compte.telephone": "Téléphone",
+  "compte.identite_verifiee": "Identité vérifiée",
+  "compte.adresses": "Adresses enregistrées",
 };
 
 export const LIBELLE_ROLE_PARTICIPANT: Record<"acheteur" | "vendeur" | "cotransporteur", string> = {

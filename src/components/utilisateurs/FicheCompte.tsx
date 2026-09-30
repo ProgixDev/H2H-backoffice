@@ -1,0 +1,413 @@
+import Link from "next/link";
+import { Star } from "lucide-react";
+import { StatutPastille } from "@/components/bo/StatutPastille";
+import { Aucun, Bloc, Champs, Montant, Reference, Tableau, ouiNon } from "@/components/operations/commun";
+import { CadreConsultations, DonneeMasquee } from "@/components/operations/sensibles";
+import { dateHeure, jour } from "@/lib/dates";
+import {
+  LIBELLE_ANNONCE,
+  LIBELLE_MISSION,
+  LIBELLE_STATUT_COMMANDE,
+  LIBELLE_TYPE_ANNONCE,
+} from "@/lib/operations/libelles";
+import { cheminFiche } from "@/lib/operations/types";
+import {
+  LIBELLE_APPLICATION,
+  LIBELLE_CONNEXION,
+  LIBELLE_METHODE,
+  LIBELLE_PRIORITE_SIGNALEMENT,
+  LIBELLE_ROLE,
+  LIBELLE_ROLE_NOTE,
+  LIBELLE_STATUT_KYC,
+  LIBELLE_STATUT_ROLE,
+  LIBELLE_TYPE_COMPTE,
+  type AvisCompte,
+  type FicheCompte as Fiche,
+} from "@/lib/utilisateurs/types";
+import { noteDite } from "./ListeComptes";
+
+const DOCUMENT: Record<string, string> = {
+  passport: "passeport",
+  id_card: "carte d’identité",
+  driving_license: "permis de conduire",
+};
+const RELAIS: Record<string, string> = { pending: "En attente", verified: "Vérifié", rejected: "Refusé" };
+const libelle = (table: Record<string, string>, code: string) => table[code] ?? code;
+const pseudo = (p: string | null) => (p ? `@${p}` : "(compte effacé)");
+
+/** Une référence d'achat : elle ouvre la fiche de l'opération si l'équipier lit l'activité. */
+function Achat({ reference, lien }: { reference: string | null; lien: boolean }) {
+  if (!reference) return <span className="text-muted-foreground">—</span>;
+  if (!lien) return <span className="tabular-nums">{reference}</span>;
+  return (
+    <Link href={cheminFiche(reference)} className="font-medium tabular-nums text-h2h-primary hover:underline">
+      {reference}
+    </Link>
+  );
+}
+
+function Avis({ avis, sens }: { avis: AvisCompte[]; sens: "recus" | "donnes" }) {
+  if (avis.length === 0) return <Aucun>{sens === "recus" ? "Aucun avis reçu." : "Aucun avis donné."}</Aucun>;
+  return (
+    <ul className="grid gap-2">
+      {avis.map((a) => (
+        <li key={a.id} className="grid gap-0.5 rounded-lg border p-3">
+          <span className="flex flex-wrap items-center gap-2 text-legende text-muted-foreground">
+            <span className="inline-flex items-center gap-1 font-semibold text-foreground">
+              <Star className="size-3.5" aria-hidden />
+              {a.note} / 5
+            </span>
+            {sens === "recus" ? `par ${pseudo(a.avec)}, comme ${LIBELLE_ROLE_NOTE[a.role]}` : `à ${pseudo(a.avec)}, ${LIBELLE_ROLE_NOTE[a.role]}`}
+            {" · "}
+            {jour(a.le)}
+          </span>
+          {a.commentaire && <span className="text-corps">« {a.commentaire} »</span>}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * La fiche d'un compte (§8) : l'identifiant permanent et le pseudonyme,
+ * l'identité et les coordonnées selon les droits, le statut et les
+ * vérifications, les annonces, transactions et missions, les avis, les
+ * signalements, les documents acceptés, le compte de paiement, les mandats.
+ *
+ * 🔴 L'IDENTITÉ ET LES COORDONNÉES SONT MASQUÉES. Elles se révèlent une à la
+ * fois, avec un motif, et la base inscrit chaque révélation au journal. La
+ * fiche elle-même ne porte que le pseudonyme.
+ *
+ * ⚠️ CETTE FICHE NE FAIT QUE LIRE : avertir, restreindre, suspendre, examiner un
+ * recours arrivent avec la tranche suivante — et la fiche le dit.
+ */
+export function FicheCompte({
+  f,
+  peutReveler,
+  peutOuvrirFiche,
+}: {
+  f: Fiche;
+  /** `donnees.reveler` — et la base refuse de toute façon son propre compte. */
+  peutReveler: boolean;
+  /** `activite.lire` : une référence d'achat ouvre la fiche de l'opération. */
+  peutOuvrirFiche: boolean;
+}) {
+  const c = f.compte;
+  const v = f.verifications;
+  const efface = c.efface_le !== null;
+  const attente = f.roles.filter((r) => r.statut.startsWith("pending_")).length;
+
+  return (
+    <div className="grid gap-4">
+      {/* ── Qui, et où en est le compte ── */}
+      <section className="grid gap-3 rounded-xl border bg-card p-4" style={{ boxShadow: "var(--ombre-carte)" }}>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-h2 font-semibold">{c.pseudo ? `@${c.pseudo}` : "Sans pseudonyme"}</h2>
+          <StatutPastille ton={efface ? "muet" : "succes"}>{efface ? "Compte effacé" : "Compte actif"}</StatutPastille>
+          <StatutPastille ton="neutre">{LIBELLE_TYPE_COMPTE[c.type_compte]}</StatutPastille>
+          {c.vitrine && <StatutPastille ton="neutre">Vitrine</StatutPastille>}
+          {c.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
+        </div>
+        <Champs
+          colonnes={4}
+          items={[
+            ["Identifiant permanent", <Reference key="id" valeur={c.id} />],
+            ["Inscrit le", dateHeure(c.inscrit_le)],
+            ["Ville", [c.ville, c.region].filter(Boolean).join(", ")],
+            ["Connexion", c.connexion ? libelle(LIBELLE_CONNEXION, c.connexion) : null],
+            ["Note", noteDite(c.note, c.avis)],
+            ["Litiges ouverts", `${f.litiges.ouverts} sur ${f.litiges.total}`],
+            ["Signalements reçus", String(f.signalements.recus_total)],
+            ["Demandes de rôle en attente", String(attente)],
+          ]}
+        />
+        {efface && (
+          <p className="text-legende text-muted-foreground">
+            Effacé le {dateHeure(c.efface_le)} : le nom, l’e-mail, le téléphone et les adresses ont été supprimés avec le
+            compte. Ses transactions et ses avis restent, sous un pseudonyme neutre.
+          </p>
+        )}
+      </section>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        {/* ── L'identité et les coordonnées, masquées ── */}
+        <Bloc titre="Identité et coordonnées">
+          <CadreConsultations objet={c.id} table="profiles" peutReveler={peutReveler && !f.conflit}>
+            <Champs
+              colonnes={2}
+              items={[
+                ["Nom", <DonneeMasquee key="nom" champ="compte.nom" />],
+                ["E-mail", <DonneeMasquee key="email" champ="compte.email" />],
+                ["Téléphone", <DonneeMasquee key="tel" champ="compte.telephone" />],
+                ["Identité vérifiée", <DonneeMasquee key="identite" champ="compte.identite_verifiee" />],
+                ["Adresses enregistrées", <DonneeMasquee key="adresses" champ="compte.adresses" />],
+              ]}
+            />
+          </CadreConsultations>
+          <p className="text-legende text-muted-foreground">
+            {f.conflit
+              ? "Ce compte est le vôtre : ses données sont réservées au reste de l’équipe."
+              : "Chaque donnée se révèle une à la fois, pour un motif ; la consultation est inscrite au journal d’audit."}
+          </p>
+        </Bloc>
+
+        {/* ── Le statut et les vérifications ── */}
+        <Bloc titre="Statut et vérifications">
+          <Champs
+            colonnes={2}
+            items={[
+              [
+                "Identité",
+                v.identite.verifiee ? (
+                  <span>
+                    Vérifiée par {v.identite.methode ? LIBELLE_METHODE[v.identite.methode] : "Stripe"}
+                    {v.identite.type_document ? ` (${libelle(DOCUMENT, v.identite.type_document)})` : ""}
+                    {v.identite.verifiee_le ? `, le ${jour(v.identite.verifiee_le)}` : ""}
+                    {v.identite.mode_test ? " — en mode test" : ""}
+                  </span>
+                ) : (
+                  "Non vérifiée"
+                ),
+              ],
+              ["Vendeur professionnel vérifié", ouiNon(v.professionnel_verifie)],
+              [
+                "Documents du cotransporteur",
+                v.documents_cotransporteur === null ? "Sans objet" : v.documents_cotransporteur ? "Vérifiés" : "Non vérifiés",
+              ],
+              ["Pseudonyme autorisé à l’affichage", ouiNon(v.pseudo_autorise)],
+            ]}
+          />
+          {v.demandes.length > 0 && (
+            <Tableau entetes={["Vérification demandée", "État", "Mode", "Échecs", "Issue"]} largeur={560}>
+              {v.demandes.map((d, i) => (
+                <tr key={`${d.soumise_le}-${i}`}>
+                  <td className="whitespace-nowrap tabular-nums">{dateHeure(d.soumise_le)}</td>
+                  <td>{libelle(LIBELLE_STATUT_KYC, d.statut)}</td>
+                  <td>{d.mode_test ? "Test" : "Réel"}</td>
+                  <td className="tabular-nums">{d.echecs}</td>
+                  <td className="text-muted-foreground">
+                    {d.verifiee_le ? `vérifiée le ${jour(d.verifiee_le)}` : (d.motif_rejet ?? d.statut_stripe ?? "—")}
+                  </td>
+                </tr>
+              ))}
+            </Tableau>
+          )}
+        </Bloc>
+
+        {/* ── Les rôles ── */}
+        <Bloc titre="Rôles">
+          {f.roles.length === 0 ? (
+            <Aucun>Ce compte achète et publie sans rôle particulier.</Aucun>
+          ) : (
+            <Tableau entetes={["Rôle", "État", "Demandé le", "Décidé le", "Motif de la décision"]} largeur={560}>
+              {f.roles.map((r) => (
+                <tr key={r.role}>
+                  <td className="font-medium">{libelle(LIBELLE_ROLE, r.role)}</td>
+                  <td>{libelle(LIBELLE_STATUT_ROLE, r.statut)}</td>
+                  <td className="whitespace-nowrap tabular-nums">{jour(r.demande_le)}</td>
+                  <td className="whitespace-nowrap tabular-nums">{jour(r.decide_le ?? r.active_le)}</td>
+                  <td className="text-muted-foreground">{r.motif ?? "—"}</td>
+                </tr>
+              ))}
+            </Tableau>
+          )}
+          {f.point_relais && (
+            <Champs
+              colonnes={2}
+              items={[
+                ["Point relais", f.point_relais.nom],
+                ["État", `${libelle(RELAIS, f.point_relais.statut)}${f.point_relais.en_pause ? " · en pause" : ""}`],
+                ["Ville", f.point_relais.ville],
+                ["Vérifié le", f.point_relais.verifie_le ? jour(f.point_relais.verifie_le) : null],
+              ]}
+            />
+          )}
+        </Bloc>
+
+        {/* ── Le compte de paiement ── */}
+        <Bloc titre="Compte de paiement">
+          <Champs
+            colonnes={2}
+            items={[
+              [
+                "Compte de versement",
+                f.paiement.compte_versement === "absent"
+                  ? "Aucun"
+                  : `${f.paiement.compte_versement === "payable" ? "Payable" : "Incomplet"}${f.paiement.mode_test ? " — en mode test" : ""}`,
+              ],
+              ["Payable depuis", f.paiement.payable_depuis ? jour(f.paiement.payable_depuis) : null],
+              ["Encaissements ouverts", ouiNon(f.paiement.encaissements)],
+              ["Carte enregistrée", ouiNon(f.paiement.carte_enregistree)],
+              ["Référence chez Stripe", f.paiement.reference ? <Reference key="ref" valeur={f.paiement.reference} /> : null],
+            ]}
+          />
+          <p className="text-legende text-muted-foreground">
+            Aucune coordonnée bancaire n’est gardée par HandtoHand : Stripe les tient.
+          </p>
+        </Bloc>
+      </div>
+
+      {/* ── Les documents, mandats et engagements ── */}
+      <Bloc titre="Documents acceptés, mandats et engagements">
+        {f.documents.conventions.length === 0 ? (
+          <Aucun>Aucune convention signée.</Aucun>
+        ) : (
+          <Tableau entetes={["Convention", "Version", "Acceptée le", "Mandat de prélèvement"]} largeur={560}>
+            {f.documents.conventions.map((k) => (
+              <tr key={`${k.role}-${k.acceptee_le}`}>
+                <td className="font-medium">{libelle(LIBELLE_ROLE, k.role)}</td>
+                <td>{k.version}</td>
+                <td className="whitespace-nowrap tabular-nums">{dateHeure(k.acceptee_le)}</td>
+                <td>{k.mandat_debit ? "Autorisé" : "Non autorisé"}</td>
+              </tr>
+            ))}
+          </Tableau>
+        )}
+        <p className="text-legende text-muted-foreground">
+          Conditions générales : leur acceptation n’est pas encore enregistrée par les applications. Rien ne permet donc
+          de dire ici quelle version ce compte a acceptée.
+        </p>
+      </Bloc>
+
+      {/* ── L'activité ── */}
+      <Bloc titre="Annonces, transactions et missions">
+        <Champs
+          colonnes={4}
+          items={[
+            [
+              "Annonces",
+              `${f.activite.annonces.publiees} publiées · ${f.activite.annonces.en_ligne} en ligne · ${f.activite.annonces.vendues} vendues`,
+            ],
+            ["Recherches « Je cherche »", String(f.activite.recherches)],
+            ["Achats", `${f.activite.achats.total} · ${f.activite.achats.en_cours} en cours · ${f.activite.achats.annules} annulés`],
+            ["Ventes", `${f.activite.ventes.total} · ${f.activite.ventes.en_cours} en cours · ${f.activite.ventes.annulees} annulées`],
+            ["Co-livraisons", `${f.activite.colivraisons.total} · ${f.activite.colivraisons.realisees} réalisées`],
+            ["Trajets publiés", String(f.activite.trajets)],
+            [
+              "Dernière ouverture",
+              f.activite.ouvertures.length === 0 ? null : (
+                <ul key="ouvertures" className="grid gap-0.5">
+                  {f.activite.ouvertures.map((o) => (
+                    <li key={o.application}>
+                      {LIBELLE_APPLICATION[o.application]} : {dateHeure(o.le)}
+                    </li>
+                  ))}
+                </ul>
+              ),
+            ],
+          ]}
+        />
+
+        <h3 className="text-corps font-semibold">Dernières transactions</h3>
+        {f.transactions.length === 0 ? (
+          <Aucun>Aucun achat, aucune vente.</Aucun>
+        ) : (
+          <Tableau entetes={["Référence", "Bien", "En tant que", "Avec", "État", "Total", "Le"]}>
+            {f.transactions.map((t) => (
+              <tr key={t.reference}>
+                <td className="whitespace-nowrap">
+                  <Achat reference={t.reference} lien={peutOuvrirFiche} />
+                </td>
+                <td>{t.titre ?? "—"}</td>
+                <td>{t.role === "acheteur" ? "Acheteur" : "Vendeur"}</td>
+                <td>{pseudo(t.avec)}</td>
+                <td>{libelle(LIBELLE_STATUT_COMMANDE, t.statut)}</td>
+                <td className="whitespace-nowrap text-right">
+                  <Montant cents={t.total_cents} />
+                </td>
+                <td className="whitespace-nowrap tabular-nums">{dateHeure(t.le)}</td>
+              </tr>
+            ))}
+          </Tableau>
+        )}
+
+        <h3 className="text-corps font-semibold">Dernières annonces</h3>
+        {f.annonces.length === 0 ? (
+          <Aucun>Aucune annonce publiée.</Aucun>
+        ) : (
+          <Tableau entetes={["Annonce", "Type", "État", "Prix", "Publiée le"]} largeur={560}>
+            {f.annonces.map((a) => (
+              <tr key={a.id}>
+                <td className="font-medium">{a.titre}</td>
+                <td>{a.mode === "exchange" ? "Échange" : libelle(LIBELLE_TYPE_ANNONCE, a.type)}</td>
+                <td>{libelle(LIBELLE_ANNONCE, a.statut)}</td>
+                <td className="whitespace-nowrap text-right">
+                  <Montant cents={a.prix_cents} />
+                </td>
+                <td className="whitespace-nowrap tabular-nums">{jour(a.publiee_le)}</td>
+              </tr>
+            ))}
+          </Tableau>
+        )}
+
+        {f.colivraisons.length > 0 && (
+          <>
+            <h3 className="text-corps font-semibold">Dernières co-livraisons</h3>
+            <Tableau entetes={["Achat", "État", "Le"]} largeur={420}>
+              {f.colivraisons.map((m, i) => (
+                <tr key={`${m.reference ?? "sans"}-${i}`}>
+                  <td className="whitespace-nowrap">
+                    <Achat reference={m.reference} lien={peutOuvrirFiche} />
+                  </td>
+                  <td>
+                    {libelle(LIBELLE_MISSION, m.statut)}
+                    {m.retour ? " · retour au vendeur" : ""}
+                  </td>
+                  <td className="whitespace-nowrap tabular-nums">{dateHeure(m.le)}</td>
+                </tr>
+              ))}
+            </Tableau>
+          </>
+        )}
+      </Bloc>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        {/* ── Les avis ── */}
+        <Bloc titre="Avis reçus" aside={<span className="text-legende text-muted-foreground">{noteDite(c.note, c.avis)}</span>}>
+          <Avis avis={f.avis.recus} sens="recus" />
+        </Bloc>
+        <Bloc titre="Avis donnés">
+          <Avis avis={f.avis.donnes} sens="donnes" />
+        </Bloc>
+      </div>
+
+      {/* ── Les signalements et les sanctions ── */}
+      <Bloc
+        titre="Signalements et sanctions"
+        aside={
+          <Link href="/litiges-et-signalements" className="text-legende font-semibold text-h2h-primary hover:underline">
+            Litiges et signalements
+          </Link>
+        }
+      >
+        <Champs
+          colonnes={4}
+          items={[
+            ["Signalements reçus", String(f.signalements.recus_total)],
+            ["Annonces signalées", String(f.signalements.annonces)],
+            ["Avis signalés", String(f.signalements.avis)],
+            ["Personnes qui l’ont bloqué", String(f.signalements.blocages)],
+            ["Signalements faits par ce compte", String(f.signalements.faits)],
+          ]}
+        />
+        {f.signalements.recus.length > 0 && (
+          <Tableau entetes={["Signalé le", "Motif", "Priorité", "Par"]} largeur={560}>
+            {f.signalements.recus.map((s) => (
+              <tr key={s.id}>
+                <td className="whitespace-nowrap tabular-nums">{dateHeure(s.le)}</td>
+                <td className="font-medium">{s.libelle}</td>
+                <td>{libelle(LIBELLE_PRIORITE_SIGNALEMENT, s.priorite)}</td>
+                <td>{pseudo(s.par)}</td>
+              </tr>
+            ))}
+          </Tableau>
+        )}
+        <p className="flex flex-wrap items-center gap-2 text-legende text-muted-foreground">
+          <StatutPastille ton="muet">À venir</StatutPastille>
+          Avertir, restreindre, suspendre, lever une restriction et examiner un recours arrivent avec la suite de la
+          rubrique. Aucune sanction ne peut encore être posée, ni lue, depuis cette fiche.
+        </p>
+      </Bloc>
+    </div>
+  );
+}
