@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { GestesModeration } from "@/components/annonces/GestesModeration";
+import { ExaminerRecoursAnnonce, GestesModeration } from "@/components/annonces/GestesModeration";
+import { CarteRecours } from "@/components/bo/CarteRecours";
 import { StatutPastille } from "@/components/bo/StatutPastille";
 import { Aucun, Bloc, Champs, Montant, Reference, Tableau, ouiNon } from "@/components/operations/commun";
 import { dateHeure, jour } from "@/lib/dates";
@@ -37,7 +38,7 @@ import {
   type NatureAnnonce,
   type Remontee,
 } from "@/lib/annonces/types";
-import { LIBELLE_PRIORITE_SIGNALEMENT, cheminCompte } from "@/lib/utilisateurs/types";
+import { LIBELLE_PRIORITE_SIGNALEMENT, cheminCompte, type RecoursLu } from "@/lib/utilisateurs/types";
 
 const libelle = (table: Record<string, string>, code: string | null | undefined) =>
   code ? (table[code] ?? code) : null;
@@ -123,6 +124,9 @@ function Remontees({ remontees }: { remontees: Remontee[] }) {
 
 const categorieDite = (c: Categorie) => (c ? (c.libelle ?? c.id) : null);
 
+/** Ce qu'un recours conteste, dit : « Contre : le masquage du 30/09/2026 10:00 ». */
+const DECISION_CONTESTEE: Record<string, string> = { masquer: "le masquage", retirer: "le retrait" };
+
 /** L'état posé par l'équipe, en pastille : masquée, c'est à surveiller ; retirée, une issue défavorable. */
 function PastilleModeration({ m }: { m: ModerationFiche }) {
   if (!m.etat) return null;
@@ -139,6 +143,10 @@ function PastilleModeration({ m }: { m: ModerationFiche }) {
  * garde —, et les gestes que la base permet à l'équipier qui lit.
  */
 function BlocModeration({ id, nature, m }: { id: string; nature: NatureAnnonce; m: ModerationFiche }) {
+  // Les recours de l'auteur : ceux qui attendent d'abord, puis les plus récents.
+  const recours = m.historique
+    .filter((h): h is typeof h & { recours: RecoursLu } => h.recours !== null)
+    .sort((a, b) => Number(b.recours.statut === "a_examiner") - Number(a.recours.statut === "a_examiner"));
   return (
     <Bloc titre="Modération">
       <p className="text-corps">
@@ -170,6 +178,7 @@ function BlocModeration({ id, nature, m }: { id: string; nature: NatureAnnonce; 
               <td>
                 {LIBELLE_DECISION_MODERATION[h.decision] ?? h.decision}
                 {h.correction_libelle ? ` · ${h.correction_libelle}` : ""}
+                {h.annulee && <span className="block text-legende text-h2h-success">Annulée sur recours</span>}
                 {h.decision === "demander_correction" && (
                   <span className="block text-legende text-muted-foreground">
                     {h.corrigee_le
@@ -187,9 +196,25 @@ function BlocModeration({ id, nature, m }: { id: string; nature: NatureAnnonce; 
           ))}
         </Tableau>
       )}
+      {recours.length > 0 && (
+        <section className="grid gap-2" aria-label="Recours">
+          <h3 className="text-corps font-semibold">
+            Recours{m.recours_a_examiner > 0 ? ` · ${m.recours_a_examiner} à examiner` : ""}
+          </h3>
+          <ul className="grid gap-2">
+            {recours.map((h) => (
+              <CarteRecours
+                key={h.recours.id}
+                r={h.recours}
+                contre={`${DECISION_CONTESTEE[h.decision] ?? h.decision} du ${dateHeure(h.le)}`}
+                geste={<ExaminerRecoursAnnonce recours={h.recours.id} annonce={id} reference={h.recours.reference} />}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
       <p className="text-legende text-muted-foreground">
-        Autoriser ou refuser une publication, examiner un recours contre une décision de modération : ces gestes arrivent
-        avec la suite de cette phase.
+        Autoriser ou refuser une publication : ce geste arrive avec la suite de cette phase.
       </p>
     </Bloc>
   );

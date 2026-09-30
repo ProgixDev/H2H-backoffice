@@ -54,7 +54,8 @@ export type Dossier = {
   statut: "ouvert" | "clos";
   cree_le: string;
   clos_le: string | null;
-  objet_table: "orders" | "courtage_listings" | "live_sessions" | "taches" | null;
+  /** Une opération, un travail automatique — ou l'annonce d'un recours contre une décision de modération. */
+  objet_table: "orders" | "courtage_listings" | "live_sessions" | "taches" | "products" | "je_cherche_demandes" | null;
   objet_id: string | null;
   objet_ref: string | null;
   etape_libelle: string | null;
@@ -74,7 +75,8 @@ export const CLOTURE_AUTOMATIQUE: Record<Exclude<Dossier["source"], "manuel" | "
   notification: "Ce dossier se clôt tout seul dès que l’avis est lu, ou remis.",
   rapprochement:
     "Ce dossier se clôt tout seul quand l’écart disparaît d’un rapprochement suivant, ou quand la Finance l’explique (Paiements et comptabilité › Rapprochement).",
-  recours: "Ce dossier se clôt tout seul quand le recours est examiné, sur la fiche du compte (Utilisateurs).",
+  recours:
+    "Ce dossier se clôt tout seul quand le recours est examiné : sur la fiche du compte (Utilisateurs) pour une sanction, sur celle de l’annonce (Annonces) pour une décision de modération.",
 };
 
 export type CompteurDossier = { code: string; libelle: string; description: string; nombre: number };

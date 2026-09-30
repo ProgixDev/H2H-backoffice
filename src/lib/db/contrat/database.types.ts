@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@4f29d54 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@9ea63b9 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260930006000_une_annonce_se_modere.sql
+// Base : 20260930007000_une_moderation_se_conteste.sql
 
 export type Json =
   | string
@@ -8162,6 +8162,7 @@ export type Database = {
           nature: string
           propositions: number
           publiee_le: string
+          recours: string
           signalements: number
           statut: string
           titre: string
@@ -8756,6 +8757,16 @@ export type Database = {
           sanction_jusqu_a: string
           statut: string
         }[]
+      }
+      bo_recours_moderation_examiner: {
+        Args: {
+          p_cle: string
+          p_decision: string
+          p_motif: string
+          p_recours: string
+          p_reponse: string
+        }
+        Returns: Json
       }
       bo_recours_ouvrir_piece: {
         Args: { p_motif: string; p_rang: number; p_recours: string }
@@ -9899,6 +9910,7 @@ export type Database = {
           vat_rate: number
         }[]
       }
+      mes_moderations: { Args: never; Returns: Json }
       mes_participations: {
         Args: never
         Returns: {
@@ -10252,6 +10264,10 @@ export type Database = {
       }
       recours_deposer: {
         Args: { p_pieces?: string[]; p_sanction: string; p_texte: string }
+        Returns: Json
+      }
+      recours_moderation_deposer: {
+        Args: { p_moderation: string; p_pieces?: string[]; p_texte: string }
         Returns: Json
       }
       refuser_mission: {

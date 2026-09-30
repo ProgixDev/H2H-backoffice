@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "cn";
+import { DialogueExamenRecours, type ExamenSaisi } from "@/components/bo/DialogueExamenRecours";
 import { DialogueMotif } from "@/components/bo/DialogueMotif";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +16,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useGeste } from "@/lib/db/useGeste";
-import { demanderCorrection, masquerAnnonce, retablirAnnonce, retirerAnnonce } from "@/lib/annonces/actions";
+import {
+  demanderCorrection,
+  examinerRecoursModeration,
+  masquerAnnonce,
+  retablirAnnonce,
+  retirerAnnonce,
+} from "@/lib/annonces/actions";
 import {
   MOTIFS_CORRECTION,
   type ModerationFiche,
@@ -247,5 +254,57 @@ function DialogueModeration({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Examiner le recours de l'auteur contre un masquage ou un retrait : l'accepter
+ * ou le rejeter, une réponse à l'auteur, un motif pour l'équipe.
+ *
+ * ⚠️ LA BASE DÉCIDE ENCORE : la permission de modérer, l'identité reconfirmée,
+ * jamais par l'auteur de la décision, jamais sur son propre compte, une fois.
+ * Le bouton n'apparaît que si la fiche le permet (`examinable`).
+ */
+export function ExaminerRecoursAnnonce({
+  recours,
+  annonce,
+  reference,
+}: {
+  recours: string;
+  annonce: string;
+  reference: string;
+}) {
+  const [ouvert, setOuvert] = useState(false);
+  const examiner = useGeste(examinerRecoursModeration);
+
+  async function confirmer(s: ExamenSaisi) {
+    const r = await examiner.lancer(
+      { recours, annonce, ...s },
+      s.decision === "accepte" ? "Recours accepté : l’auteur est prévenu." : "Recours rejeté : l’auteur est prévenu.",
+    );
+    if (r?.ok) setOuvert(false);
+  }
+
+  return (
+    <>
+      <Button size="sm" onClick={() => setOuvert(true)}>
+        Examiner le recours
+      </Button>
+      {/* Remontée à chaque ouverture : une saisie abandonnée ne revient pas. */}
+      <DialogueExamenRecours
+        key={ouvert ? "ouvert" : "ferme"}
+        ouvert={ouvert}
+        surFermeture={() => setOuvert(false)}
+        reference={reference}
+        description="L’auteur reçoit votre réponse, avec ce qui s’ensuit pour son annonce. Le dossier « À traiter » se clôt."
+        aides={{
+          accepte:
+            "La décision est annulée. Si elle s’applique encore, l’annonce se montre de nouveau — une annonce retirée comprise.",
+          rejete: "La décision est maintenue. L’auteur en connaît la raison par votre réponse.",
+        }}
+        enCours={examiner.enCours}
+        surConfirmation={confirmer}
+      />
+    </>
   );
 }

@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { AnnonceListe, FicheAnnonce, FicheRecherche, ModerationFiche } from "@/lib/annonces/types";
+import type { RecoursLu } from "@/lib/utilisateurs/types";
 import type { DetailIndicateur } from "@/lib/tableau/types";
 
 vi.mock("next/link", () => ({
@@ -26,6 +27,12 @@ vi.mock("@/components/annonces/GestesModeration", () => ({
   GestesModeration: ({ id, nature, possibles }: { id: string; nature: string; possibles: object }) => (
     <span data-gestes={`${nature}:${id}:${JSON.stringify(possibles)}`} />
   ),
+  ExaminerRecoursAnnonce: ({ recours, annonce }: { recours: string; annonce: string }) => (
+    <button data-examiner={`${recours}:${annonce}`} />
+  ),
+}));
+vi.mock("@/components/utilisateurs/GestesRecours", () => ({
+  PieceRecours: ({ recours, rang }: { recours: string; rang: number }) => <button data-piece={`${recours}:${rang}`} />,
 }));
 
 const { ListeAnnonces, FiltresListe } = await import("./ListeAnnonces");
@@ -40,11 +47,11 @@ const LIGNE: AnnonceListe = {
   type: "fixed", mode: "sale", acces: "controlled", auteur: VENDEUSE, auteur_pseudo: "vendeuse_ff", ville: "Nice",
   cree_le: "2026-09-28T08:00:00Z", publiee_le: "2026-09-29T08:00:00Z", expire_le: null, vues: 12, favoris: 1,
   signalements: 2, propositions: null, commandes_en_cours: 1, mise_en_avant: true, moderation: null, correction: null,
-  est_test: false,
+  recours: null, est_test: false,
 };
 
 const RIEN: ModerationFiche = {
-  etat: null, correction: null, historique: [],
+  etat: null, correction: null, historique: [], recours_a_examiner: 0,
   possibles: { moderer: true, raison: null, masquer: true, retablir: false, retirer: true, corriger: true },
 };
 
@@ -274,14 +281,15 @@ describe("la modération d'une fiche", () => {
     historique: [
       { id: "m2", decision: "demander_correction", correction: "erreur_manifeste", correction_libelle: "Erreur manifeste",
         message: "Le prix est celui d’un autre objet.", motif: "Vu au contrôle du matin", le: "2026-09-30T11:00:00Z",
-        par: "mod1@handtohand.pro", corrigee_le: null },
+        par: "mod1@handtohand.pro", corrigee_le: null, en_vigueur: false, annulee: false, recours: null },
       { id: "m1", decision: "masquer", correction: null, correction_libelle: null,
         message: "Les photos ne correspondent pas à l’objet.", motif: "Deux signalements concordants", le: "2026-09-30T10:00:00Z",
-        par: "mod1@handtohand.pro", corrigee_le: null },
+        par: "mod1@handtohand.pro", corrigee_le: null, en_vigueur: true, annulee: false, recours: null },
       { id: "m0", decision: "demander_correction", correction: "doublon", correction_libelle: "Annonce en double",
         message: "Publiée deux fois.", motif: "Doublon vérifié", le: "2026-09-29T10:00:00Z", par: null,
-        corrigee_le: "2026-09-29T12:00:00Z" },
+        corrigee_le: "2026-09-29T12:00:00Z", en_vigueur: false, annulee: false, recours: null },
     ],
+    recours_a_examiner: 0,
     possibles: { moderer: true, raison: null, masquer: false, retablir: true, retirer: true, corriger: false },
   };
 
@@ -290,8 +298,8 @@ describe("la modération d'une fiche", () => {
     expect(f).toContain("Aucune mesure en cours");
     expect(f).toContain(`data-gestes="annonce:${ID}:${JSON.stringify(RIEN.possibles).replace(/"/g, "&quot;")}"`);
     expect(f).not.toContain("par l’équipe");
-    // Autoriser une publication, examiner un recours de modération : la suite, dite comme telle.
-    expect(f).toContain("ces gestes arrivent");
+    // Autoriser ou refuser une publication : la suite, dite comme telle.
+    expect(f).toContain("Autoriser ou refuser une publication : ce geste arrive");
   });
 
   it("masquée : l'état, la correction qui attend, l'historique avec le message et le motif interne", () => {
@@ -320,6 +328,52 @@ describe("la modération d'une fiche", () => {
     expect(f).toContain("seul un recours accepté la rendrait");
     expect(f).toContain("Sans suite");
     expect(f).not.toContain("Attend l’auteur");
+  });
+
+  it("le recours de l'auteur : ses mots, ses pièces, le geste d'examen — ou la raison, puis la réponse", () => {
+    const recours: RecoursLu = {
+      id: "rec1", reference: "REC-000042", statut: "a_examiner", depose_le: "2026-10-01T09:00:00Z",
+      texte: "Les photos sont bien celles de ma lampe.", pieces: 2, examine_le: null, examine_par: null, reponse: null,
+      motif: null, dossier: "DOS-000017", examinable: true, raison: null, pieces_ouvrables: true,
+    };
+    const avecRecours: ModerationFiche = {
+      ...MASQUEE,
+      recours_a_examiner: 1,
+      historique: MASQUEE.historique.map((h) => (h.id === "m1" ? { ...h, recours } : h)),
+    };
+    const f = renderToStaticMarkup(<FicheAnnonceVue f={{ ...FICHE, moderation: avecRecours }} />);
+    expect(f).toContain("Recours · 1 à examiner");
+    expect(f).toContain("REC-000042");
+    expect(f).toContain("Contre : le masquage du");
+    expect(f).toContain("« Les photos sont bien celles de ma lampe. »");
+    expect(f).toContain(`data-examiner="rec1:${ID}"`);
+    expect(f).toContain('data-piece="rec1:2"');
+    // Celui qui a décidé lit pourquoi il ne peut pas examiner.
+    const auteur = renderToStaticMarkup(
+      <FicheAnnonceVue
+        f={{ ...FICHE, moderation: { ...avecRecours, historique: avecRecours.historique.map((h) => (h.recours
+          ? { ...h, recours: { ...recours, examinable: false,
+            raison: "Vous avez pris cette décision : un autre membre de l’équipe examine le recours." } }
+          : h)) } }}
+      />,
+    );
+    expect(auteur).not.toContain("data-examiner");
+    expect(auteur).toContain("Vous avez pris cette décision");
+    // Examiné : la réponse envoyée et le motif interne ; la décision annulée le dit.
+    const examine = renderToStaticMarkup(
+      <FicheAnnonceVue
+        f={{ ...FICHE, moderation: { ...avecRecours, recours_a_examiner: 0, historique: avecRecours.historique.map((h) =>
+          (h.recours ? { ...h, annulee: true, recours: { ...recours, statut: "accepte", examinable: false,
+            examine_le: "2026-10-02T09:00:00Z", examine_par: "exa2@handtohand.pro", reponse: "L’annonce est conforme.",
+            motif: "Photos vérifiées" } } : h)) } }}
+      />,
+    );
+    expect(examine).toContain("Accepté");
+    expect(examine).toContain("« L’annonce est conforme. »");
+    expect(examine).toContain("Photos vérifiées");
+    expect(examine).toContain("Annulée sur recours");
+    const ligne = renderToStaticMarkup(<ListeAnnonces annonces={[{ ...LIGNE, recours: "a_examiner" }]} filtree={false} lienCompte />);
+    expect(ligne).toContain("Recours à examiner");
   });
 
   it("une recherche se modère aussi ; la modification demandée se lit comme telle", () => {

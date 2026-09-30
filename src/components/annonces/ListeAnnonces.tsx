@@ -193,6 +193,7 @@ export function ListeAnnonces({
                   {LIBELLE_CORRECTION[a.correction]}
                 </StatutPastille>
               )}
+              {a.recours && <StatutPastille ton="attention">Recours à examiner</StatutPastille>}
               {a.mise_en_avant && <StatutPastille ton="marque">Mise en avant</StatutPastille>}
               {a.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
             </div>

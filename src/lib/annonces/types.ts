@@ -7,6 +7,7 @@
 // Les mots reprennent ceux que l'acheteur lit dans l'application
 // (`app_product_id.condition*`, `app_je_cherche_id.status*`, `app_report.reasons`).
 import type { Database } from "@/lib/db/contrat/database.types";
+import type { DecisionRecours, RecoursLu } from "@/lib/utilisateurs/types";
 
 type E = Database["public"]["Enums"];
 
@@ -44,6 +45,8 @@ export type AnnonceListe = {
   moderation: EtatModeration | null;
   /** La correction qui attend l'auteur, ou celle qu'il vient d'apporter (14 jours), à vérifier. */
   correction: "demandee" | "apportee" | null;
+  /** Un recours contre une de ses décisions attend l'équipe (20260930007000). */
+  recours: "a_examiner" | null;
   est_test: boolean;
 };
 
@@ -60,6 +63,7 @@ export const FILTRES_ANNONCES = [
   "mises_en_avant",
   "moderees",
   "corrections",
+  "recours",
 ] as const;
 export type FiltreAnnonces = (typeof FILTRES_ANNONCES)[number];
 export const LIBELLE_FILTRE_ANNONCES: Record<FiltreAnnonces, string> = {
@@ -75,9 +79,18 @@ export const LIBELLE_FILTRE_ANNONCES: Record<FiltreAnnonces, string> = {
   mises_en_avant: "Mises en avant",
   moderees: "Masquées ou retirées",
   corrections: "Corrections",
+  recours: "Recours à examiner",
 };
 
-export const FILTRES_RECHERCHES = ["actives", "trouvees", "expirees", "annulees", "moderees", "corrections"] as const;
+export const FILTRES_RECHERCHES = [
+  "actives",
+  "trouvees",
+  "expirees",
+  "annulees",
+  "moderees",
+  "corrections",
+  "recours",
+] as const;
 export type FiltreRecherches = (typeof FILTRES_RECHERCHES)[number];
 export const LIBELLE_FILTRE_RECHERCHES: Record<FiltreRecherches, string> = {
   actives: "Actives",
@@ -86,6 +99,7 @@ export const LIBELLE_FILTRE_RECHERCHES: Record<FiltreRecherches, string> = {
   annulees: "Annulées",
   moderees: "Masquées ou retirées",
   corrections: "Corrections",
+  recours: "Recours à examiner",
 };
 
 export type VueAnnonces = "annonces" | "recherches";
@@ -148,7 +162,15 @@ export type ModerationFiche = {
     le: string;
     par: string | null;
     corrigee_le: string | null;
+    /** Elle s'applique encore : l'annonce est masquée ou retirée par elle (20260930007000). */
+    en_vigueur: boolean;
+    /** L'équipe a donné raison à l'auteur sur recours. */
+    annulee: boolean;
+    /** Le recours de l'auteur contre elle, et ce que l'équipier qui lit peut en faire. */
+    recours: RecoursLu | null;
   }[];
+  /** Les recours contre ses décisions qui attendent l'équipe. */
+  recours_a_examiner: number;
   possibles: {
     moderer: boolean;
     raison: string | null;
@@ -157,6 +179,16 @@ export type ModerationFiche = {
     retirer: boolean;
     corriger: boolean;
   };
+};
+
+/** Ce que rend l'examen d'un recours contre une décision de modération. */
+export type RecoursModerationExamine = {
+  recours: string;
+  cible: string;
+  nature: NatureAnnonce;
+  decision: DecisionRecours;
+  /** L'annonce se montre de nouveau : la décision annulée s'appliquait encore. */
+  retablie: boolean;
 };
 
 /** Ce que rend un geste de modération. */

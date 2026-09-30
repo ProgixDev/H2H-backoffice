@@ -1,7 +1,8 @@
 "use server";
 
 import { geste } from "@/lib/db/geste";
-import { cheminAnnonce, type ModerationPosee, type MotifCorrection } from "./types";
+import type { DecisionRecours } from "@/lib/utilisateurs/types";
+import { cheminAnnonce, type ModerationPosee, type MotifCorrection, type RecoursModerationExamine } from "./types";
 
 const CHEMIN = "/annonces";
 
@@ -64,4 +65,26 @@ export async function demanderCorrection(p: {
     p_motif: p.motif,
     p_cle: p.cle,
   });
+}
+
+/**
+ * Examiner un recours contre un masquage ou un retrait — identité reconfirmée,
+ * jamais par l'auteur de la décision. Accepté, la décision est annulée, et
+ * l'annonce se montre de nouveau si elle s'appliquait encore ; rejeté, elle est
+ * maintenue. La réponse part à l'auteur, le motif reste au journal de l'équipe ;
+ * le dossier « À traiter » se clôt.
+ */
+export async function examinerRecoursModeration(p: {
+  recours: string;
+  annonce: string;
+  decision: DecisionRecours;
+  reponse: string;
+  motif: string;
+  cle: string;
+}) {
+  return geste<RecoursModerationExamine>(
+    [CHEMIN, cheminAnnonce(p.annonce), "/a-traiter", "/tableau-de-bord"],
+    "bo_recours_moderation_examiner",
+    { p_recours: p.recours, p_decision: p.decision, p_reponse: p.reponse, p_motif: p.motif, p_cle: p.cle },
+  );
 }

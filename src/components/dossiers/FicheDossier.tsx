@@ -34,9 +34,13 @@ import {
   type EvenementDossier,
   type Priorite,
 } from "@/lib/dossiers/types";
+import { cheminAnnonce } from "@/lib/annonces/types";
 import { cheminFiche } from "@/lib/operations/types";
 import { cheminCompte } from "@/lib/utilisateurs/types";
 import { TON_CATEGORIE, TON_PRIORITE } from "./tons";
+
+/** Les dossiers qui portent une opération : ceux-là s'ouvrent sur sa fiche complète. */
+const OPERATIONS: readonly string[] = ["orders", "courtage_listings", "live_sessions"];
 
 const GENRE: Record<EvenementDossier["genre"], string> = {
   ouverture: "Dossier ouvert",
@@ -174,16 +178,23 @@ export function FicheDossier({
                   {d.escalade_vers ? ` · escaladé vers ${LIBELLE_EQUIPE[d.escalade_vers] ?? d.escalade_vers}` : ""}
                   {" · "}Responsable : {d.responsable_nom ?? "personne"}
                 </p>
-                {d.objet_table && d.objet_table !== "taches" && d.objet_ref && (
+                {d.objet_table && OPERATIONS.includes(d.objet_table) && d.objet_ref && (
                   <Link href={cheminFiche(d.objet_ref)} className="text-legende font-semibold text-h2h-primary">
                     Ouvrir la fiche complète de l’opération
                   </Link>
                 )}
-                {/* Un recours s'examine sur la fiche du compte qui conteste : le dossier porte ce compte. */}
+                {/* Un recours s'examine là où est la décision contestée : le dossier porte le compte
+                    (une sanction) ou l'annonce (une décision de modération). */}
                 {d.source === "recours" && d.objet_id && (
-                  <Link href={cheminCompte(d.objet_id)} className="text-legende font-semibold text-h2h-primary">
-                    Examiner le recours sur la fiche du compte
-                  </Link>
+                  d.objet_table === "products" || d.objet_table === "je_cherche_demandes" ? (
+                    <Link href={cheminAnnonce(d.objet_id)} className="text-legende font-semibold text-h2h-primary">
+                      Examiner le recours sur la fiche de {d.objet_table === "products" ? "l’annonce" : "la recherche"}
+                    </Link>
+                  ) : (
+                    <Link href={cheminCompte(d.objet_id)} className="text-legende font-semibold text-h2h-primary">
+                      Examiner le recours sur la fiche du compte
+                    </Link>
+                  )
                 )}
               </Bloc>
 
