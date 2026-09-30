@@ -21,10 +21,12 @@ import {
   LIBELLE_STATUT_KYC,
   LIBELLE_STATUT_ROLE,
   LIBELLE_TYPE_COMPTE,
+  etatCompte,
   type AvisCompte,
   type FicheCompte as Fiche,
 } from "@/lib/utilisateurs/types";
 import { noteDite } from "./ListeComptes";
+import { SanctionsCompte } from "./SanctionsCompte";
 
 const DOCUMENT: Record<string, string> = {
   passport: "passeport",
@@ -78,8 +80,9 @@ function Avis({ avis, sens }: { avis: AvisCompte[]; sens: "recus" | "donnes" }) 
  * fois, avec un motif, et la base inscrit chaque révélation au journal. La
  * fiche elle-même ne porte que le pseudonyme.
  *
- * ⚠️ CETTE FICHE NE FAIT QUE LIRE : avertir, restreindre, suspendre, examiner un
- * recours arrivent avec la tranche suivante — et la fiche le dit.
+ * 🔴 SES SANCTIONS ET SES GESTES : avertir, restreindre, suspendre, lever — ceux
+ * que la base permet à l'équipier qui lit, avec la raison de ceux qu'elle ne
+ * permet pas. Examiner un recours arrive avec la tranche suivante.
  */
 export function FicheCompte({
   f,
@@ -96,6 +99,7 @@ export function FicheCompte({
   const v = f.verifications;
   const efface = c.efface_le !== null;
   const attente = f.roles.filter((r) => r.statut.startsWith("pending_")).length;
+  const etat = etatCompte(f);
 
   return (
     <div className="grid gap-4">
@@ -103,7 +107,7 @@ export function FicheCompte({
       <section className="grid gap-3 rounded-xl border bg-card p-4" style={{ boxShadow: "var(--ombre-carte)" }}>
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-h2 font-semibold">{c.pseudo ? `@${c.pseudo}` : "Sans pseudonyme"}</h2>
-          <StatutPastille ton={efface ? "muet" : "succes"}>{efface ? "Compte effacé" : "Compte actif"}</StatutPastille>
+          <StatutPastille ton={etat.ton}>{etat.libelle}</StatutPastille>
           <StatutPastille ton="neutre">{LIBELLE_TYPE_COMPTE[c.type_compte]}</StatutPastille>
           {c.vitrine && <StatutPastille ton="neutre">Vitrine</StatutPastille>}
           {c.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
@@ -128,6 +132,11 @@ export function FicheCompte({
           </p>
         )}
       </section>
+
+      {/* ── Les sanctions : ce qui est arrêté, et les gestes de l'équipe ── */}
+      <Bloc titre="Sanctions">
+        <SanctionsCompte profil={c.id} pseudo={c.pseudo} s={f.sanctions} />
+      </Bloc>
 
       <div className="grid gap-4 xl:grid-cols-2">
         {/* ── L'identité et les coordonnées, masquées ── */}
@@ -371,9 +380,9 @@ export function FicheCompte({
         </Bloc>
       </div>
 
-      {/* ── Les signalements et les sanctions ── */}
+      {/* ── Les signalements ── */}
       <Bloc
-        titre="Signalements et sanctions"
+        titre="Signalements"
         aside={
           <Link href="/litiges-et-signalements" className="text-legende font-semibold text-h2h-primary hover:underline">
             Litiges et signalements
@@ -402,11 +411,6 @@ export function FicheCompte({
             ))}
           </Tableau>
         )}
-        <p className="flex flex-wrap items-center gap-2 text-legende text-muted-foreground">
-          <StatutPastille ton="muet">À venir</StatutPastille>
-          Avertir, restreindre, suspendre, lever une restriction et examiner un recours arrivent avec la suite de la
-          rubrique. Aucune sanction ne peut encore être posée, ni lue, depuis cette fiche.
-        </p>
       </Bloc>
     </div>
   );

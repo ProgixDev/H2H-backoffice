@@ -82,12 +82,22 @@ export type CompteListe = {
   /** Les signalements reçus depuis quatre-vingt-dix jours. */
   signalements: number;
   derniere_ouverture: string | null;
+  /** Ce qui pèse sur le compte — nul quand rien : ni sanction en cours, ni avertissement reçu. */
+  sanctions: { suspendu: boolean; portees: PorteeRestriction[]; avertissements: number } | null;
   efface: boolean;
   vitrine: boolean;
   est_test: boolean;
 };
 
-export const FILTRES_COMPTES = ["vendeurs", "cotransporteurs", "relais", "professionnels", "signales", "effaces"] as const;
+export const FILTRES_COMPTES = [
+  "vendeurs",
+  "cotransporteurs",
+  "relais",
+  "professionnels",
+  "signales",
+  "sanctionnes",
+  "effaces",
+] as const;
 export type FiltreComptes = (typeof FILTRES_COMPTES)[number];
 
 export const LIBELLE_FILTRE_COMPTES: Record<FiltreComptes, string> = {
@@ -96,6 +106,7 @@ export const LIBELLE_FILTRE_COMPTES: Record<FiltreComptes, string> = {
   relais: "Points relais",
   professionnels: "Professionnels",
   signales: "Signalés",
+  sanctionnes: "Sanctionnés",
   effaces: "Comptes effacés",
 };
 
@@ -204,9 +215,97 @@ export type FicheCompte = {
     blocages: number;
   };
   litiges: { total: number; ouverts: number };
-  /** Nul : avertissements, restrictions et suspensions arrivent avec la tranche suivante. */
-  sanctions: null;
+  sanctions: SanctionsCompte;
 };
+
+// ── Les sanctions (`bo_utilisateur_avertir`, `_restreindre`, `_suspendre`, `bo_restriction_lever` — 20260930003000) ──
+//
+// 🔴 CE QUI EST EN COURS CONTINUE : une restriction ou une suspension arrête ce
+// qui COMMENCE — publier, acheter, lancer un live, prendre une co-livraison,
+// écrire hors transaction. Les transactions et les colis déjà engagés vont au
+// bout, et c'est la base qui le tient.
+
+export type PorteeRestriction = "publication" | "achat" | "live" | "logistique" | "messagerie";
+export type NatureSanction = "avertissement" | "restriction" | "suspension";
+
+/** Une sanction en cours : le message dit à la personne, le motif gardé par l'équipe. */
+export type SanctionEnCours = {
+  id: string;
+  nature: NatureSanction;
+  portee: PorteeRestriction | null;
+  portee_libelle: string | null;
+  /** Ce que le périmètre arrête, dans les mots dits à la personne. */
+  effet: string | null;
+  message: string;
+  motif: string;
+  depuis: string;
+  /** Nul : jusqu'à la levée. */
+  jusqu_a: string | null;
+  par: string | null;
+};
+
+/** Une sanction passée : un avertissement, une sanction levée ou arrivée à son terme. */
+export type SanctionPassee = Omit<SanctionEnCours, "effet"> & {
+  levee_le: string | null;
+  levee_par: string | null;
+  motif_levee: string | null;
+};
+
+export type SanctionsCompte = {
+  en_cours: SanctionEnCours[];
+  /** Les trente dernières, les plus récentes d'abord. */
+  passees: SanctionPassee[];
+  avertissements: number;
+  /** Ce que l'équipier qui lit peut faire — et, sinon, pourquoi. */
+  possibles: {
+    sanctionner: boolean;
+    raison: string | null;
+    suspendre: boolean;
+    /** Les périmètres qui peuvent encore se restreindre. */
+    portees: { code: PorteeRestriction; libelle: string; effet: string }[];
+  };
+};
+
+/** Ce que rend un geste de sanction : la sanction posée, et jusqu'à quand. */
+export type SanctionPosee = {
+  sanction: string;
+  profil: string;
+  nature: NatureSanction;
+  portee: PorteeRestriction | null;
+  jusqu_a: string | null;
+};
+
+export const LIBELLE_PORTEE: Record<PorteeRestriction, string> = {
+  publication: "Publication",
+  achat: "Achats et offres",
+  live: "Live Shopping",
+  logistique: "H2H Logistic",
+  messagerie: "Messages hors transaction",
+};
+
+export const LIBELLE_NATURE_SANCTION: Record<NatureSanction, string> = {
+  avertissement: "Avertissement",
+  restriction: "Restriction",
+  suspension: "Suspension",
+};
+
+/** Les durées proposées ; la base accepte de 1 à 365 jours, ou aucune — jusqu'à la levée. */
+export const DUREES_SANCTION: { jours: number | null; libelle: string }[] = [
+  { jours: 1, libelle: "1 jour" },
+  { jours: 3, libelle: "3 jours" },
+  { jours: 7, libelle: "7 jours" },
+  { jours: 30, libelle: "30 jours" },
+  { jours: 90, libelle: "90 jours" },
+  { jours: null, libelle: "Sans terme" },
+];
+
+/** L'état du compte, tel que la fiche l'annonce. */
+export function etatCompte(f: Pick<FicheCompte, "compte" | "sanctions">): { libelle: string; ton: "succes" | "erreur" | "attention" | "muet" } {
+  if (f.compte.efface_le !== null) return { libelle: "Compte effacé", ton: "muet" };
+  if (f.sanctions.en_cours.some((x) => x.nature === "suspension")) return { libelle: "Compte suspendu", ton: "erreur" };
+  if (f.sanctions.en_cours.length > 0) return { libelle: "Compte restreint", ton: "attention" };
+  return { libelle: "Compte actif", ton: "succes" };
+}
 
 export type CompteTrouve = { profil: string; pseudo: string | null; est_test: boolean };
 

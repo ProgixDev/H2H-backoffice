@@ -8,6 +8,7 @@ import { dateHeure, jour } from "@/lib/dates";
 import {
   FILTRES_COMPTES,
   LIBELLE_FILTRE_COMPTES,
+  LIBELLE_PORTEE,
   LIBELLE_ROLE,
   LIBELLE_STATUT_ROLE,
   LIBELLE_TYPE_COMPTE,
@@ -79,9 +80,28 @@ export function FiltresComptes({ f, testVisible }: { f: FiltresComptes; testVisi
   );
 }
 
+/** Ce qui pèse sur un compte : suspendu, restreint (et sur quoi), averti. */
+export function PastillesSanctions({ s }: { s: CompteListe["sanctions"] }) {
+  if (!s) return null;
+  return (
+    <>
+      {s.suspendu && <StatutPastille ton="erreur">Suspendu</StatutPastille>}
+      {!s.suspendu && s.portees.length > 0 && (
+        <StatutPastille ton="attention">Restreint · {s.portees.map((p) => LIBELLE_PORTEE[p] ?? p).join(", ")}</StatutPastille>
+      )}
+      {s.avertissements > 0 && (
+        <StatutPastille ton="neutre">
+          {s.avertissements} avertissement{s.avertissements > 1 ? "s" : ""}
+        </StatutPastille>
+      )}
+    </>
+  );
+}
+
 /**
  * Les comptes (§8) : le pseudonyme, ce que la personne fait, ce qui est
- * vérifié, ce qui a été dit d'elle. Chaque ligne ouvre la fiche.
+ * vérifié, ce qui a été dit d'elle, ce qui pèse sur elle. Chaque ligne ouvre
+ * la fiche.
  *
  * 🔴 LE PSEUDONYME SEUL : ni nom, ni e-mail, ni téléphone dans cette liste.
  */
@@ -127,11 +147,12 @@ export function ListeComptes({ comptes, filtree }: { comptes: CompteListe[]; fil
                   <span className="text-legende text-muted-foreground">
                     {[LIBELLE_TYPE_COMPTE[c.type_compte], c.ville].filter(Boolean).join(" · ")}
                   </span>
-                  {(c.est_test || c.vitrine || c.efface) && (
+                  {(c.est_test || c.vitrine || c.efface || c.sanctions) && (
                     <span className="flex flex-wrap gap-1">
                       {c.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
                       {c.vitrine && <StatutPastille ton="neutre">Vitrine</StatutPastille>}
                       {c.efface && <StatutPastille ton="muet">Compte effacé</StatutPastille>}
+                      <PastillesSanctions s={c.sanctions} />
                     </span>
                   )}
                 </div>

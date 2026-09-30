@@ -3,12 +3,13 @@
 // Personne ne clique dans un navigateur pendant les tests : on vérifie ici que
 // la liste et la fiche disent ce qu'elles doivent dire — le pseudonyme et
 // jamais davantage, cinq données masquées et leur porte, ce qui n'existe pas
-// encore dit « à venir », une référence d'achat qui n'ouvre la fiche que pour
-// qui lit l'activité.
+// encore dit tel quel, une référence d'achat qui n'ouvre la fiche que pour qui
+// lit l'activité, les sanctions — ce qui est arrêté, le message et le motif
+// distingués, les gestes que la base permet.
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import type { CompteListe, FicheCompte as Fiche } from "@/lib/utilisateurs/types";
+import type { CompteListe, FicheCompte as Fiche, SanctionsCompte } from "@/lib/utilisateurs/types";
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...reste }: { href: string; children: ReactNode }) => (
@@ -24,6 +25,17 @@ vi.mock("@/components/operations/sensibles", () => ({
     <div data-cadre={`${table}:${objet}:${peutReveler}`}>{children}</div>
   ),
   DonneeMasquee: ({ champ }: { champ: string }) => <span data-masquee={champ}>••••••</span>,
+}));
+// Les gestes ouvrent des fenêtres et demandent la session : ici, on ne garde que ce qu'ils reçoivent.
+vi.mock("@/components/utilisateurs/GestesSanction", () => ({
+  GestesSanction: ({ profil, possibles }: { profil: string; possibles: SanctionsCompte["possibles"] }) => (
+    <div
+      data-gestes={`${profil}:${possibles.sanctionner}:${possibles.suspendre}:${possibles.portees.map((p) => p.code).join(",")}`}
+    >
+      {possibles.raison}
+    </div>
+  ),
+  LeverSanction: ({ sanction, nature }: { sanction: string; nature: string }) => <button data-lever={`${nature}:${sanction}`} />,
 }));
 
 const { FiltresComptes, ListeComptes, noteDite } = await import("./ListeComptes");
@@ -46,6 +58,7 @@ const LIGNE: CompteListe = {
   ventes: 0,
   signalements: 0,
   derniere_ouverture: "2026-09-28T17:38:00Z",
+  sanctions: null,
   efface: false,
   vitrine: false,
   est_test: false,
@@ -102,8 +115,54 @@ const FICHE: Fiche = {
   },
   signalements: { recus: [], recus_total: 0, faits: 1, annonces: 0, avis: 1, blocages: 0 },
   litiges: { total: 1, ouverts: 1 },
-  sanctions: null,
+  sanctions: {
+    en_cours: [],
+    passees: [],
+    avertissements: 0,
+    possibles: { sanctionner: false, raison: "Votre rôle ne permet pas de sanctionner un compte.", suspendre: true, portees: [] },
+  },
 };
+
+const PORTEES: SanctionsCompte["possibles"]["portees"] = [
+  { code: "publication", libelle: "Publication", effet: "la publication d'annonces et de recherches, et l'achat de visibilité" },
+  { code: "live", libelle: "Live Shopping", effet: "les lives : en lancer un, y réserver une place, y faire une offre" },
+];
+const SANCTIONNE: SanctionsCompte = {
+  en_cours: [
+    {
+      id: "r1",
+      nature: "restriction",
+      portee: "achat",
+      portee_libelle: "Achats et offres",
+      effet: "les achats, les offres et les propositions d'échange",
+      message: "Plusieurs acheteurs signalent des échanges proposés hors de la plateforme.",
+      motif: "Trois signalements concordants",
+      depuis: "2026-09-30T08:00:00Z",
+      jusqu_a: "2026-10-07T08:00:00Z",
+      par: "mod1@handtohand.pro",
+    },
+  ],
+  passees: [
+    {
+      id: "s0", nature: "suspension", portee: null, portee_libelle: null, message: "Comportement insultant envers un vendeur.",
+      motif: "Signalement vérifié", depuis: "2026-09-01T08:00:00Z", jusqu_a: null, par: "mod1@handtohand.pro",
+      levee_le: "2026-09-03T08:00:00Z", levee_par: "dir1@handtohand.pro", motif_levee: "Recours accepté",
+    },
+    {
+      id: "r0", nature: "restriction", portee: "messagerie", portee_libelle: "Messages hors transaction", message: "Messages répétés.",
+      motif: "Spam", depuis: "2026-08-01T08:00:00Z", jusqu_a: "2026-08-04T08:00:00Z", par: "mod1@handtohand.pro",
+      levee_le: null, levee_par: null, motif_levee: null,
+    },
+    {
+      id: "a0", nature: "avertissement", portee: null, portee_libelle: null, message: "Merci de rester courtois.",
+      motif: "Ton agressif", depuis: "2026-07-01T08:00:00Z", jusqu_a: null, par: "mod1@handtohand.pro",
+      levee_le: null, levee_par: null, motif_levee: null,
+    },
+  ],
+  avertissements: 1,
+  possibles: { sanctionner: true, raison: null, suspendre: true, portees: PORTEES },
+};
+
 
 describe("la liste des comptes", () => {
   it("une ligne dit le pseudonyme, l'activité et les vérifications — et ouvre la fiche", () => {
@@ -133,6 +192,21 @@ describe("la liste des comptes", () => {
     expect(noteDite(5, 0)).toBe("—");
   });
 
+  it("ce qui pèse sur un compte se voit : suspendu, restreint et sur quoi, averti", () => {
+    const suspendu = renderToStaticMarkup(
+      <ListeComptes comptes={[{ ...LIGNE, sanctions: { suspendu: true, portees: [], avertissements: 2 } }]} filtree={false} />,
+    );
+    expect(suspendu).toContain("Suspendu");
+    expect(suspendu).toContain("2 avertissements");
+    expect(suspendu).not.toContain("Restreint");
+    const restreint = renderToStaticMarkup(
+      <ListeComptes comptes={[{ ...LIGNE, sanctions: { suspendu: false, portees: ["achat", "live"], avertissements: 1 } }]} filtree={false} />,
+    );
+    expect(restreint).toContain("Restreint · Achats et offres, Live Shopping");
+    expect(restreint).toMatch(/1 avertissement(?!s)/);
+    expect(renderToStaticMarkup(<ListeComptes comptes={[LIGNE]} filtree={false} />)).not.toMatch(/Suspendu|Restreint|avertissement/);
+  });
+
   it("une liste vide se dit vide — et dit où chercher un e-mail quand on a cherché", () => {
     expect(renderToStaticMarkup(<ListeComptes comptes={[]} filtree={false} />)).toContain("Aucun compte");
     const cherche = renderToStaticMarkup(<ListeComptes comptes={[]} filtree />);
@@ -145,6 +219,8 @@ describe("la liste des comptes", () => {
     expect(html).toContain('href="/utilisateurs?q=cannes&amp;filtre=vendeurs"');
     expect(html).toContain('href="/utilisateurs?q=cannes"');
     expect(html).toContain('name="filtre" value="signales"');
+    expect(html).toContain('href="/utilisateurs?q=cannes&amp;filtre=sanctionnes"');
+    expect(html).toContain("Sanctionnés");
     expect(html).toContain("Inclure le monde du test");
     expect(renderToStaticMarkup(<FiltresComptes f={{ q: null, filtre: null, test: false }} testVisible={false} />)).not.toContain(
       "Inclure le monde du test",
@@ -174,11 +250,59 @@ describe("la fiche d'un compte", () => {
     expect(html).toContain("HandtoHand : 28/09/2026 19:38");
   });
 
-  it("ce qui n'existe pas encore se dit — ni sanction inventée, ni conditions générales présumées", () => {
-    expect(html).toContain("À venir");
-    expect(html).toContain("Aucune sanction ne peut encore être posée, ni lue, depuis cette fiche.");
+  it("ce qui n'existe pas encore se dit — ni conditions générales présumées", () => {
     expect(html).toContain("leur acceptation n’est pas encore enregistrée par les applications");
     expect(html).toContain("Aucune coordonnée bancaire n’est gardée par HandtoHand");
+  });
+
+  it("sans sanction : le compte peut tout commencer, et l'équipier sans le droit de sanctionner sait pourquoi", () => {
+    expect(html).toContain("Aucune restriction ni suspension en cours : le compte peut tout commencer.");
+    expect(html).toContain("Aucun avertissement reçu.");
+    expect(html).toContain(`data-gestes="${ID}:false:true:"`);
+    expect(html).toContain("Votre rôle ne permet pas de sanctionner un compte.");
+    expect(html).not.toContain("data-lever");
+    expect(html).not.toContain("Historique");
+  });
+
+  it("une restriction en cours : ce qui est arrêté, jusqu'à quand, qui — le message et le motif distingués", () => {
+    const f = renderToStaticMarkup(<FicheCompte f={{ ...FICHE, sanctions: SANCTIONNE }} peutReveler peutOuvrirFiche />);
+    expect(f).toContain("Compte restreint");
+    expect(f).not.toContain("Compte actif");
+    expect(f).toContain("Restreint · Achats et offres");
+    // Le 30 septembre à 8 h UTC : 10 h à Paris ; le 7 octobre, idem.
+    expect(f).toContain("Depuis le 30/09/2026 10:00, jusqu’au 07/10/2026 10:00 · par mod1@handtohand.pro");
+    expect(f).toContain("Arrêté : les achats, les offres et les propositions d&#x27;échange. Ses transactions et ses colis déjà engagés vont au bout.");
+    expect(f).toContain("Message envoyé à la personne");
+    expect(f).toContain("« Plusieurs acheteurs signalent des échanges proposés hors de la plateforme. »");
+    expect(f).toContain("Motif interne");
+    expect(f).toContain("Trois signalements concordants");
+    expect(f).toContain('data-lever="restriction:r1"');
+    expect(f).toContain(`data-gestes="${ID}:true:true:publication,live"`);
+    expect(f).toContain("1 avertissement reçu.");
+  });
+
+  it("l'historique : levée par qui et pourquoi, arrivée à son terme, un avertissement sans fin", () => {
+    const f = renderToStaticMarkup(<FicheCompte f={{ ...FICHE, sanctions: SANCTIONNE }} peutReveler peutOuvrirFiche />);
+    expect(f).toContain("Historique");
+    expect(f).toContain("Levée le 03/09/2026 10:00 par dir1@handtohand.pro : Recours accepté");
+    expect(f).toContain("Suspension");
+    expect(f).toContain("Restriction · Messages hors transaction");
+    expect(f).toContain("Arrivée à son terme le 04/08/2026 10:00");
+    expect(f).toContain("« Merci de rester courtois. »");
+  });
+
+  it("une suspension en cours : le compte le dit, et ses annonces ont quitté la vitrine", () => {
+    const suspendu: SanctionsCompte = {
+      ...SANCTIONNE,
+      en_cours: [{ ...SANCTIONNE.en_cours[0], id: "s1", nature: "suspension", portee: null, portee_libelle: null, effet: null, jusqu_a: null }],
+      possibles: { ...SANCTIONNE.possibles, suspendre: false, portees: [] },
+    };
+    const f = renderToStaticMarkup(<FicheCompte f={{ ...FICHE, sanctions: suspendu }} peutReveler peutOuvrirFiche />);
+    expect(f).toContain("Compte suspendu");
+    expect(f).toContain("sans terme, jusqu’à sa levée");
+    expect(f).toContain("Arrêté : tout ce qui commence — ses annonces ont quitté la vitrine.");
+    expect(f).toContain('data-lever="suspension:s1"');
+    expect(f).toContain(`data-gestes="${ID}:true:false:"`);
   });
 
   it("une référence d'achat ouvre la fiche de l'opération — seulement pour qui lit l'activité", () => {

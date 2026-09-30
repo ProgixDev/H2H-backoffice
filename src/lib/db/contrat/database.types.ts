@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@d1354e8 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@bac5402 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260930002000_un_compte_se_lit.sql
+// Base : 20260930003000_un_compte_se_restreint.sql
 
 export type Json =
   | string
@@ -8660,6 +8660,10 @@ export type Database = {
         }
         Returns: Json
       }
+      bo_restriction_lever: {
+        Args: { p_cle: string; p_motif: string; p_restriction: string }
+        Returns: Json
+      }
       bo_reveler: {
         Args: {
           p_champ: string
@@ -8780,7 +8784,37 @@ export type Database = {
           retour_inclus: boolean
         }[]
       }
+      bo_utilisateur_avertir: {
+        Args: {
+          p_cle: string
+          p_message: string
+          p_motif: string
+          p_profil: string
+        }
+        Returns: Json
+      }
       bo_utilisateur_lire: { Args: { p_profil: string }; Returns: Json }
+      bo_utilisateur_restreindre: {
+        Args: {
+          p_cle: string
+          p_jours: number
+          p_message: string
+          p_motif: string
+          p_portee: string
+          p_profil: string
+        }
+        Returns: Json
+      }
+      bo_utilisateur_suspendre: {
+        Args: {
+          p_cle: string
+          p_jours: number
+          p_message: string
+          p_motif: string
+          p_profil: string
+        }
+        Returns: Json
+      }
       bo_utilisateur_trouver_par_email: {
         Args: { p_email: string; p_motif: string }
         Returns: Json
@@ -8805,6 +8839,7 @@ export type Database = {
           note: number
           pseudo: string
           roles: Json
+          sanctions: Json
           signalements: number
           type_compte: string
           ventes: number
