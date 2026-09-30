@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@a122317 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@f7c703c : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260927003000_les_comptes_se_rapprochent.sql
+// Base : 20260930001000_les_resultats_se_lisent.sql
 
 export type Json =
   | string
@@ -8687,6 +8687,19 @@ export type Database = {
           reference: string
           titre: string
         }[]
+      }
+      bo_tableau_de_bord: {
+        Args: { p_au?: string; p_du?: string; p_inclure_test?: boolean }
+        Returns: Json
+      }
+      bo_tableau_detail: {
+        Args: {
+          p_au?: string
+          p_code: string
+          p_du?: string
+          p_inclure_test?: boolean
+        }
+        Returns: Json
       }
       bo_taches_automatiques: {
         Args: never
