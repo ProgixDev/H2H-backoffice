@@ -1,7 +1,13 @@
 "use server";
 
 import { geste } from "@/lib/db/geste";
-import { cheminCompte, type PorteeRestriction, type SanctionPosee } from "./types";
+import {
+  cheminCompte,
+  type DecisionRecours,
+  type PorteeRestriction,
+  type RecoursExamine,
+  type SanctionPosee,
+} from "./types";
 
 const CHEMIN = "/utilisateurs";
 // Une suspension se compte au tableau de bord : il se relit aussi.
@@ -80,4 +86,27 @@ export async function leverSanction(p: { sanction: string; profil: string; motif
     "bo_restriction_lever",
     { p_restriction: p.sanction, p_motif: p.motif, p_cle: p.cle },
   );
+}
+
+/**
+ * Examiner un recours — identité reconfirmée, jamais par l'auteur de la
+ * décision. Accepté, la décision est annulée, et levée si elle court encore ;
+ * rejeté, elle est maintenue. La réponse part à la personne, le motif reste au
+ * journal de l'équipe ; le dossier « À traiter » se clôt.
+ */
+export async function examinerRecours(p: {
+  recours: string;
+  profil: string;
+  decision: DecisionRecours;
+  reponse: string;
+  motif: string;
+  cle: string;
+}) {
+  return geste<RecoursExamine>([CHEMIN, cheminCompte(p.profil), TABLEAU, "/a-traiter"], "bo_recours_examiner", {
+    p_recours: p.recours,
+    p_decision: p.decision,
+    p_reponse: p.reponse,
+    p_motif: p.motif,
+    p_cle: p.cle,
+  });
 }

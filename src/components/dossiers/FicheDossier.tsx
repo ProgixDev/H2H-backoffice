@@ -35,6 +35,7 @@ import {
   type Priorite,
 } from "@/lib/dossiers/types";
 import { cheminFiche } from "@/lib/operations/types";
+import { cheminCompte } from "@/lib/utilisateurs/types";
 import { TON_CATEGORIE, TON_PRIORITE } from "./tons";
 
 const GENRE: Record<EvenementDossier["genre"], string> = {
@@ -176,6 +177,12 @@ export function FicheDossier({
                 {d.objet_table && d.objet_table !== "taches" && d.objet_ref && (
                   <Link href={cheminFiche(d.objet_ref)} className="text-legende font-semibold text-h2h-primary">
                     Ouvrir la fiche complète de l’opération
+                  </Link>
+                )}
+                {/* Un recours s'examine sur la fiche du compte qui conteste : le dossier porte ce compte. */}
+                {d.source === "recours" && d.objet_id && (
+                  <Link href={cheminCompte(d.objet_id)} className="text-legende font-semibold text-h2h-primary">
+                    Examiner le recours sur la fiche du compte
                   </Link>
                 )}
               </Bloc>

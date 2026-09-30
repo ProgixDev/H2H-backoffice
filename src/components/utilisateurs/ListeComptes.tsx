@@ -94,6 +94,11 @@ export function PastillesSanctions({ s }: { s: CompteListe["sanctions"] }) {
           {s.avertissements} avertissement{s.avertissements > 1 ? "s" : ""}
         </StatutPastille>
       )}
+      {s.recours > 0 && (
+        <StatutPastille ton="attention">
+          {s.recours > 1 ? `${s.recours} recours à examiner` : "Recours à examiner"}
+        </StatutPastille>
+      )}
     </>
   );
 }

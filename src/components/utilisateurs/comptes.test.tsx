@@ -5,11 +5,12 @@
 // jamais davantage, cinq données masquées et leur porte, ce qui n'existe pas
 // encore dit tel quel, une référence d'achat qui n'ouvre la fiche que pour qui
 // lit l'activité, les sanctions — ce qui est arrêté, le message et le motif
-// distingués, les gestes que la base permet.
+// distingués, les gestes que la base permet —, les recours de la personne et
+// leur examen, et l'onglet qui les liste.
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import type { CompteListe, FicheCompte as Fiche, SanctionsCompte } from "@/lib/utilisateurs/types";
+import type { CompteListe, FicheCompte as Fiche, RecoursListe, RecoursLu, SanctionsCompte } from "@/lib/utilisateurs/types";
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...reste }: { href: string; children: ReactNode }) => (
@@ -37,9 +38,16 @@ vi.mock("@/components/utilisateurs/GestesSanction", () => ({
   ),
   LeverSanction: ({ sanction, nature }: { sanction: string; nature: string }) => <button data-lever={`${nature}:${sanction}`} />,
 }));
+vi.mock("@/components/utilisateurs/GestesRecours", () => ({
+  ExaminerRecours: ({ recours, reference }: { recours: string; reference: string }) => (
+    <button data-examiner={`${reference}:${recours}`} />
+  ),
+  PieceRecours: ({ recours, rang }: { recours: string; rang: number }) => <button data-piece={`${recours}:${rang}`} />,
+}));
 
 const { FiltresComptes, ListeComptes, noteDite } = await import("./ListeComptes");
 const { FicheCompte } = await import("./FicheCompte");
+const { ListeRecours } = await import("./ListeRecours");
 
 const ID = "fb000000-0000-4000-a000-000000000002";
 const LIGNE: CompteListe = {
@@ -119,6 +127,7 @@ const FICHE: Fiche = {
     en_cours: [],
     passees: [],
     avertissements: 0,
+    recours_a_examiner: 0,
     possibles: { sanctionner: false, raison: "Votre rôle ne permet pas de sanctionner un compte.", suspendre: true, portees: [] },
   },
 };
@@ -140,6 +149,7 @@ const SANCTIONNE: SanctionsCompte = {
       depuis: "2026-09-30T08:00:00Z",
       jusqu_a: "2026-10-07T08:00:00Z",
       par: "mod1@handtohand.pro",
+      recours: null,
     },
   ],
   passees: [
@@ -147,20 +157,52 @@ const SANCTIONNE: SanctionsCompte = {
       id: "s0", nature: "suspension", portee: null, portee_libelle: null, message: "Comportement insultant envers un vendeur.",
       motif: "Signalement vérifié", depuis: "2026-09-01T08:00:00Z", jusqu_a: null, par: "mod1@handtohand.pro",
       levee_le: "2026-09-03T08:00:00Z", levee_par: "dir1@handtohand.pro", motif_levee: "Recours accepté",
+      annulee: false, recours: null,
     },
     {
       id: "r0", nature: "restriction", portee: "messagerie", portee_libelle: "Messages hors transaction", message: "Messages répétés.",
       motif: "Spam", depuis: "2026-08-01T08:00:00Z", jusqu_a: "2026-08-04T08:00:00Z", par: "mod1@handtohand.pro",
       levee_le: null, levee_par: null, motif_levee: null,
+      annulee: false, recours: null,
     },
     {
       id: "a0", nature: "avertissement", portee: null, portee_libelle: null, message: "Merci de rester courtois.",
       motif: "Ton agressif", depuis: "2026-07-01T08:00:00Z", jusqu_a: null, par: "mod1@handtohand.pro",
       levee_le: null, levee_par: null, motif_levee: null,
+      annulee: false, recours: null,
     },
   ],
   avertissements: 1,
+  recours_a_examiner: 0,
   possibles: { sanctionner: true, raison: null, suspendre: true, portees: PORTEES },
+};
+
+// Un recours contre la restriction en cours, qui attend ; un autre, accepté, contre l'avertissement.
+const EN_ATTENTE: RecoursLu = {
+  id: "rc1", reference: "REC-000012", statut: "a_examiner", depose_le: "2026-09-30T12:00:00Z",
+  texte: "Je n’ai jamais proposé d’échange hors de la plateforme.", pieces: 2, examine_le: null, examine_par: null,
+  reponse: null, motif: null, dossier: "DOS-000042", examinable: true, raison: null, pieces_ouvrables: true,
+};
+const ACCEPTE: RecoursLu = {
+  ...EN_ATTENTE, id: "rc0", reference: "REC-000007", statut: "accepte", texte: "Le ton était vif, pas agressif.", pieces: 0,
+  examine_le: "2026-07-02T08:00:00Z", examine_par: "mod2@handtohand.pro",
+  reponse: "Après relecture, l’avertissement n’était pas justifié.", motif: "Relecture des messages", dossier: "DOS-000031",
+  examinable: false,
+};
+const CONTESTE: SanctionsCompte = {
+  ...SANCTIONNE,
+  en_cours: [{ ...SANCTIONNE.en_cours[0], recours: EN_ATTENTE }],
+  passees: SANCTIONNE.passees.map((x) => (x.id === "a0" ? { ...x, annulee: true, recours: ACCEPTE } : x)),
+  avertissements: 0,
+  recours_a_examiner: 1,
+};
+
+const RECOURS: RecoursListe = {
+  id: "rc1", reference: "REC-000012", statut: "a_examiner", depose_le: "2026-09-30T12:00:00Z", profil: ID,
+  pseudo: "acheteur_cl", nature: "restriction", portee: "achat", sanction_depuis: "2026-09-30T08:00:00Z",
+  sanction_jusqu_a: "2026-10-07T08:00:00Z", sanction_en_cours: true,
+  extrait: "Je n’ai jamais proposé d’échange hors de la plateforme.", pieces: 2, examine_le: null, examine_par: null,
+  echeance: "2026-10-01T12:00:00Z", est_test: false,
 };
 
 
@@ -194,17 +236,29 @@ describe("la liste des comptes", () => {
 
   it("ce qui pèse sur un compte se voit : suspendu, restreint et sur quoi, averti", () => {
     const suspendu = renderToStaticMarkup(
-      <ListeComptes comptes={[{ ...LIGNE, sanctions: { suspendu: true, portees: [], avertissements: 2 } }]} filtree={false} />,
+      <ListeComptes comptes={[{ ...LIGNE, sanctions: { suspendu: true, portees: [], avertissements: 2, recours: 0 } }]} filtree={false} />,
     );
     expect(suspendu).toContain("Suspendu");
     expect(suspendu).toContain("2 avertissements");
     expect(suspendu).not.toContain("Restreint");
     const restreint = renderToStaticMarkup(
-      <ListeComptes comptes={[{ ...LIGNE, sanctions: { suspendu: false, portees: ["achat", "live"], avertissements: 1 } }]} filtree={false} />,
+      <ListeComptes comptes={[{ ...LIGNE, sanctions: { suspendu: false, portees: ["achat", "live"], avertissements: 1, recours: 0 } }]} filtree={false} />,
     );
     expect(restreint).toContain("Restreint · Achats et offres, Live Shopping");
     expect(restreint).toMatch(/1 avertissement(?!s)/);
     expect(renderToStaticMarkup(<ListeComptes comptes={[LIGNE]} filtree={false} />)).not.toMatch(/Suspendu|Restreint|avertissement/);
+  });
+
+  it("un recours qui attend son examen se voit dans la liste", () => {
+    const un = renderToStaticMarkup(
+      <ListeComptes comptes={[{ ...LIGNE, sanctions: { suspendu: false, portees: [], avertissements: 0, recours: 1 } }]} filtree={false} />,
+    );
+    expect(un).toContain("Recours à examiner");
+    expect(un).not.toMatch(/avertissement|Restreint/);
+    const deux = renderToStaticMarkup(
+      <ListeComptes comptes={[{ ...LIGNE, sanctions: { suspendu: true, portees: [], avertissements: 0, recours: 2 } }]} filtree={false} />,
+    );
+    expect(deux).toContain("2 recours à examiner");
   });
 
   it("une liste vide se dit vide — et dit où chercher un e-mail quand on a cherché", () => {
@@ -225,6 +279,88 @@ describe("la liste des comptes", () => {
     expect(renderToStaticMarkup(<FiltresComptes f={{ q: null, filtre: null, test: false }} testVisible={false} />)).not.toContain(
       "Inclure le monde du test",
     );
+  });
+});
+
+describe("les recours d'un compte", () => {
+  it("un recours qui attend : ses mots, ses pièces, son dossier, et le geste qui l'examine", () => {
+    const f = renderToStaticMarkup(<FicheCompte f={{ ...FICHE, sanctions: CONTESTE }} peutReveler peutOuvrirFiche />);
+    expect(f).toContain("Recours · 1 à examiner");
+    expect(f).toContain("Recours à examiner");
+    expect(f).toContain("REC-000012");
+    // Le 30 septembre à 12 h UTC : 14 h à Paris.
+    expect(f).toContain("Contre : Restriction · Achats et offres du 30/09/2026 10:00 · déposé le 30/09/2026 14:00 · dossier DOS-000042");
+    expect(f).toContain("Les mots de la personne");
+    expect(f).toContain("« Je n’ai jamais proposé d’échange hors de la plateforme. »");
+    expect(f).toContain("2 pièces jointes");
+    expect(f).toContain('data-piece="rc1:1"');
+    expect(f).toContain('data-piece="rc1:2"');
+    expect(f).toContain('data-examiner="REC-000012:rc1"');
+  });
+
+  it("un recours accepté : l'avertissement annulé, la réponse envoyée et le motif distingués", () => {
+    const f = renderToStaticMarkup(<FicheCompte f={{ ...FICHE, sanctions: CONTESTE }} peutReveler peutOuvrirFiche />);
+    expect(f).toContain("Annulée sur recours");
+    expect(f).toContain("Aucun avertissement reçu.");
+    expect(f).toContain("Examiné le 02/07/2026 10:00 par mod2@handtohand.pro · réponse envoyée à la personne");
+    expect(f).toContain("« Après relecture, l’avertissement n’était pas justifié. »");
+    expect(f).toContain("Relecture des messages");
+    expect(f).not.toContain('data-examiner="REC-000007:rc0"');
+  });
+
+  it("qui ne peut pas examiner le lit, et sait pourquoi ; qui ne peut pas ouvrir les pièces aussi", () => {
+    const raison = "Vous avez posé cette sanction : un autre membre de l'équipe examine le recours.";
+    const lu: SanctionsCompte = {
+      ...CONTESTE,
+      en_cours: [{ ...CONTESTE.en_cours[0], recours: { ...EN_ATTENTE, examinable: false, raison, pieces_ouvrables: false } }],
+    };
+    const f = renderToStaticMarkup(<FicheCompte f={{ ...FICHE, sanctions: lu }} peutReveler peutOuvrirFiche />);
+    expect(f).not.toContain("data-examiner");
+    expect(f).not.toContain("data-piece");
+    expect(f).toContain("Vous avez posé cette sanction : un autre membre de l&#x27;équipe examine le recours.");
+    expect(f).toContain("votre rôle ne permet pas de les ouvrir");
+  });
+
+  it("sans recours, la fiche n'en parle pas", () => {
+    const f = renderToStaticMarkup(<FicheCompte f={{ ...FICHE, sanctions: SANCTIONNE }} peutReveler peutOuvrirFiche />);
+    expect(f).not.toContain("Les mots de la personne");
+    expect(f).not.toMatch(/REC-\d/);
+  });
+});
+
+describe("l'onglet des recours", () => {
+  it("un recours qui attend : le compte, la décision contestée, ses mots, son délai — et la fiche où l'examiner", () => {
+    const l = renderToStaticMarkup(<ListeRecours recours={[RECOURS]} filtre="a_examiner" test={false} />);
+    expect(l).toContain("REC-000012");
+    expect(l).toContain(`href="/utilisateurs/${ID}"`);
+    expect(l).toContain("@acheteur_cl");
+    expect(l).toContain("Contre : Restriction · Achats et offres du 30/09/2026 10:00 — en cours");
+    expect(l).toContain("« Je n’ai jamais proposé d’échange hors de la plateforme. »");
+    expect(l).toContain("2 pièces jointes · à traiter avant le 01/10/2026 14:00");
+    expect(l).toContain("Examiner sur la fiche du compte");
+    expect(l).not.toContain("TEST");
+  });
+
+  it("un recours examiné dit par qui et quand ; un recours du monde d'essai le dit", () => {
+    const l = renderToStaticMarkup(
+      <ListeRecours
+        recours={[{ ...RECOURS, statut: "rejete", examine_le: "2026-10-01T08:00:00Z", examine_par: "mod2@handtohand.pro",
+          echeance: null, est_test: true }]}
+        filtre="examines"
+        test
+      />,
+    );
+    expect(l).toContain("Rejeté");
+    expect(l).toContain("TEST");
+    expect(l).toContain("examiné le 01/10/2026 10:00 par mod2@handtohand.pro");
+    expect(l).toContain("Lire sur la fiche du compte");
+    // Les filtres gardent le monde demandé.
+    expect(l).toContain('href="/utilisateurs?vue=recours&amp;test=1"');
+    expect(l).toContain('href="/utilisateurs?vue=recours&amp;statut=tous&amp;test=1"');
+  });
+
+  it("aucun recours à examiner se dit", () => {
+    expect(renderToStaticMarkup(<ListeRecours recours={[]} filtre="a_examiner" test={false} />)).toContain("Aucun recours à examiner");
   });
 });
 

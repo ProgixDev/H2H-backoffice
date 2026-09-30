@@ -1,7 +1,7 @@
 import "server-only";
 import { rpc } from "@/lib/db/rpc";
 import { supabaseServeur } from "@/lib/supabase/serveur";
-import type { CompteListe, DemandeRole, FicheCompte, FiltresComptes } from "./types";
+import type { CompteListe, DemandeRole, FicheCompte, FiltreRecours, FiltresComptes, RecoursListe } from "./types";
 
 /**
  * Les demandes de rôle qui attendent une décision, avec ce qui aide à décider :
@@ -24,6 +24,17 @@ export async function listerComptes(f: FiltresComptes): Promise<CompteListe[]> {
     p_recherche: f.q,
     p_filtre: f.filtre,
     p_inclure_test: f.test,
+  });
+}
+
+/**
+ * Les recours contre une décision de l'équipe : ceux qui attendent d'abord, du
+ * plus ancien au plus récent ; puis, sur demande, ceux qui ont leur réponse.
+ */
+export async function listerRecours(filtre: FiltreRecours, test: boolean): Promise<RecoursListe[]> {
+  return rpc<RecoursListe[]>(await supabaseServeur(), "bo_recours_lister", {
+    p_statut: filtre,
+    p_inclure_test: test,
   });
 }
 

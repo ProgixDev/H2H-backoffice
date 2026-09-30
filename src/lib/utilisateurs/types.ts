@@ -82,8 +82,11 @@ export type CompteListe = {
   /** Les signalements reçus depuis quatre-vingt-dix jours. */
   signalements: number;
   derniere_ouverture: string | null;
-  /** Ce qui pèse sur le compte — nul quand rien : ni sanction en cours, ni avertissement reçu. */
-  sanctions: { suspendu: boolean; portees: PorteeRestriction[]; avertissements: number } | null;
+  /**
+   * Ce qui pèse sur le compte — nul quand rien : ni sanction en cours, ni
+   * avertissement reçu (hors ceux annulés sur recours), ni recours qui attend.
+   */
+  sanctions: { suspendu: boolean; portees: PorteeRestriction[]; avertissements: number; recours: number } | null;
   efface: boolean;
   vitrine: boolean;
   est_test: boolean;
@@ -242,6 +245,8 @@ export type SanctionEnCours = {
   /** Nul : jusqu'à la levée. */
   jusqu_a: string | null;
   par: string | null;
+  /** Le recours de la personne contre cette décision, s'il y en a un. */
+  recours: RecoursLu | null;
 };
 
 /** Une sanction passée : un avertissement, une sanction levée ou arrivée à son terme. */
@@ -249,13 +254,17 @@ export type SanctionPassee = Omit<SanctionEnCours, "effet"> & {
   levee_le: string | null;
   levee_par: string | null;
   motif_levee: string | null;
+  /** L'équipe a donné raison à la personne sur recours : la décision ne compte plus. */
+  annulee: boolean;
 };
 
 export type SanctionsCompte = {
   en_cours: SanctionEnCours[];
   /** Les trente dernières, les plus récentes d'abord. */
   passees: SanctionPassee[];
+  /** Les avertissements reçus, hors ceux annulés sur recours. */
   avertissements: number;
+  recours_a_examiner: number;
   /** Ce que l'équipier qui lit peut faire — et, sinon, pourquoi. */
   possibles: {
     sanctionner: boolean;
@@ -298,6 +307,79 @@ export const DUREES_SANCTION: { jours: number | null; libelle: string }[] = [
   { jours: 90, libelle: "90 jours" },
   { jours: null, libelle: "Sans terme" },
 ];
+
+// ── Les recours (`bo_recours_lister`, `bo_recours_examiner`, `bo_recours_ouvrir_piece` — 20260930004000) ──
+//
+// 🔴 LE RECOURS EST LA PAROLE DE LA PERSONNE : elle le dépose depuis
+// l'application, avec ses pièces ; l'équipe ne l'écrit jamais. Un autre
+// équipier que l'auteur de la décision l'examine, et la base le tient.
+
+export type StatutRecours = "a_examiner" | "accepte" | "rejete";
+export type DecisionRecours = "accepte" | "rejete";
+
+/** Un recours tel que la fiche le lit, avec ce que l'équipier qui lit peut en faire. */
+export type RecoursLu = {
+  id: string;
+  /** « REC-000042 » : ce que la personne peut citer. */
+  reference: string;
+  statut: StatutRecours;
+  depose_le: string;
+  /** Les mots de la personne, tels qu'elle les a déposés. */
+  texte: string;
+  /** Le nombre de ses pièces ; chacune s'ouvre pour un motif. */
+  pieces: number;
+  examine_le: string | null;
+  examine_par: string | null;
+  /** La réponse dite à la personne. */
+  reponse: string | null;
+  /** Le motif gardé par l'équipe. */
+  motif: string | null;
+  /** Le dossier « À traiter » du recours. */
+  dossier: string | null;
+  examinable: boolean;
+  raison: string | null;
+  pieces_ouvrables: boolean;
+};
+
+/** Une ligne de l'onglet « Recours ». */
+export type RecoursListe = {
+  id: string;
+  reference: string;
+  statut: StatutRecours;
+  depose_le: string;
+  profil: string;
+  pseudo: string | null;
+  nature: NatureSanction;
+  portee: PorteeRestriction | null;
+  sanction_depuis: string;
+  sanction_jusqu_a: string | null;
+  sanction_en_cours: boolean;
+  /** Le début de ses mots — le texte entier se lit sur la fiche du compte. */
+  extrait: string;
+  pieces: number;
+  examine_le: string | null;
+  examine_par: string | null;
+  /** Le délai de traitement du dossier, tant que le recours attend. */
+  echeance: string | null;
+  est_test: boolean;
+};
+
+export const FILTRES_RECOURS = ["a_examiner", "examines", "tous"] as const;
+export type FiltreRecours = (typeof FILTRES_RECOURS)[number];
+export const LIBELLE_FILTRE_RECOURS: Record<FiltreRecours, string> = {
+  a_examiner: "À examiner",
+  examines: "Examinés",
+  tous: "Tous",
+};
+
+export const LIBELLE_STATUT_RECOURS: Record<StatutRecours, string> = {
+  a_examiner: "À examiner",
+  accepte: "Accepté",
+  rejete: "Rejeté",
+};
+
+/** Ce que rend l'examen d'un recours : la décision, et si une sanction en cours a été levée. */
+export type RecoursExamine = { recours: string; profil: string; decision: DecisionRecours; levee: boolean };
 
 /** L'état du compte, tel que la fiche l'annonce. */
 export function etatCompte(f: Pick<FicheCompte, "compte" | "sanctions">): { libelle: string; ton: "succes" | "erreur" | "attention" | "muet" } {

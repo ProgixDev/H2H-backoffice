@@ -1,7 +1,8 @@
 "use server";
 
 import { consulter } from "@/lib/db/consultation";
-import { rpc } from "@/lib/db/rpc";
+import { rpc, RefusBO } from "@/lib/db/rpc";
+import type { PieceOuverte } from "@/lib/operations/types";
 import { supabaseServeur } from "@/lib/supabase/serveur";
 import type { CompteTrouve } from "./types";
 
@@ -21,4 +22,28 @@ export async function trouverCompteParEmail(p: { email: string; motif: string })
       p_motif: p.motif,
     }),
   );
+}
+
+/**
+ * Une pièce d'un recours, jointe par la personne : un motif, un ticket de cinq
+ * minutes pris par la base, puis l'adresse du fichier signée avec le jeton de
+ * l'équipier — elle ne vaut qu'une minute.
+ *
+ * ⚠️ AUCUNE CLÉ DE SERVICE : c'est la politique du stockage qui accepte la
+ * signature, parce qu'un ticket vivant le permet.
+ */
+export async function ouvrirPieceRecours(p: { recours: string; rang: number; motif: string }) {
+  return consulter(async (): Promise<PieceOuverte> => {
+    const client = await supabaseServeur();
+    const ticket = await rpc<{ bucket: string; chemin: string; expire_le: string }>(client, "bo_recours_ouvrir_piece", {
+      p_recours: p.recours,
+      p_rang: p.rang,
+      p_motif: p.motif,
+    });
+    const { data, error } = await client.storage.from(ticket.bucket).createSignedUrl(ticket.chemin, 60);
+    if (error || !data?.signedUrl) {
+      throw new RefusBO("Le fichier n’a pas pu être ouvert. Réessayez dans un instant.", "BO_PANNE", null);
+    }
+    return { url: data.signedUrl, expire_le: new Date(Date.now() + 60_000).toISOString() };
+  });
 }

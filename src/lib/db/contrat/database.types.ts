@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@bac5402 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@a1e5242 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260930003000_un_compte_se_restreint.sql
+// Base : 20260930004000_une_sanction_se_conteste.sql
 
 export type Json =
   | string
@@ -8639,6 +8639,42 @@ export type Database = {
         Args: { p_inclure_test?: boolean }
         Returns: Json
       }
+      bo_recours_examiner: {
+        Args: {
+          p_cle: string
+          p_decision: string
+          p_motif: string
+          p_recours: string
+          p_reponse: string
+        }
+        Returns: Json
+      }
+      bo_recours_lister: {
+        Args: { p_inclure_test?: boolean; p_statut?: string }
+        Returns: {
+          depose_le: string
+          echeance: string
+          est_test: boolean
+          examine_le: string
+          examine_par: string
+          extrait: string
+          id: string
+          nature: string
+          pieces: number
+          portee: string
+          profil: string
+          pseudo: string
+          reference: string
+          sanction_depuis: string
+          sanction_en_cours: boolean
+          sanction_jusqu_a: string
+          statut: string
+        }[]
+      }
+      bo_recours_ouvrir_piece: {
+        Args: { p_motif: string; p_rang: number; p_recours: string }
+        Returns: Json
+      }
       bo_regles_delai: {
         Args: never
         Returns: unknown[]
@@ -9787,6 +9823,7 @@ export type Database = {
           verse_cents: number
         }[]
       }
+      mes_sanctions: { Args: never; Returns: Json }
       mes_statistiques: { Args: never; Returns: Json }
       modele_frais_partage_actif: { Args: never; Returns: boolean }
       modifier_annonce: {
@@ -10125,6 +10162,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      recours_deposer: {
+        Args: { p_pieces?: string[]; p_sanction: string; p_texte: string }
+        Returns: Json
       }
       refuser_mission: {
         Args: { p_mission_id: string; p_motif?: string }

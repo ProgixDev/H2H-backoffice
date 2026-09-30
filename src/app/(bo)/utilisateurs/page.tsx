@@ -5,16 +5,20 @@ import { AccesRefuse, equipierPourRubrique } from "@/components/bo/PageRubrique"
 import { LectureEchouee } from "@/components/bo/LectureEchouee";
 import { FiltresComptes, ListeComptes } from "@/components/utilisateurs/ListeComptes";
 import { ListeDemandesDeRole } from "@/components/utilisateurs/ListeDemandesDeRole";
+import { ListeRecours } from "@/components/utilisateurs/ListeRecours";
 import { RechercheParEmail } from "@/components/utilisateurs/RechercheParEmail";
 import { peut } from "@/lib/equipe/types";
 import { rubriqueObligatoire } from "@/lib/navigation";
-import { listerComptes, listerDemandesDeRole } from "@/lib/utilisateurs/lectures";
+import { listerComptes, listerDemandesDeRole, listerRecours } from "@/lib/utilisateurs/lectures";
 import {
   FILTRES_COMPTES,
+  FILTRES_RECOURS,
   type CompteListe,
   type DemandeRole,
   type FiltreComptes,
+  type FiltreRecours,
   type FiltresComptes as Filtres,
+  type RecoursListe,
 } from "@/lib/utilisateurs/types";
 
 const rubrique = rubriqueObligatoire("/utilisateurs");
@@ -43,26 +47,46 @@ function lireFiltres(p: Params, testPermis: boolean): Filtres {
  * - « Demandes de rôle » : la procédure reprise de l'écran mobile du support
  *   (P0b) — trancher les demandes pour devenir vendeur, cotransporteur
  *   particulier ou point relais.
+ * - « Recours » : les recours que les personnes déposent depuis l'application
+ *   contre une décision de l'équipe. Chacun s'examine sur la fiche du compte.
  *
- * ⚠️ AVERTIR, RESTREINDRE, SUSPENDRE, EXAMINER UN RECOURS arrivent avec la suite
- * de la phase 2b. Cette page dit ce qu'elle fait, pas davantage.
+ * Avertir, restreindre, suspendre et lever se font depuis la fiche d'un compte.
  */
 export default async function PageUtilisateurs({ searchParams }: { searchParams: Promise<Params> }) {
   const moi = await equipierPourRubrique(rubrique);
   if (!moi) return <AccesRefuse rubrique={rubrique} />;
 
   const p = await searchParams;
-  const vue = texte(p.vue) === "demandes" ? "demandes" : "comptes";
+  const vue = texte(p.vue) === "demandes" ? "demandes" : texte(p.vue) === "recours" ? "recours" : "comptes";
   const f = lireFiltres(p, !moi.est_test);
+  const statut = texte(p.statut);
+  const filtreRecours: FiltreRecours = (FILTRES_RECOURS as readonly string[]).includes(statut)
+    ? (statut as FiltreRecours)
+    : "a_examiner";
 
   // On LIT dans le try, on construit l'écran après (règle `react-hooks/error-boundaries`).
   // Les demandes se lisent dans les deux vues : leur nombre se dit sur l'onglet.
+  // Les recours qui attendent se lisent aussi dans toutes les vues : leur nombre se dit sur l'onglet.
   let demandes: DemandeRole[] | null;
   let comptes: CompteListe[] | null = null;
+  let aExaminer: RecoursListe[] | null;
+  let recours: RecoursListe[] | null = null;
   try {
     demandes = await listerDemandesDeRole();
   } catch {
     demandes = null;
+  }
+  try {
+    aExaminer = await listerRecours("a_examiner", f.test);
+  } catch {
+    aExaminer = null;
+  }
+  if (vue === "recours") {
+    try {
+      recours = filtreRecours === "a_examiner" ? aExaminer : await listerRecours(filtreRecours, f.test);
+    } catch {
+      recours = null;
+    }
   }
   if (vue === "comptes") {
     try {
@@ -78,6 +102,11 @@ export default async function PageUtilisateurs({ searchParams }: { searchParams:
       code: "demandes",
       libelle: demandes && demandes.length > 0 ? `Demandes de rôle (${demandes.length})` : "Demandes de rôle",
       chemin: "/utilisateurs?vue=demandes",
+    },
+    {
+      code: "recours",
+      libelle: aExaminer && aExaminer.length > 0 ? `Recours (${aExaminer.length})` : "Recours",
+      chemin: "/utilisateurs?vue=recours",
     },
   ];
 
@@ -98,7 +127,20 @@ export default async function PageUtilisateurs({ searchParams }: { searchParams:
         ))}
       </nav>
 
-      {vue === "demandes" ? (
+      {vue === "recours" ? (
+        <>
+          <p className="max-w-4xl text-corps text-muted-foreground">
+            Les recours contre une décision de l’équipe, déposés par les personnes depuis l’application. Un autre membre
+            de l’équipe que l’auteur de la décision les examine, sur la fiche du compte : accepté, la décision est
+            annulée ; rejeté, elle est maintenue. La réponse part à la personne.
+          </p>
+          {recours === null ? (
+            <LectureEchouee />
+          ) : (
+            <ListeRecours recours={recours} filtre={filtreRecours} test={f.test} />
+          )}
+        </>
+      ) : vue === "demandes" ? (
         <>
           <p className="text-corps text-muted-foreground">
             Tranchez les demandes pour devenir vendeur, cotransporteur particulier ou point relais. Chaque décision
