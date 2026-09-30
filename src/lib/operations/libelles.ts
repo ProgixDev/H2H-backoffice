@@ -277,12 +277,13 @@ export const LIBELLE_CONVERSATION: Record<E["conversation_kind"], string> = {
   live: "Live",
 };
 
+// Les mots que l'acheteur lit sur la fiche d'une annonce (`app_product_id.condition*`).
 export const LIBELLE_ETAT_ARTICLE: Record<E["product_condition"], string> = {
   new: "Neuf",
-  like_new: "Comme neuf",
+  like_new: "Très bon état",
   good: "Bon état",
-  fair: "État correct",
-  poor: "Usé",
+  fair: "Satisfaisant",
+  poor: "Mauvais état",
 };
 
 export const LIBELLE_ANNONCE: Record<E["product_status"], string> = {

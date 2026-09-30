@@ -3,6 +3,7 @@ import { AnimationH2H } from "@/components/marque/AnimationH2H";
 import { StatutPastille } from "@/components/bo/StatutPastille";
 import { dateHeure } from "@/lib/dates";
 import { cheminFiche, type Onglet } from "@/lib/operations/types";
+import { cheminAnnonce } from "@/lib/annonces/types";
 import { cheminCompte } from "@/lib/utilisateurs/types";
 import {
   chiffre,
@@ -12,6 +13,9 @@ import {
   type DetailIndicateur,
   type LigneTableau,
 } from "@/lib/tableau/types";
+
+// Les indicateurs dont chaque ligne est une annonce ou une recherche : elle ouvre sa fiche.
+const LIGNES_ANNONCES = new Set(["annonces_publiees", "annonces_actives"]);
 
 // L'onglet de la fiche où se lit ce que l'indicateur compte.
 const ONGLET: Record<string, Onglet> = {
@@ -46,10 +50,13 @@ function Reference({ l, code, lien }: { l: LigneTableau; code: string; lien: boo
 export function LignesIndicateur({
   detail: d,
   peutOuvrirFiche,
+  peutOuvrirAnnonce = false,
 }: {
   detail: DetailIndicateur;
   /** `activite.lire` : la référence d'une ligne ouvre la fiche de son opération. */
   peutOuvrirFiche: boolean;
+  /** `annonces.lire` : une ligne d'annonce ou de recherche ouvre sa fiche. */
+  peutOuvrirAnnonce?: boolean;
 }) {
   const i = d.indicateur;
   const comptees = lignesComptees(i);
@@ -115,6 +122,10 @@ export function LignesIndicateur({
                       {/* Une ligne d'un indicateur d'utilisateurs est un compte : ouvrir ces lignes exigeait déjà de lire les comptes. */}
                       {i.groupe === "utilisateurs" ? (
                         <Link href={cheminCompte(l.id)} className="font-medium text-h2h-primary hover:underline">
+                          {l.libelle}
+                        </Link>
+                      ) : peutOuvrirAnnonce && LIGNES_ANNONCES.has(i.code) ? (
+                        <Link href={cheminAnnonce(l.id)} className="font-medium text-h2h-primary hover:underline">
                           {l.libelle}
                         </Link>
                       ) : (

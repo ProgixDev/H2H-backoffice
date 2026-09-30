@@ -3,26 +3,26 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { AccesRefuse, equipierPourRubrique } from "@/components/bo/PageRubrique";
 import { LectureEchouee } from "@/components/bo/LectureEchouee";
-import { FicheCompte } from "@/components/utilisateurs/FicheCompte";
+import { FicheAnnonceVue } from "@/components/annonces/FicheAnnonce";
+import { lireAnnonce } from "@/lib/annonces/lectures";
+import type { Fiche } from "@/lib/annonces/types";
 import { RefusBO } from "@/lib/db/rpc";
-import { peut } from "@/lib/equipe/types";
 import { rubriqueObligatoire } from "@/lib/navigation";
-import { lireCompte } from "@/lib/utilisateurs/lectures";
-import type { FicheCompte as Fiche } from "@/lib/utilisateurs/types";
 
-const rubrique = rubriqueObligatoire("/utilisateurs");
+const rubrique = rubriqueObligatoire("/annonces");
 export const metadata: Metadata = { title: rubrique.titre };
 
 const IDENTIFIANT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * La fiche d'un compte (§8), à son adresse : son identifiant permanent.
+ * La fiche d'une annonce ou d'une recherche « Je cherche » (§9), à son adresse :
+ * son identifiant. Une seule porte pour les deux — le tableau de bord y mène
+ * par le même identifiant.
  *
- * ⚠️ UN COMPTE DE L'ÉQUIPE, UN COMPTE DE L'AUTRE MONDE (test ou réel) OU UN
- * IDENTIFIANT INCONNU donnent la même réponse : « introuvable ». La base ne dit
- * pas lequel, et la page non plus.
+ * ⚠️ UN IDENTIFIANT INCONNU OU UNE ANNONCE DE L'AUTRE MONDE (test ou réel)
+ * donnent la même réponse : « introuvable ».
  */
-export default async function PageCompte({ params }: { params: Promise<{ id: string }> }) {
+export default async function PageAnnonce({ params }: { params: Promise<{ id: string }> }) {
   const moi = await equipierPourRubrique(rubrique);
   if (!moi) return <AccesRefuse rubrique={rubrique} />;
 
@@ -33,7 +33,7 @@ export default async function PageCompte({ params }: { params: Promise<{ id: str
   let introuvable = !IDENTIFIANT.test(id);
   if (!introuvable) {
     try {
-      fiche = await lireCompte(id);
+      fiche = await lireAnnonce(id);
     } catch (e) {
       introuvable = e instanceof RefusBO && e.indice === "BO_INTROUVABLE";
     }
@@ -42,23 +42,18 @@ export default async function PageCompte({ params }: { params: Promise<{ id: str
   return (
     <div className="mx-auto grid max-w-[1400px] gap-4">
       <Link
-        href="/utilisateurs"
+        href={fiche?.nature === "recherche" ? "/annonces?vue=recherches" : "/annonces"}
         className="inline-flex w-fit items-center gap-1.5 text-legende font-semibold text-h2h-primary hover:underline"
       >
         <ArrowLeft className="size-3.5" />
-        Utilisateurs
+        {fiche?.nature === "recherche" ? "Je cherche" : "Annonces"}
       </Link>
       {fiche ? (
-        <FicheCompte
-          f={fiche}
-          peutReveler={peut(moi, "donnees.reveler")}
-          peutOuvrirFiche={peut(moi, "activite.lire")}
-          peutOuvrirAnnonce={peut(moi, "annonces.lire")}
-        />
+        <FicheAnnonceVue f={fiche} />
       ) : introuvable ? (
         <LectureEchouee
-          titre="Ce compte est introuvable"
-          message="L’identifiant ne désigne aucun compte client — ou il appartient à l’autre monde (test ou réel)."
+          titre="Cette annonce est introuvable"
+          message="L’identifiant ne désigne aucune annonce ni aucune recherche — ou elle appartient à l’autre monde (test ou réel)."
         />
       ) : (
         <LectureEchouee />

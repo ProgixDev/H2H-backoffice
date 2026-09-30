@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@a1e5242 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@fbf4f94 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260930004000_une_sanction_se_conteste.sql
+// Base : 20260930005000_une_annonce_se_lit.sql
 
 export type Json =
   | string
@@ -8084,6 +8084,52 @@ export type Database = {
         }
       }
       basculer_en_ligne: { Args: { p_en_ligne: boolean }; Returns: boolean }
+      bo_annonce_lire: { Args: { p_id: string }; Returns: Json }
+      bo_annonces_categories: {
+        Args: never
+        Returns: {
+          annonces_en_ligne: number
+          contact_seulement: boolean
+          famille: string
+          id: string
+          libelle: string
+        }[]
+      }
+      bo_annonces_lister: {
+        Args: {
+          p_categorie?: string
+          p_filtre?: string
+          p_inclure_test?: boolean
+          p_nature?: string
+          p_recherche?: string
+        }
+        Returns: {
+          acces: string
+          auteur: string
+          auteur_pseudo: string
+          categorie: string
+          categorie_libelle: string
+          commandes_en_cours: number
+          cree_le: string
+          est_test: boolean
+          expire_le: string
+          favoris: number
+          id: string
+          image: string
+          mise_en_avant: boolean
+          mode: string
+          montant_cents: number
+          nature: string
+          propositions: number
+          publiee_le: string
+          signalements: number
+          statut: string
+          titre: string
+          type: string
+          ville: string
+          vues: number
+        }[]
+      }
       bo_attestation_demander_remplacement: {
         Args: { p_attestation: string; p_cle: string; p_motif: string }
         Returns: Json

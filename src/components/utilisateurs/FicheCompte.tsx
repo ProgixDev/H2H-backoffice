@@ -10,6 +10,7 @@ import {
   LIBELLE_STATUT_COMMANDE,
   LIBELLE_TYPE_ANNONCE,
 } from "@/lib/operations/libelles";
+import { cheminAnnonce } from "@/lib/annonces/types";
 import { cheminFiche } from "@/lib/operations/types";
 import {
   LIBELLE_APPLICATION,
@@ -88,12 +89,15 @@ export function FicheCompte({
   f,
   peutReveler,
   peutOuvrirFiche,
+  peutOuvrirAnnonce = false,
 }: {
   f: Fiche;
   /** `donnees.reveler` — et la base refuse de toute façon son propre compte. */
   peutReveler: boolean;
   /** `activite.lire` : une référence d'achat ouvre la fiche de l'opération. */
   peutOuvrirFiche: boolean;
+  /** `annonces.lire` : une annonce du compte ouvre sa fiche. */
+  peutOuvrirAnnonce?: boolean;
 }) {
   const c = f.compte;
   const v = f.verifications;
@@ -337,7 +341,15 @@ export function FicheCompte({
           <Tableau entetes={["Annonce", "Type", "État", "Prix", "Publiée le"]} largeur={560}>
             {f.annonces.map((a) => (
               <tr key={a.id}>
-                <td className="font-medium">{a.titre}</td>
+                <td className="font-medium">
+                  {peutOuvrirAnnonce ? (
+                    <Link href={cheminAnnonce(a.id)} className="text-h2h-primary hover:underline">
+                      {a.titre}
+                    </Link>
+                  ) : (
+                    a.titre
+                  )}
+                </td>
                 <td>{a.mode === "exchange" ? "Échange" : libelle(LIBELLE_TYPE_ANNONCE, a.type)}</td>
                 <td>{libelle(LIBELLE_ANNONCE, a.statut)}</td>
                 <td className="whitespace-nowrap text-right">

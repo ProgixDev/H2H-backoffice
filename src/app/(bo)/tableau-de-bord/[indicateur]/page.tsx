@@ -106,7 +106,11 @@ export default async function PageIndicateur({
           indicateur={code}
         />
       )}
-      <LignesIndicateur detail={detail} peutOuvrirFiche={peut(moi, "activite.lire")} />
+      <LignesIndicateur
+        detail={detail}
+        peutOuvrirFiche={peut(moi, "activite.lire")}
+        peutOuvrirAnnonce={peut(moi, "annonces.lire")}
+      />
       <p className="text-legende text-muted-foreground">Lu le {dateHeure(detail.lu_le)}.</p>
     </div>
   );
