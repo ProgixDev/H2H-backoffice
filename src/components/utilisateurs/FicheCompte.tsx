@@ -23,6 +23,7 @@ import {
   LIBELLE_TYPE_COMPTE,
   etatCompte,
   type AvisCompte,
+  type ConditionsCompte,
   type FicheCompte as Fiche,
 } from "@/lib/utilisateurs/types";
 import { SignalementsLus } from "@/components/signalements/BlocSignalements";
@@ -95,6 +96,53 @@ function Avis({ avis, sens }: { avis: AvisCompte[]; sens: "recus" | "donnes" }) 
  * 🔴 SON FIL AVEC LE SUPPORT aussi (`bo_support_lire`) : l'équipe y écrit au nom de
  * HandtoHand ; l'équipier qui écrit n'est lu que d'ici et du journal.
  */
+/**
+ * Les conditions générales et la politique de confidentialité : quelle version
+ * le compte a acceptée, quand, depuis quelle application — et ce qui lui reste.
+ * Tant que rien n'est publié, la fiche le dit au lieu d'un tableau vide.
+ */
+function Conditions({ c }: { c: ConditionsCompte }) {
+  if (!c.publiees) {
+    return (
+      <p className="text-legende text-muted-foreground">
+        Conditions générales : aucun texte n’est encore publié dans le registre des versions. Rien n’est donc demandé aux
+        personnes, ni accepté.
+      </p>
+    );
+  }
+  return (
+    <div className="grid gap-2">
+      {c.acceptations.length === 0 ? (
+        <Aucun>Aucun texte accepté.</Aucun>
+      ) : (
+        <Tableau entetes={["Texte", "Version", "Acceptée le", "Depuis", "Acceptation"]} largeur={640}>
+          {c.acceptations.map((a) => (
+            <tr key={`${a.code}-${a.version}`}>
+              <td className="font-medium">{a.titre}</td>
+              <td className="whitespace-nowrap">
+                {a.version}{" "}
+                {a.en_vigueur ? (
+                  <StatutPastille ton="actif">En vigueur</StatutPastille>
+                ) : (
+                  <StatutPastille ton="muet">Remplacée</StatutPastille>
+                )}
+              </td>
+              <td className="whitespace-nowrap tabular-nums">{dateHeure(a.accepte_le)}</td>
+              <td>{LIBELLE_APPLICATION[a.application]}</td>
+              <td>{a.contexte === "premiere" ? "Première acceptation" : "Nouvelle version"}</td>
+            </tr>
+          ))}
+        </Tableau>
+      )}
+      <p className="text-legende text-muted-foreground">
+        {c.a_accepter.length === 0
+          ? "Rien ne reste à accepter dans HandtoHand."
+          : `Reste à accepter dans HandtoHand : ${c.a_accepter.map((x) => `${x.titre} (version ${x.version})`).join(", ")}. L’application le demandera à la prochaine ouverture.`}
+      </p>
+    </div>
+  );
+}
+
 export function FicheCompte({
   f,
   signalements,
@@ -292,10 +340,7 @@ export function FicheCompte({
             ))}
           </Tableau>
         )}
-        <p className="text-legende text-muted-foreground">
-          Conditions générales : leur acceptation n’est pas encore enregistrée par les applications. Rien ne permet donc
-          de dire ici quelle version ce compte a acceptée.
-        </p>
+        <Conditions c={f.documents.conditions_generales} />
       </Bloc>
 
       {/* ── L'activité ── */}

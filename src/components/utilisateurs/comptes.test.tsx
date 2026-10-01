@@ -121,7 +121,7 @@ const FICHE: Fiche = {
   roles: [{ role: "transporter", statut: "pending_validation", demande_le: "2026-09-25T09:00:00Z", active_le: null, decide_le: null, motif: null }],
   point_relais: null,
   paiement: { compte_versement: "absent", encaissements: null, mode_test: null, payable_depuis: null, ouvert_le: null, reference: null, carte_enregistree: true },
-  documents: { conventions: [], conditions_generales: null },
+  documents: { conventions: [], conditions_generales: { publiees: false, acceptations: [], a_accepter: [] } },
   activite: {
     annonces: { publiees: 0, en_ligne: 0, vendues: 0, brouillons: 0 },
     recherches: 1,
@@ -406,8 +406,49 @@ describe("la fiche d'un compte", () => {
   });
 
   it("ce qui n'existe pas encore se dit — ni conditions générales présumées", () => {
-    expect(html).toContain("leur acceptation n’est pas encore enregistrée par les applications");
+    expect(html).toContain("aucun texte n’est encore publié dans le registre des versions");
+    expect(html).not.toContain("Aucun texte accepté");
     expect(html).toContain("Aucune coordonnée bancaire n’est gardée par HandtoHand");
+  });
+
+  it("des textes publiés : la version acceptée, quand, d'où — la remplacée distinguée — et ce qui reste", () => {
+    const conditions = {
+      publiees: true,
+      acceptations: [
+        { code: "cgu_marketplace", titre: "Conditions générales d’utilisation", version: "2027-01-01",
+          accepte_le: "2027-01-02T08:00:00Z", application: "marketplace" as const, contexte: "mise_a_jour" as const,
+          en_vigueur: true },
+        { code: "cgu_marketplace", titre: "Conditions générales d’utilisation", version: "2026-11-01",
+          accepte_le: "2026-11-02T08:00:00Z", application: "marketplace" as const, contexte: "premiere" as const,
+          en_vigueur: false },
+      ],
+      a_accepter: [{ code: "confidentialite", titre: "Politique de confidentialité", version: "2027-02-01" }],
+    };
+    const f = renderToStaticMarkup(
+      <FicheCompte support={SANS_SUPPORT} signalements={SANS_SIGNALEMENT}
+        f={{ ...FICHE, documents: { ...FICHE.documents, conditions_generales: conditions } }} peutReveler peutOuvrirFiche />,
+    );
+    expect(f).not.toContain("aucun texte n’est encore publié");
+    expect(f).toContain("2027-01-01");
+    expect(f).toContain("En vigueur");
+    expect(f).toContain("Remplacée");
+    expect(f).toContain("Nouvelle version");
+    expect(f).toContain("Première acceptation");
+    expect(f).toContain("02/01/2027");
+    expect(f).toContain("Reste à accepter dans HandtoHand : Politique de confidentialité (version 2027-02-01).");
+
+    const aJour = renderToStaticMarkup(
+      <FicheCompte support={SANS_SUPPORT} signalements={SANS_SIGNALEMENT}
+        f={{ ...FICHE, documents: { ...FICHE.documents, conditions_generales: { ...conditions, a_accepter: [] } } }}
+        peutReveler peutOuvrirFiche />,
+    );
+    expect(aJour).toContain("Rien ne reste à accepter dans HandtoHand.");
+    const rien = renderToStaticMarkup(
+      <FicheCompte support={SANS_SUPPORT} signalements={SANS_SIGNALEMENT}
+        f={{ ...FICHE, documents: { ...FICHE.documents, conditions_generales: { ...conditions, acceptations: [] } } }}
+        peutReveler peutOuvrirFiche />,
+    );
+    expect(rien).toContain("Aucun texte accepté.");
   });
 
   it("sans sanction : le compte peut tout commencer, et l'équipier sans le droit de sanctionner sait pourquoi", () => {

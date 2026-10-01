@@ -184,8 +184,8 @@ export type FicheCompte = {
   };
   documents: {
     conventions: { role: string; version: string; acceptee_le: string; mandat_debit: boolean }[];
-    /** Nul : l'acceptation des conditions générales n'est pas encore enregistrée par les applications. */
-    conditions_generales: null;
+    /** Les textes publiés que le compte a acceptés, et ce qui lui reste (hand-to-hand `20261001003000`). */
+    conditions_generales: ConditionsCompte;
   };
   activite: {
     annonces: { publiees: number; en_ligne: number; vendues: number; brouillons: number };
@@ -401,6 +401,36 @@ export const LIBELLE_CONNEXION: Record<string, string> = {
   google: "Google",
   facebook: "Facebook",
   phone: "Téléphone",
+};
+
+/** Un texte accepté par le compte : quelle version, quand, depuis quelle application. */
+export type AcceptationTexte = {
+  code: string;
+  titre: string;
+  version: string;
+  accepte_le: string;
+  application: "marketplace" | "logistic";
+  /** La première acceptation de ce texte, ou celle d'une version nouvelle. */
+  contexte: "premiere" | "mise_a_jour";
+  /** Cette version est celle en vigueur aujourd'hui. */
+  en_vigueur: boolean;
+};
+
+/**
+ * Les conditions d'un compte : ce qu'il a accepté des textes publiés, et ce qui
+ * lui reste à accepter dans HandtoHand.
+ *
+ * ⚠️ LE REGISTRE DES VERSIONS PART VIDE (décision du 01/10/2026) : tant que le
+ * client n'y a pas inscrit son texte validé, rien n'est demandé aux personnes,
+ * et donc rien n'est accepté.
+ */
+export type ConditionsCompte = {
+  /** Faux : aucun texte n'est encore publié. */
+  publiees: boolean;
+  /** De la plus récente à la plus ancienne. */
+  acceptations: AcceptationTexte[];
+  /** Les versions en vigueur, à accepter, que le compte n'a pas encore acceptées. */
+  a_accepter: { code: string; titre: string; version: string }[];
 };
 
 export const LIBELLE_APPLICATION: Record<FicheCompte["activite"]["ouvertures"][number]["application"], string> = {

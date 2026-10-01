@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@de4fd9b : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@2288504 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261001002000_le_support_ecrit.sql
+// Base : 20261001003000_une_condition_s_accepte.sql
 
 export type Json =
   | string
@@ -7756,6 +7756,10 @@ export type Database = {
           shipment_id: string
         }[]
       }
+      accepter_documents: {
+        Args: { p_application: string; p_documents: Json }
+        Returns: Json
+      }
       accepter_mission: {
         Args: { p_mission_id: string }
         Returns: {
@@ -9696,6 +9700,7 @@ export type Database = {
         Args: { p_commentaire?: string; p_note: number; p_order_id: string }
         Returns: string
       }
+      documents_a_accepter: { Args: { p_application: string }; Returns: Json }
       enregistrer_vue: { Args: { p_product_id: string }; Returns: boolean }
       ensure_profile: {
         Args: never
