@@ -208,6 +208,12 @@ export function FicheDossier({
                     Répondre sur la fiche du compte
                   </Link>
                 )}
+                {/* Une demande de vérification se lit, se décide et se clôt sur la fiche du compte. */}
+                {d.source === "verification_compte" && d.objet_id && (
+                  <Link href={cheminCompte(d.objet_id)} className="text-legende font-semibold text-h2h-primary">
+                    Ouvrir la fiche du compte
+                  </Link>
+                )}
                 {/* Des signalements s'examinent sur la fiche de ce qu'ils visent : l'annonce, la recherche, le compte. */}
                 {d.source === "signalement" && d.objet_id && (
                   <Link

@@ -50,7 +50,8 @@ export type Dossier = {
     | "recours"
     | "verification"
     | "signalement"
-    | "support";
+    | "support"
+    | "verification_compte";
   titre: string;
   motif: string | null;
   categorie: string;
@@ -96,6 +97,8 @@ export const CLOTURE_AUTOMATIQUE: Record<Exclude<Dossier["source"], "manuel" | "
     "Ce dossier se clôt tout seul quand l’équipe autorise ou refuse la publication, sur la fiche de l’annonce (Annonces).",
   support:
     "Ce dossier se clôt tout seul quand l’équipe répond, sur la fiche du compte (Utilisateurs). Un nouveau message de la personne le rouvre.",
+  verification_compte:
+    "Ce dossier se clôt tout seul quand l’équipe clôt la demande de vérification, sur la fiche du compte (Utilisateurs). La réponse de la personne arrive dans son fil avec le support.",
   signalement:
     "Ce dossier se clôt tout seul quand plus aucun signalement n’attend : ils s’examinent sur la fiche de ce qu’ils visent — l’annonce, la recherche ou le compte. Un nouveau signalement le rouvre.",
 };

@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@6c179ce : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@ef20235 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261001004000_un_compte_se_verifie.sql
+// Base : 20261001005000_une_verification_se_demande.sql
 
 export type Json =
   | string
@@ -9144,6 +9144,24 @@ export type Database = {
         Returns: Json
       }
       bo_validations_lister: { Args: never; Returns: Json }
+      bo_verification_clore: {
+        Args: {
+          p_cle: string
+          p_demande: string
+          p_issue: string
+          p_motif: string
+        }
+        Returns: Json
+      }
+      bo_verification_demander: {
+        Args: {
+          p_cle: string
+          p_objet: string
+          p_profil: string
+          p_texte: string
+        }
+        Returns: Json
+      }
       candidater_relais: {
         Args: {
           p_address: string

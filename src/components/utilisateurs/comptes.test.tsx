@@ -46,6 +46,11 @@ vi.mock("@/components/utilisateurs/GestesVerification", () => ({
     <div data-verifier={`${profil}:${v.possibles.verifier}`}>{v.possibles.raison}</div>
   ),
 }));
+vi.mock("@/components/utilisateurs/DemandesVerification", () => ({
+  DemandesVerification: ({ profil, v }: { profil: string; v: { demandes_equipe: unknown[] } }) => (
+    <div data-demandes={`${profil}:${v.demandes_equipe.length}`} />
+  ),
+}));
 // Le fil avec le support se teste à part (`support.test.tsx`) : ici, ce que la fiche lui passe.
 vi.mock("@/components/support/FilSupport", () => ({
   SupportLu: ({ profil, f }: { profil: string; f: { messages: unknown[] } | null }) => (
@@ -123,7 +128,13 @@ const FICHE: Fiche = {
     professionnel_verifie: false,
     pseudo_autorise: false,
     documents_cotransporteur: null,
-    possibles: { verifier: false, raison: "Votre rôle ne permet pas de décider des vérifications d’un compte.", pseudo_reserve: false },
+    possibles: {
+      verifier: false,
+      raison: "Votre rôle ne permet pas de décider des vérifications d’un compte.",
+      pseudo_reserve: false,
+      demander: { possible: false, raison: "Votre rôle ne permet pas de demander une vérification.", objets: [] },
+    },
+    demandes_equipe: [],
   },
   roles: [{ role: "transporter", statut: "pending_validation", demande_le: "2026-09-25T09:00:00Z", active_le: null, decide_le: null, motif: null }],
   point_relais: null,
@@ -416,6 +427,7 @@ describe("la fiche d'un compte", () => {
     expect(html).toContain("Terme réservé autorisé dans le pseudonyme");
     expect(html).not.toContain("Pseudonyme autorisé à l’affichage");
     expect(html).toContain(`data-verifier="${ID}:false"`);
+    expect(html).toContain(`data-demandes="${ID}:0"`);
     expect(html).toContain("Votre rôle ne permet pas de décider des vérifications d’un compte.");
     const avec = (documents: boolean | null) =>
       renderToStaticMarkup(

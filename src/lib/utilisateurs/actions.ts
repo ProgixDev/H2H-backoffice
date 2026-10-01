@@ -4,7 +4,10 @@ import { geste } from "@/lib/db/geste";
 import {
   cheminCompte,
   type NomReserveDecide,
+  type ObjetVerification,
   type ProfessionnelDecide,
+  type VerificationClose,
+  type VerificationDemandee,
   type DecisionRecours,
   type PorteeRestriction,
   type RecoursExamine,
@@ -145,6 +148,39 @@ export async function deciderNomReserve(p: {
     p_profil: p.profil,
     p_autoriser: p.autoriser,
     p_pseudo: p.pseudo,
+    p_motif: p.motif,
+    p_cle: p.cle,
+  });
+}
+
+/**
+ * Demander une vérification : le message part dans le fil de la personne avec
+ * le support, au nom de HandtoHand, avec un avis ; un dossier « À traiter »
+ * attend sa réponse, au nom de l'équipier.
+ */
+export async function demanderVerification(p: { profil: string; objet: ObjetVerification; texte: string; cle: string }) {
+  return geste<VerificationDemandee>([CHEMIN, cheminCompte(p.profil), "/a-traiter"], "bo_verification_demander", {
+    p_profil: p.profil,
+    p_objet: p.objet,
+    p_texte: p.texte,
+    p_cle: p.cle,
+  });
+}
+
+/**
+ * Clore une demande de vérification — vérification faite, ou sans suite — et
+ * son dossier avec elle. La décision qui en découle reste un geste à part.
+ */
+export async function cloreVerification(p: {
+  demande: string;
+  profil: string;
+  issue: "verifiee" | "sans_suite";
+  motif: string;
+  cle: string;
+}) {
+  return geste<VerificationClose>([CHEMIN, cheminCompte(p.profil), "/a-traiter"], "bo_verification_clore", {
+    p_demande: p.demande,
+    p_issue: p.issue,
     p_motif: p.motif,
     p_cle: p.cle,
   });

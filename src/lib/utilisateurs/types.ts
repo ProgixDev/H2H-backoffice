@@ -180,7 +180,15 @@ export type FicheCompte = {
       raison: string | null;
       /** Le pseudonyme actuel emploie un terme réservé : retirer l'autorisation en demande un autre. */
       pseudo_reserve: boolean;
+      /** Demander une vérification par le fil avec le support — et, chose par chose, ce qui l'empêche. */
+      demander: {
+        possible: boolean;
+        raison: string | null;
+        objets: { objet: ObjetVerification; libelle: string; raison: string | null }[];
+      };
     };
+    /** Les vérifications demandées par l'équipe, de la plus récente à la plus ancienne. */
+    demandes_equipe: DemandeVerification[];
   };
   roles: (RoleCompte & { demande_le: string; active_le: string | null; decide_le: string | null; motif: string | null })[];
   point_relais: { nom: string; ville: string | null; statut: string; verifie_le: string | null; en_pause: boolean } | null;
@@ -413,6 +421,59 @@ export const LIBELLE_CONNEXION: Record<string, string> = {
   google: "Google",
   facebook: "Facebook",
   phone: "Téléphone",
+};
+
+/** Ce qu'une demande de vérification porte (hand-to-hand `20261001005000`). */
+export type ObjetVerification = "identite" | "professionnel" | "documents_cotransporteur";
+
+/** Une vérification demandée par l'équipe, dans le fil de la personne avec le support. */
+export type DemandeVerification = {
+  id: string;
+  objet: ObjetVerification;
+  libelle: string;
+  demandee_le: string;
+  /** L'équipier qui l'a demandée — la personne, elle, a lu « Support HandtoHand ». */
+  par: string | null;
+  statut: "en_attente" | "repondue" | "close";
+  repondue_le: string | null;
+  close_le: string | null;
+  close_par: string | null;
+  issue: "verifiee" | "sans_suite" | null;
+  /** Le motif de clôture : il reste à l'équipe. */
+  motif_cloture: string | null;
+  dossier: { id: string; reference: string; statut: "ouvert" | "clos" } | null;
+};
+
+/** Ce que rend une demande envoyée. */
+export type VerificationDemandee = {
+  demande: string;
+  objet: ObjetVerification;
+  conversation: string;
+  message: string;
+  dossier: string;
+};
+
+/** Ce que rend une demande close. */
+export type VerificationClose = { demande: string; issue: "verifiee" | "sans_suite" };
+
+/** Les bornes que la base impose au message d'une demande. */
+export const MESSAGE_DEMANDE_MIN = 10;
+export const MESSAGE_DEMANDE_MAX = 4000;
+
+/**
+ * Le texte proposé pour chaque demande — l'équipier le relit et l'ajuste avant
+ * l'envoi. La personne le lit tel quel, sous « Support HandtoHand ».
+ *
+ * ⚠️ L'IDENTITÉ NE SE VÉRIFIE PAS SUR DEMANDE : le seul parcours ouvert à tous
+ * est le compte de versement, que notre prestataire de paiement vérifie.
+ */
+export const MODELES_DEMANDE: Record<ObjetVerification, string> = {
+  identite:
+    "Bonjour, l’équipe HandtoHand a besoin de vérifier votre identité. Si vous vendez sur HandtoHand, configurer votre compte de versement, dans vos paramètres, la fait vérifier par notre prestataire de paiement. Sinon, répondez à ce message : nous vous dirons comment procéder.",
+  professionnel:
+    "Bonjour, votre activité sur HandtoHand semble professionnelle. Pour présenter votre compte comme vendeur professionnel, pouvez-vous nous indiquer, en réponse à ce message, le nom de votre entreprise et son numéro SIRET ? Merci.",
+  documents_cotransporteur:
+    "Bonjour, pour valider votre rôle de cotransporteur particulier, l’équipe HandtoHand doit vérifier vos documents. Répondez à ce message : nous vous indiquerons lesquels transmettre, et comment.",
 };
 
 /** Ce que rend une décision sur la mention de vendeur professionnel. */

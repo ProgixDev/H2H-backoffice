@@ -31,6 +31,7 @@ import { SupportLu } from "@/components/support/FilSupport";
 import type { FilSupportLu } from "@/lib/support/types";
 import type { SignalementsCible } from "@/lib/signalements/types";
 import { noteDite } from "./ListeComptes";
+import { DemandesVerification } from "./DemandesVerification";
 import { GestesVerification } from "./GestesVerification";
 import { SanctionsCompte } from "./SanctionsCompte";
 
@@ -260,6 +261,7 @@ export function FicheCompte({
             ]}
           />
           <GestesVerification profil={c.id} v={v} />
+          <DemandesVerification profil={c.id} v={v} />
           {v.demandes.length > 0 && (
             <Tableau entetes={["Vérification demandée", "État", "Mode", "Échecs", "Issue"]} largeur={560}>
               {v.demandes.map((d, i) => (
