@@ -202,6 +202,24 @@ export function FicheDossier({
                     Vérifier l’annonce sur sa fiche
                   </Link>
                 )}
+                {/* Des signalements s'examinent sur la fiche de ce qu'ils visent : l'annonce, la recherche, le compte. */}
+                {d.source === "signalement" && d.objet_id && (
+                  <Link
+                    href={
+                      d.objet_table === "products" || d.objet_table === "je_cherche_demandes"
+                        ? cheminAnnonce(d.objet_id)
+                        : cheminCompte(d.objet_id)
+                    }
+                    className="text-legende font-semibold text-h2h-primary"
+                  >
+                    Examiner les signalements sur la fiche{" "}
+                    {d.objet_table === "products"
+                      ? "de l’annonce"
+                      : d.objet_table === "je_cherche_demandes"
+                        ? "de la recherche"
+                        : "du compte"}
+                  </Link>
+                )}
               </Bloc>
 
               {agir && (

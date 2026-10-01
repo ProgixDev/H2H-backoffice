@@ -83,6 +83,8 @@ export default async function PageLitiges({
               signalements={donnees.signalements}
               motifs={donnees.motifs}
               peutInstruire={peut(moi, "litiges.instruire")}
+              peutOuvrirAnnonce={peut(moi, "annonces.lire")}
+              peutOuvrirCompte={peut(moi, "utilisateurs.lire")}
             />
           </section>
         </>

@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@919730c : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@db5f34f : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260930008000_une_publication_se_verifie.sql
+// Base : 20260930009000_un_signalement_s_examine.sql
 
 export type Json =
   | string
@@ -2720,6 +2720,87 @@ export type Database = {
           },
         ]
       }
+      je_cherche_reports: {
+        Row: {
+          buyer_id: string | null
+          created_at: string
+          demande_id: string | null
+          examen_id: string | null
+          explanation: string | null
+          good_faith: boolean
+          id: string
+          priority: Database["public"]["Enums"]["report_priority"]
+          proofs: Json
+          reason: Database["public"]["Enums"]["listing_report_reason"]
+          reporter_id: string
+          snapshot: Json
+        }
+        Insert: {
+          buyer_id?: string | null
+          created_at?: string
+          demande_id?: string | null
+          examen_id?: string | null
+          explanation?: string | null
+          good_faith?: boolean
+          id?: string
+          priority: Database["public"]["Enums"]["report_priority"]
+          proofs?: Json
+          reason: Database["public"]["Enums"]["listing_report_reason"]
+          reporter_id: string
+          snapshot: Json
+        }
+        Update: {
+          buyer_id?: string | null
+          created_at?: string
+          demande_id?: string | null
+          examen_id?: string | null
+          explanation?: string | null
+          good_faith?: boolean
+          id?: string
+          priority?: Database["public"]["Enums"]["report_priority"]
+          proofs?: Json
+          reason?: Database["public"]["Enums"]["listing_report_reason"]
+          reporter_id?: string
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "je_cherche_reports_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "je_cherche_reports_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profils_publics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "je_cherche_reports_demande_id_fkey"
+            columns: ["demande_id"]
+            isOneToOne: false
+            referencedRelation: "je_cherche_demandes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "je_cherche_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "je_cherche_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profils_publics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kyc_verifications: {
         Row: {
           consentement_le: string | null
@@ -3118,6 +3199,7 @@ export type Database = {
       listing_reports: {
         Row: {
           created_at: string
+          examen_id: string | null
           explanation: string
           good_faith: boolean
           id: string
@@ -3131,6 +3213,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          examen_id?: string | null
           explanation: string
           good_faith: boolean
           id?: string
@@ -3144,6 +3227,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          examen_id?: string | null
           explanation?: string
           good_faith?: boolean
           id?: string
@@ -6990,6 +7074,7 @@ export type Database = {
           context_snapshot: Json | null
           conversation_id: string | null
           created_at: string
+          examen_id: string | null
           explanation: string
           good_faith: boolean
           id: string
@@ -7004,6 +7089,7 @@ export type Database = {
           context_snapshot?: Json | null
           conversation_id?: string | null
           created_at?: string
+          examen_id?: string | null
           explanation: string
           good_faith: boolean
           id?: string
@@ -7018,6 +7104,7 @@ export type Database = {
           context_snapshot?: Json | null
           conversation_id?: string | null
           created_at?: string
+          examen_id?: string | null
           explanation?: string
           good_faith?: boolean
           id?: string
@@ -8820,9 +8907,25 @@ export type Database = {
         }
         Returns: Json
       }
+      bo_signalements_cible: {
+        Args: { p_cible: string; p_genre: string }
+        Returns: Json
+      }
+      bo_signalements_examiner: {
+        Args: {
+          p_cle: string
+          p_genre: string
+          p_issue: string
+          p_motif: string
+          p_reponse: string
+          p_signalements: string[]
+        }
+        Returns: Json
+      }
       bo_signalements_lister: {
         Args: { p_motif?: string }
         Returns: {
+          cible: string
           commande_id: string
           est_test: boolean
           etat: string
@@ -9936,6 +10039,7 @@ export type Database = {
         }[]
       }
       mes_sanctions: { Args: never; Returns: Json }
+      mes_signalements: { Args: never; Returns: Json }
       mes_statistiques: { Args: never; Returns: Json }
       modele_frais_partage_actif: { Args: never; Returns: boolean }
       moderation_annonce: { Args: { p_annonce: string }; Returns: Json }
@@ -10666,6 +10770,7 @@ export type Database = {
         }
         Returns: {
           created_at: string
+          examen_id: string | null
           explanation: string
           good_faith: boolean
           id: string
@@ -10736,6 +10841,34 @@ export type Database = {
         }
       }
       signaler_presence: { Args: { p_session_id: string }; Returns: undefined }
+      signaler_recherche: {
+        Args: {
+          p_demande_id: string
+          p_explanation: string
+          p_proofs?: Json
+          p_reason: Database["public"]["Enums"]["listing_report_reason"]
+        }
+        Returns: {
+          buyer_id: string | null
+          created_at: string
+          demande_id: string | null
+          examen_id: string | null
+          explanation: string | null
+          good_faith: boolean
+          id: string
+          priority: Database["public"]["Enums"]["report_priority"]
+          proofs: Json
+          reason: Database["public"]["Enums"]["listing_report_reason"]
+          reporter_id: string
+          snapshot: Json
+        }
+        SetofOptions: {
+          from: "*"
+          to: "je_cherche_reports"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       signaler_utilisateur: {
         Args: {
           p_block_after?: boolean
@@ -10750,6 +10883,7 @@ export type Database = {
           context_snapshot: Json | null
           conversation_id: string | null
           created_at: string
+          examen_id: string | null
           explanation: string
           good_faith: boolean
           id: string

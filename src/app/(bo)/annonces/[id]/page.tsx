@@ -8,6 +8,8 @@ import { lireAnnonce } from "@/lib/annonces/lectures";
 import type { Fiche } from "@/lib/annonces/types";
 import { RefusBO } from "@/lib/db/rpc";
 import { rubriqueObligatoire } from "@/lib/navigation";
+import { lireSignalementsCible } from "@/lib/signalements/lectures";
+import type { SignalementsCible } from "@/lib/signalements/types";
 
 const rubrique = rubriqueObligatoire("/annonces");
 export const metadata: Metadata = { title: rubrique.titre };
@@ -30,12 +32,20 @@ export default async function PageAnnonce({ params }: { params: Promise<{ id: st
 
   // On LIT dans le try, on construit l'écran après (règle `react-hooks/error-boundaries`).
   let fiche: Fiche | null = null;
+  let signalements: SignalementsCible | null = null;
   let introuvable = !IDENTIFIANT.test(id);
   if (!introuvable) {
     try {
       fiche = await lireAnnonce(id);
     } catch (e) {
       introuvable = e instanceof RefusBO && e.indice === "BO_INTROUVABLE";
+    }
+  }
+  if (fiche) {
+    try {
+      signalements = await lireSignalementsCible(fiche.nature, id);
+    } catch {
+      // La fiche le dit à leur place : « Les signalements ne se lisent pas ».
     }
   }
 
@@ -49,7 +59,7 @@ export default async function PageAnnonce({ params }: { params: Promise<{ id: st
         {fiche?.nature === "recherche" ? "Je cherche" : "Annonces"}
       </Link>
       {fiche ? (
-        <FicheAnnonceVue f={fiche} />
+        <FicheAnnonceVue f={fiche} signalements={signalements} />
       ) : introuvable ? (
         <LectureEchouee
           titre="Cette annonce est introuvable"

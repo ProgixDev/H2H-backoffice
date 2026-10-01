@@ -39,7 +39,9 @@ import {
   type NatureAnnonce,
   type Remontee,
 } from "@/lib/annonces/types";
-import { LIBELLE_PRIORITE_SIGNALEMENT, cheminCompte, type RecoursLu } from "@/lib/utilisateurs/types";
+import { SignalementsLus } from "@/components/signalements/BlocSignalements";
+import type { SignalementsCible } from "@/lib/signalements/types";
+import { cheminCompte, type RecoursLu } from "@/lib/utilisateurs/types";
 
 const libelle = (table: Record<string, string>, code: string | null | undefined) =>
   code ? (table[code] ?? code) : null;
@@ -249,7 +251,7 @@ function BlocModeration({ id, nature, m }: { id: string; nature: NatureAnnonce; 
   );
 }
 
-function Annonce({ f }: { f: FicheAnnonce }) {
+function Annonce({ f, signalements }: { f: FicheAnnonce; signalements: SignalementsCible | null }) {
   const a = f.annonce;
   const e = f.eligibilite;
   const typeDit = a.mode === "exchange" ? LIBELLE_MODE.exchange : (LIBELLE_TYPE_ANNONCE[a.type] ?? a.type);
@@ -490,38 +492,14 @@ function Annonce({ f }: { f: FicheAnnonce }) {
         )}
       </Bloc>
 
-      <Bloc titre={`Signalements (${f.signalements.total})`}>
-        {f.signalements.recents.length === 0 ? (
-          <Aucun>Aucun signalement.</Aucun>
-        ) : (
-          <>
-            <ul className="grid gap-2">
-              {f.signalements.recents.map((s, i) => (
-                <li key={`${s.le}:${i}`} className="grid gap-1 rounded-lg border p-3">
-                  <span className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold">{s.raison_libelle}</span>
-                    <StatutPastille ton={s.priorite === "critique" || s.priorite === "tres_elevee" ? "erreur" : "neutre"}>
-                      Priorité {LIBELLE_PRIORITE_SIGNALEMENT[s.priorite].toLowerCase()}
-                    </StatutPastille>
-                    <span className="text-legende text-muted-foreground">
-                      {dateHeure(s.le)} · {s.preuves} pièce{s.preuves > 1 ? "s" : ""}
-                    </span>
-                  </span>
-                  <p className="whitespace-pre-line text-corps">« {s.explication} »</p>
-                </li>
-              ))}
-            </ul>
-            <p className="text-legende text-muted-foreground">
-              Qui a signalé ne se lit pas ici : le traitement des signalements arrive avec la suite de la phase.
-            </p>
-          </>
-        )}
+      <Bloc titre={`Signalements (${signalements?.signalements.length ?? f.signalements.total})`}>
+        <SignalementsLus genre="annonce" cible={a.id} s={signalements} />
       </Bloc>
     </div>
   );
 }
 
-function Recherche({ f }: { f: FicheRecherche }) {
+function Recherche({ f, signalements }: { f: FicheRecherche; signalements: SignalementsCible | null }) {
   const r = f.recherche;
   return (
     <div className="grid gap-4">
@@ -618,14 +596,23 @@ function Recherche({ f }: { f: FicheRecherche }) {
           <p className="text-corps">Badge « Urgent » jusqu’au {jour(f.visibilite.urgent_jusqu_au)}</p>
         )}
       </Bloc>
+
+      <Bloc titre={signalements ? `Signalements (${signalements.signalements.length})` : "Signalements"}>
+        <SignalementsLus genre="recherche" cible={r.id} s={signalements} />
+      </Bloc>
     </div>
   );
 }
 
 /**
  * La fiche d'une annonce ou d'une recherche « Je cherche » (§9) : la base dit
- * laquelle, et ce que l'équipier peut ouvrir d'autre.
+ * laquelle, et ce que l'équipier peut ouvrir d'autre. Ses signalements se lisent
+ * à part (`bo_signalements_cible`) : nuls, leur lecture a échoué.
  */
-export function FicheAnnonceVue({ f }: { f: Fiche }) {
-  return f.nature === "annonce" ? <Annonce f={f} /> : <Recherche f={f} />;
+export function FicheAnnonceVue({ f, signalements }: { f: Fiche; signalements: SignalementsCible | null }) {
+  return f.nature === "annonce" ? (
+    <Annonce f={f} signalements={signalements} />
+  ) : (
+    <Recherche f={f} signalements={signalements} />
+  );
 }

@@ -48,7 +48,8 @@ export type Dossier = {
     | "securite"
     | "rapprochement"
     | "recours"
-    | "verification";
+    | "verification"
+    | "signalement";
   titre: string;
   motif: string | null;
   categorie: string;
@@ -65,7 +66,8 @@ export type Dossier = {
   clos_le: string | null;
   /**
    * Une opération, un travail automatique — ou une annonce : celle d'un recours contre une décision de
-   * modération, celle qui attend sa vérification avant publication.
+   * modération, celle qui attend sa vérification avant publication, celle qu'on a signalée. Nul avec un
+   * `objet_id` : un compte (un recours contre une sanction, des signalements).
    */
   objet_table: "orders" | "courtage_listings" | "live_sessions" | "taches" | "products" | "je_cherche_demandes" | null;
   objet_id: string | null;
@@ -91,6 +93,8 @@ export const CLOTURE_AUTOMATIQUE: Record<Exclude<Dossier["source"], "manuel" | "
     "Ce dossier se clôt tout seul quand le recours est examiné : sur la fiche du compte (Utilisateurs) pour une sanction, sur celle de l’annonce (Annonces) pour une décision de modération.",
   verification:
     "Ce dossier se clôt tout seul quand l’équipe autorise ou refuse la publication, sur la fiche de l’annonce (Annonces).",
+  signalement:
+    "Ce dossier se clôt tout seul quand plus aucun signalement n’attend : ils s’examinent sur la fiche de ce qu’ils visent — l’annonce, la recherche ou le compte. Un nouveau signalement le rouvre.",
 };
 
 export type CompteurDossier = { code: string; libelle: string; description: string; nombre: number };

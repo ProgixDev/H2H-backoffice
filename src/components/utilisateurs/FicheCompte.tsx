@@ -16,7 +16,6 @@ import {
   LIBELLE_APPLICATION,
   LIBELLE_CONNEXION,
   LIBELLE_METHODE,
-  LIBELLE_PRIORITE_SIGNALEMENT,
   LIBELLE_ROLE,
   LIBELLE_ROLE_NOTE,
   LIBELLE_STATUT_KYC,
@@ -26,6 +25,8 @@ import {
   type AvisCompte,
   type FicheCompte as Fiche,
 } from "@/lib/utilisateurs/types";
+import { SignalementsLus } from "@/components/signalements/BlocSignalements";
+import type { SignalementsCible } from "@/lib/signalements/types";
 import { noteDite } from "./ListeComptes";
 import { SanctionsCompte } from "./SanctionsCompte";
 
@@ -81,17 +82,24 @@ function Avis({ avis, sens }: { avis: AvisCompte[]; sens: "recus" | "donnes" }) 
  * fois, avec un motif, et la base inscrit chaque révélation au journal. La
  * fiche elle-même ne porte que le pseudonyme.
  *
- * 🔴 SES SANCTIONS ET SES GESTES : avertir, restreindre, suspendre, lever — ceux
- * que la base permet à l'équipier qui lit, avec la raison de ceux qu'elle ne
- * permet pas. Examiner un recours arrive avec la tranche suivante.
+ * 🔴 SES SANCTIONS ET SES GESTES : avertir, restreindre, suspendre, lever,
+ * examiner un recours — ceux que la base permet à l'équipier qui lit, avec la
+ * raison de ceux qu'elle ne permet pas.
+ *
+ * 🔴 SES SIGNALEMENTS se lisent à part (`bo_signalements_cible`) : chacun, son
+ * examen, son dossier « À traiter » ; qui a signalé, seulement pour qui peut
+ * examiner. Leur lecture échouée se dit, et ne cache pas la fiche.
  */
 export function FicheCompte({
   f,
+  signalements,
   peutReveler,
   peutOuvrirFiche,
   peutOuvrirAnnonce = false,
 }: {
   f: Fiche;
+  /** Les signalements reçus et leur examen (`bo_signalements_cible`) — nuls : leur lecture a échoué. */
+  signalements: SignalementsCible | null;
   /** `donnees.reveler` — et la base refuse de toute façon son propre compte. */
   peutReveler: boolean;
   /** `activite.lire` : une référence d'achat ouvre la fiche de l'opération. */
@@ -411,18 +419,7 @@ export function FicheCompte({
             ["Signalements faits par ce compte", String(f.signalements.faits)],
           ]}
         />
-        {f.signalements.recus.length > 0 && (
-          <Tableau entetes={["Signalé le", "Motif", "Priorité", "Par"]} largeur={560}>
-            {f.signalements.recus.map((s) => (
-              <tr key={s.id}>
-                <td className="whitespace-nowrap tabular-nums">{dateHeure(s.le)}</td>
-                <td className="font-medium">{s.libelle}</td>
-                <td>{libelle(LIBELLE_PRIORITE_SIGNALEMENT, s.priorite)}</td>
-                <td>{pseudo(s.par)}</td>
-              </tr>
-            ))}
-          </Tableau>
-        )}
+        <SignalementsLus genre="utilisateur" cible={c.id} s={signalements} />
       </Bloc>
     </div>
   );

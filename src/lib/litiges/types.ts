@@ -72,7 +72,12 @@ export type Litige = {
 
 // ── Le dossier : motifs, recours, enquêtes (§15) ────────────────────────────
 
-export type GenreDossier = "reclamation" | "incident" | "signalement_utilisateur" | "signalement_annonce";
+export type GenreDossier =
+  | "reclamation"
+  | "incident"
+  | "signalement_utilisateur"
+  | "signalement_annonce"
+  | "signalement_recherche";
 export type Partie = "buyer" | "seller";
 export type Canal = "e_mail" | "telephone" | "messagerie" | "courrier" | "autre";
 export type StatutRecours = "a_examiner" | "recevable" | "irrecevable" | "tranche";
@@ -108,6 +113,8 @@ export type Signalement = {
   commande_id: string | null;
   reference: string | null;
   participants: string;
+  /** Ce qu'un signalement vise : l'annonce, la recherche ou le compte ; nul pour un incident. */
+  cible: string | null;
   est_test: boolean;
 };
 
@@ -115,6 +122,7 @@ export const LIBELLE_GENRE: Record<Signalement["genre"], string> = {
   incident: "Incident de co-livraison",
   signalement_utilisateur: "Signalement d’un utilisateur",
   signalement_annonce: "Signalement d’une annonce",
+  signalement_recherche: "Signalement d’une recherche",
 };
 
 export const LIBELLE_ETAT_SIGNALEMENT: Record<string, string> = {
@@ -122,7 +130,10 @@ export const LIBELLE_ETAT_SIGNALEMENT: Record<string, string> = {
   blocked: "Bloqué",
   support_review: "Transmis au support",
   closed: "Clos",
-  signale: "Signalé",
+  // Un signalement attend son examen, puis se dit fondé ou non (20260930009000).
+  a_examiner: "À examiner",
+  fonde: "Fondé",
+  non_fonde: "Non fondé",
 };
 
 export const LIBELLE_PARTIE: Record<Partie, string> = { buyer: "L’acheteur", seller: "Le vendeur" };

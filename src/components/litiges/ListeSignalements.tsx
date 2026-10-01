@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { StatutPastille } from "@/components/bo/StatutPastille";
+import { cheminAnnonce } from "@/lib/annonces/types";
 import { dateHeure } from "@/lib/dates";
 import {
   LIBELLE_ETAT_SIGNALEMENT,
@@ -10,7 +11,37 @@ import {
   type Signalement,
 } from "@/lib/litiges/types";
 import { cheminFiche } from "@/lib/operations/types";
+import { cheminCompte } from "@/lib/utilisateurs/types";
 import { BoutonRequalifier } from "./GestesDossier";
+
+/** Ce qu'un signalement vise, et la fiche où il s'examine — quand l'équipier peut l'ouvrir. */
+function Cible({ s, peutOuvrirAnnonce, peutOuvrirCompte }: {
+  s: Signalement;
+  peutOuvrirAnnonce: boolean;
+  peutOuvrirCompte: boolean;
+}) {
+  if (s.genre === "signalement_utilisateur") {
+    return s.cible && peutOuvrirCompte ? (
+      <Link href={cheminCompte(s.cible)} className="text-corps font-medium text-h2h-primary hover:underline">
+        Ouvrir le compte signalé
+      </Link>
+    ) : null;
+  }
+  if (s.genre !== "signalement_annonce" && s.genre !== "signalement_recherche") return null;
+  const quoi = s.genre === "signalement_annonce" ? "Annonce" : "Recherche";
+  return (
+    <span className="text-corps">
+      {quoi}{" "}
+      {s.cible && peutOuvrirAnnonce ? (
+        <Link href={cheminAnnonce(s.cible)} className="font-medium text-h2h-primary hover:underline">
+          « {s.reference ?? "sans titre"} »
+        </Link>
+      ) : (
+        `« ${s.reference ?? "supprimée"} »`
+      )}
+    </span>
+  );
+}
 
 /**
  * Les dossiers qui ne sont pas des réclamations : les incidents de
@@ -18,13 +49,24 @@ import { BoutonRequalifier } from "./GestesDossier";
  * comportement), rangés sous les mêmes motifs.
  *
  * ⚠️ LEUR TRAITEMENT A SA PLACE : un incident se tranche avec la phase 4
- * (H2H Logistic), un signalement avec la phase 2b (Utilisateurs). Ici, on les
- * voit, on ouvre l'achat d'un incident, et on les range.
+ * (H2H Logistic) ; un signalement s'examine sur la fiche de ce qu'il vise —
+ * l'annonce, la recherche, le compte. Ici, on les voit, on dit où en est chaque
+ * signalement, on ouvre ce qu'il vise ou l'achat d'un incident, et on les range.
  */
-export function ListeSignalements({ signalements, motifs, peutInstruire }: {
+export function ListeSignalements({
+  signalements,
+  motifs,
+  peutInstruire,
+  peutOuvrirAnnonce = false,
+  peutOuvrirCompte = false,
+}: {
   signalements: Signalement[];
   motifs: CompteMotif[];
   peutInstruire: boolean;
+  /** `annonces.lire` : l'annonce ou la recherche signalée s'ouvre, et ses signalements s'y examinent. */
+  peutOuvrirAnnonce?: boolean;
+  /** `utilisateurs.lire` : le compte signalé s'ouvre, et ses signalements s'y examinent. */
+  peutOuvrirCompte?: boolean;
 }) {
   if (signalements.length === 0) {
     return <p className="text-corps text-muted-foreground">Aucun incident ni signalement sous ce motif.</p>;
@@ -53,9 +95,7 @@ export function ListeSignalements({ signalements, motifs, peutInstruire }: {
                   </Link>
                 </span>
               )}
-              {s.genre === "signalement_annonce" && s.reference && (
-                <span className="text-corps">Annonce « {s.reference} »</span>
-              )}
+              <Cible s={s} peutOuvrirAnnonce={peutOuvrirAnnonce} peutOuvrirCompte={peutOuvrirCompte} />
             </div>
             {peutInstruire && <BoutonRequalifier genre={s.genre} objet={s.id} motifs={motifs} actuel={s.motif} />}
           </div>
