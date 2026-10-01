@@ -49,7 +49,8 @@ export type Dossier = {
     | "rapprochement"
     | "recours"
     | "verification"
-    | "signalement";
+    | "signalement"
+    | "support";
   titre: string;
   motif: string | null;
   categorie: string;
@@ -93,6 +94,8 @@ export const CLOTURE_AUTOMATIQUE: Record<Exclude<Dossier["source"], "manuel" | "
     "Ce dossier se clôt tout seul quand le recours est examiné : sur la fiche du compte (Utilisateurs) pour une sanction, sur celle de l’annonce (Annonces) pour une décision de modération, sur celle de ce qui a été signalé pour l’examen d’un signalement.",
   verification:
     "Ce dossier se clôt tout seul quand l’équipe autorise ou refuse la publication, sur la fiche de l’annonce (Annonces).",
+  support:
+    "Ce dossier se clôt tout seul quand l’équipe répond, sur la fiche du compte (Utilisateurs). Un nouveau message de la personne le rouvre.",
   signalement:
     "Ce dossier se clôt tout seul quand plus aucun signalement n’attend : ils s’examinent sur la fiche de ce qu’ils visent — l’annonce, la recherche ou le compte. Un nouveau signalement le rouvre.",
 };

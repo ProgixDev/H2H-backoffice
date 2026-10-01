@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { SignalementsCible } from "@/lib/signalements/types";
+import type { FilSupportLu } from "@/lib/support/types";
 import type { CompteListe, FicheCompte as Fiche, RecoursListe, RecoursLu, SanctionsCompte } from "@/lib/utilisateurs/types";
 
 vi.mock("next/link", () => ({
@@ -38,6 +39,12 @@ vi.mock("@/components/utilisateurs/GestesSanction", () => ({
     </div>
   ),
   LeverSanction: ({ sanction, nature }: { sanction: string; nature: string }) => <button data-lever={`${nature}:${sanction}`} />,
+}));
+// Le fil avec le support se teste à part (`support.test.tsx`) : ici, ce que la fiche lui passe.
+vi.mock("@/components/support/FilSupport", () => ({
+  SupportLu: ({ profil, f }: { profil: string; f: { messages: unknown[] } | null }) => (
+    <span data-support={`${profil}:${f === null ? "echec" : f.messages.length}`} />
+  ),
 }));
 // Le bloc des signalements se teste à part (`signalements.test.tsx`) : ici, ce que la fiche lui passe.
 vi.mock("@/components/signalements/BlocSignalements", () => ({
@@ -79,6 +86,9 @@ const LIGNE: CompteListe = {
   est_test: false,
 };
 
+/** Aucun échange avec le support : ce que `bo_support_lire` rend d'un compte sans fil. */
+const SANS_SUPPORT: FilSupportLu = { conversation: null, messages: [], tronque: false, dossier: null,
+  possibles: { ecrire: true, raison: null } };
 /** Aucun signalement : ce que `bo_signalements_cible` rend d'une cible jamais signalée. */
 const SANS_SIGNALEMENT: SignalementsCible = { signalements: [], a_examiner: 0, recours_a_examiner: 0, dossier: null, possibles: { examiner: true, raison: null } };
 const FICHE: Fiche = {
@@ -293,7 +303,7 @@ describe("la liste des comptes", () => {
 
 describe("les recours d'un compte", () => {
   it("un recours qui attend : ses mots, ses pièces, son dossier, et le geste qui l'examine", () => {
-    const f = renderToStaticMarkup(<FicheCompte signalements={SANS_SIGNALEMENT} f={{ ...FICHE, sanctions: CONTESTE }} peutReveler peutOuvrirFiche />);
+    const f = renderToStaticMarkup(<FicheCompte support={SANS_SUPPORT} signalements={SANS_SIGNALEMENT} f={{ ...FICHE, sanctions: CONTESTE }} peutReveler peutOuvrirFiche />);
     expect(f).toContain("Recours · 1 à examiner");
     expect(f).toContain("Recours à examiner");
     expect(f).toContain("REC-000012");
@@ -308,7 +318,7 @@ describe("les recours d'un compte", () => {
   });
 
   it("un recours accepté : l'avertissement annulé, la réponse envoyée et le motif distingués", () => {
-    const f = renderToStaticMarkup(<FicheCompte signalements={SANS_SIGNALEMENT} f={{ ...FICHE, sanctions: CONTESTE }} peutReveler peutOuvrirFiche />);
+    const f = renderToStaticMarkup(<FicheCompte support={SANS_SUPPORT} signalements={SANS_SIGNALEMENT} f={{ ...FICHE, sanctions: CONTESTE }} peutReveler peutOuvrirFiche />);
     expect(f).toContain("Annulée sur recours");
     expect(f).toContain("Aucun avertissement reçu.");
     expect(f).toContain("Examiné le 02/07/2026 10:00 par mod2@handtohand.pro · réponse envoyée à la personne");
@@ -323,7 +333,7 @@ describe("les recours d'un compte", () => {
       ...CONTESTE,
       en_cours: [{ ...CONTESTE.en_cours[0], recours: { ...EN_ATTENTE, examinable: false, raison, pieces_ouvrables: false } }],
     };
-    const f = renderToStaticMarkup(<FicheCompte signalements={SANS_SIGNALEMENT} f={{ ...FICHE, sanctions: lu }} peutReveler peutOuvrirFiche />);
+    const f = renderToStaticMarkup(<FicheCompte support={SANS_SUPPORT} signalements={SANS_SIGNALEMENT} f={{ ...FICHE, sanctions: lu }} peutReveler peutOuvrirFiche />);
     expect(f).not.toContain("data-examiner");
     expect(f).not.toContain("data-piece");
     expect(f).toContain("Vous avez posé cette sanction : un autre membre de l&#x27;équipe examine le recours.");
@@ -331,7 +341,7 @@ describe("les recours d'un compte", () => {
   });
 
   it("sans recours, la fiche n'en parle pas", () => {
-    const f = renderToStaticMarkup(<FicheCompte signalements={SANS_SIGNALEMENT} f={{ ...FICHE, sanctions: SANCTIONNE }} peutReveler peutOuvrirFiche />);
+    const f = renderToStaticMarkup(<FicheCompte support={SANS_SUPPORT} signalements={SANS_SIGNALEMENT} f={{ ...FICHE, sanctions: SANCTIONNE }} peutReveler peutOuvrirFiche />);
     expect(f).not.toContain("Les mots de la personne");
     expect(f).not.toMatch(/REC-\d/);
   });
@@ -374,7 +384,7 @@ describe("l'onglet des recours", () => {
 });
 
 describe("la fiche d'un compte", () => {
-  const html = renderToStaticMarkup(<FicheCompte signalements={SANS_SIGNALEMENT} f={FICHE} peutReveler peutOuvrirFiche />);
+  const html = renderToStaticMarkup(<FicheCompte support={SANS_SUPPORT} signalements={SANS_SIGNALEMENT} f={FICHE} peutReveler peutOuvrirFiche />);
 
   it("cinq données masquées, révélées depuis le compte — jamais écrites dans la fiche", () => {
     expect(html).toContain(`data-cadre="profiles:${ID}:true"`);
@@ -410,7 +420,7 @@ describe("la fiche d'un compte", () => {
   });
 
   it("une restriction en cours : ce qui est arrêté, jusqu'à quand, qui — le message et le motif distingués", () => {
-    const f = renderToStaticMarkup(<FicheCompte signalements={SANS_SIGNALEMENT} f={{ ...FICHE, sanctions: SANCTIONNE }} peutReveler peutOuvrirFiche />);
+    const f = renderToStaticMarkup(<FicheCompte support={SANS_SUPPORT} signalements={SANS_SIGNALEMENT} f={{ ...FICHE, sanctions: SANCTIONNE }} peutReveler peutOuvrirFiche />);
     expect(f).toContain("Compte restreint");
     expect(f).not.toContain("Compte actif");
     expect(f).toContain("Restreint · Achats et offres");
@@ -427,7 +437,7 @@ describe("la fiche d'un compte", () => {
   });
 
   it("l'historique : levée par qui et pourquoi, arrivée à son terme, un avertissement sans fin", () => {
-    const f = renderToStaticMarkup(<FicheCompte signalements={SANS_SIGNALEMENT} f={{ ...FICHE, sanctions: SANCTIONNE }} peutReveler peutOuvrirFiche />);
+    const f = renderToStaticMarkup(<FicheCompte support={SANS_SUPPORT} signalements={SANS_SIGNALEMENT} f={{ ...FICHE, sanctions: SANCTIONNE }} peutReveler peutOuvrirFiche />);
     expect(f).toContain("Historique");
     expect(f).toContain("Levée le 03/09/2026 10:00 par dir1@handtohand.pro : Recours accepté");
     expect(f).toContain("Suspension");
@@ -442,7 +452,7 @@ describe("la fiche d'un compte", () => {
       en_cours: [{ ...SANCTIONNE.en_cours[0], id: "s1", nature: "suspension", portee: null, portee_libelle: null, effet: null, jusqu_a: null }],
       possibles: { ...SANCTIONNE.possibles, suspendre: false, portees: [] },
     };
-    const f = renderToStaticMarkup(<FicheCompte signalements={SANS_SIGNALEMENT} f={{ ...FICHE, sanctions: suspendu }} peutReveler peutOuvrirFiche />);
+    const f = renderToStaticMarkup(<FicheCompte support={SANS_SUPPORT} signalements={SANS_SIGNALEMENT} f={{ ...FICHE, sanctions: suspendu }} peutReveler peutOuvrirFiche />);
     expect(f).toContain("Compte suspendu");
     expect(f).toContain("sans terme, jusqu’à sa levée");
     expect(f).toContain("Arrêté : tout ce qui commence — ses annonces ont quitté la vitrine.");
@@ -454,22 +464,22 @@ describe("la fiche d'un compte", () => {
     expect(html).toContain('href="/operations/HTH-2026-AAAAAA"');
     expect(html).toContain("@ven_deuse_cl");
     expect(html).toMatch(/106,39\s€/);
-    const sans = renderToStaticMarkup(<FicheCompte signalements={SANS_SIGNALEMENT} f={FICHE} peutReveler peutOuvrirFiche={false} />);
+    const sans = renderToStaticMarkup(<FicheCompte support={SANS_SUPPORT} signalements={SANS_SIGNALEMENT} f={FICHE} peutReveler peutOuvrirFiche={false} />);
     expect(sans).toContain("HTH-2026-AAAAAA");
     expect(sans).not.toContain('href="/operations/');
   });
 
   it("son propre compte : l'équipier lit la fiche, ne révèle rien, et la fiche le dit", () => {
-    const mien = renderToStaticMarkup(<FicheCompte signalements={SANS_SIGNALEMENT} f={{ ...FICHE, conflit: true }} peutReveler peutOuvrirFiche />);
+    const mien = renderToStaticMarkup(<FicheCompte support={SANS_SUPPORT} signalements={SANS_SIGNALEMENT} f={{ ...FICHE, conflit: true }} peutReveler peutOuvrirFiche />);
     expect(mien).toContain(`data-cadre="profiles:${ID}:false"`);
     expect(mien).toContain("Ce compte est le vôtre");
-    const sansDroit = renderToStaticMarkup(<FicheCompte signalements={SANS_SIGNALEMENT} f={FICHE} peutReveler={false} peutOuvrirFiche />);
+    const sansDroit = renderToStaticMarkup(<FicheCompte support={SANS_SUPPORT} signalements={SANS_SIGNALEMENT} f={FICHE} peutReveler={false} peutOuvrirFiche />);
     expect(sansDroit).toContain(`data-cadre="profiles:${ID}:false"`);
   });
 
   it("un compte effacé dit ce qui est parti avec lui", () => {
     const efface = renderToStaticMarkup(
-      <FicheCompte signalements={SANS_SIGNALEMENT} f={{ ...FICHE, compte: { ...FICHE.compte, pseudo: "supprime_x1a2b3c", efface_le: "2026-09-29T08:00:00Z", ville: null, region: null } }} peutReveler peutOuvrirFiche />,
+      <FicheCompte support={SANS_SUPPORT} signalements={SANS_SIGNALEMENT} f={{ ...FICHE, compte: { ...FICHE.compte, pseudo: "supprime_x1a2b3c", efface_le: "2026-09-29T08:00:00Z", ville: null, region: null } }} peutReveler peutOuvrirFiche />,
     );
     expect(efface).toContain("Compte effacé");
     expect(efface).not.toContain("Compte actif");
@@ -481,7 +491,7 @@ describe("la fiche d'un compte", () => {
     expect(html).toContain("« Acheteur sérieux »");
     expect(html).toContain("Aucun avis donné.");
     const signale = renderToStaticMarkup(
-      <FicheCompte signalements={SANS_SIGNALEMENT}
+      <FicheCompte support={SANS_SUPPORT} signalements={SANS_SIGNALEMENT}
         f={{
           ...FICHE,
           signalements: {
@@ -497,7 +507,12 @@ describe("la fiche d'un compte", () => {
     // Les comptes viennent de la fiche ; chaque signalement et son examen, de `bo_signalements_cible`.
     expect(signale).toContain(`data-signalements="utilisateur:${FICHE.compte.id}:0"`);
     expect(signale).toContain("Signalements reçus");
-    const echec = renderToStaticMarkup(<FicheCompte f={FICHE} signalements={null} peutReveler peutOuvrirFiche />);
+    const echec = renderToStaticMarkup(<FicheCompte support={SANS_SUPPORT} f={FICHE} signalements={null} peutReveler peutOuvrirFiche />);
     expect(echec).toContain(`data-signalements="utilisateur:${FICHE.compte.id}:echec"`);
+    // Le fil avec le support se lit à part, lui aussi — et son échec se dit.
+    expect(signale).toContain(`data-support="${FICHE.compte.id}:0"`);
+    expect(signale).toContain("Support");
+    expect(renderToStaticMarkup(<FicheCompte f={FICHE} signalements={null} support={null} peutReveler peutOuvrirFiche />))
+      .toContain(`data-support="${FICHE.compte.id}:echec"`);
   });
 });

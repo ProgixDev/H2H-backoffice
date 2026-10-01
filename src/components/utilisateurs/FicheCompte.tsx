@@ -26,6 +26,8 @@ import {
   type FicheCompte as Fiche,
 } from "@/lib/utilisateurs/types";
 import { SignalementsLus } from "@/components/signalements/BlocSignalements";
+import { SupportLu } from "@/components/support/FilSupport";
+import type { FilSupportLu } from "@/lib/support/types";
 import type { SignalementsCible } from "@/lib/signalements/types";
 import { noteDite } from "./ListeComptes";
 import { SanctionsCompte } from "./SanctionsCompte";
@@ -89,10 +91,14 @@ function Avis({ avis, sens }: { avis: AvisCompte[]; sens: "recus" | "donnes" }) 
  * 🔴 SES SIGNALEMENTS se lisent à part (`bo_signalements_cible`) : chacun, son
  * examen, son dossier « À traiter » ; qui a signalé, seulement pour qui peut
  * examiner. Leur lecture échouée se dit, et ne cache pas la fiche.
+ *
+ * 🔴 SON FIL AVEC LE SUPPORT aussi (`bo_support_lire`) : l'équipe y écrit au nom de
+ * HandtoHand ; l'équipier qui écrit n'est lu que d'ici et du journal.
  */
 export function FicheCompte({
   f,
   signalements,
+  support,
   peutReveler,
   peutOuvrirFiche,
   peutOuvrirAnnonce = false,
@@ -100,6 +106,8 @@ export function FicheCompte({
   f: Fiche;
   /** Les signalements reçus et leur examen (`bo_signalements_cible`) — nuls : leur lecture a échoué. */
   signalements: SignalementsCible | null;
+  /** Son fil avec le support (`bo_support_lire`) — nul : sa lecture a échoué. */
+  support: FilSupportLu | null;
   /** `donnees.reveler` — et la base refuse de toute façon son propre compte. */
   peutReveler: boolean;
   /** `activite.lire` : une référence d'achat ouvre la fiche de l'opération. */
@@ -420,6 +428,11 @@ export function FicheCompte({
           ]}
         />
         <SignalementsLus genre="utilisateur" cible={c.id} s={signalements} />
+      </Bloc>
+
+      {/* ── Le fil avec le support ── */}
+      <Bloc titre="Support">
+        <SupportLu profil={c.id} f={support} />
       </Bloc>
     </div>
   );

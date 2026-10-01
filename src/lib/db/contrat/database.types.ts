@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@9ef969c : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@de4fd9b : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261001001000_un_signalement_se_conteste.sql
+// Base : 20261001002000_le_support_ecrit.sql
 
 export type Json =
   | string
@@ -8951,6 +8951,11 @@ export type Database = {
           titre: string
         }[]
       }
+      bo_support_ecrire: {
+        Args: { p_cle: string; p_profil: string; p_texte: string }
+        Returns: Json
+      }
+      bo_support_lire: { Args: { p_profil: string }; Returns: Json }
       bo_tableau_de_bord: {
         Args: { p_au?: string; p_du?: string; p_inclure_test?: boolean }
         Returns: Json
@@ -10220,6 +10225,27 @@ export type Database = {
       }
       ouvrir_fil_colivraison: {
         Args: { p_avec: string; p_mission_id: string }
+        Returns: {
+          created_at: string
+          dm_key: string | null
+          id: string
+          kind: Database["public"]["Enums"]["conversation_kind"]
+          order_id: string | null
+          product_id: string | null
+          shipment_id: string | null
+          shipping_method: Database["public"]["Enums"]["shipping_method"] | null
+          tracking_number: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "conversations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ouvrir_fil_support: {
+        Args: never
         Returns: {
           created_at: string
           dm_key: string | null

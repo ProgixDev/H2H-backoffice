@@ -202,6 +202,12 @@ export function FicheDossier({
                     Vérifier l’annonce sur sa fiche
                   </Link>
                 )}
+                {/* Un message au support se lit et se répond sur la fiche du compte. */}
+                {d.source === "support" && d.objet_id && (
+                  <Link href={cheminCompte(d.objet_id)} className="text-legende font-semibold text-h2h-primary">
+                    Répondre sur la fiche du compte
+                  </Link>
+                )}
                 {/* Des signalements s'examinent sur la fiche de ce qu'ils visent : l'annonce, la recherche, le compte. */}
                 {d.source === "signalement" && d.objet_id && (
                   <Link

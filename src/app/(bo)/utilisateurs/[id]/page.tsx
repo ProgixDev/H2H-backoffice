@@ -9,6 +9,8 @@ import { peut } from "@/lib/equipe/types";
 import { rubriqueObligatoire } from "@/lib/navigation";
 import { lireSignalementsCible } from "@/lib/signalements/lectures";
 import type { SignalementsCible } from "@/lib/signalements/types";
+import { lireFilSupport } from "@/lib/support/lectures";
+import type { FilSupportLu } from "@/lib/support/types";
 import { lireCompte } from "@/lib/utilisateurs/lectures";
 import type { FicheCompte as Fiche } from "@/lib/utilisateurs/types";
 
@@ -33,13 +35,20 @@ export default async function PageCompte({ params }: { params: Promise<{ id: str
   // On LIT dans le try, on construit l'écran après (règle `react-hooks/error-boundaries`).
   let fiche: Fiche | null = null;
   let signalements: SignalementsCible | null = null;
+  let support: FilSupportLu | null = null;
   let introuvable = !IDENTIFIANT.test(id);
   if (!introuvable) {
-    // Les signalements se lisent à part : leur échec ne cache pas la fiche, la fiche le dit à leur place.
-    const [lu, signale] = await Promise.allSettled([lireCompte(id), lireSignalementsCible("utilisateur", id)]);
+    // Les signalements et le fil avec le support se lisent à part : leur échec ne cache pas la fiche, la
+    // fiche le dit à leur place.
+    const [lu, signale, fil] = await Promise.allSettled([
+      lireCompte(id),
+      lireSignalementsCible("utilisateur", id),
+      lireFilSupport(id),
+    ]);
     if (lu.status === "fulfilled") fiche = lu.value;
     else introuvable = lu.reason instanceof RefusBO && lu.reason.indice === "BO_INTROUVABLE";
     if (signale.status === "fulfilled") signalements = signale.value;
+    if (fil.status === "fulfilled") support = fil.value;
   }
 
   return (
@@ -55,6 +64,7 @@ export default async function PageCompte({ params }: { params: Promise<{ id: str
         <FicheCompte
           f={fiche}
           signalements={signalements}
+          support={support}
           peutReveler={peut(moi, "donnees.reveler")}
           peutOuvrirFiche={peut(moi, "activite.lire")}
           peutOuvrirAnnonce={peut(moi, "annonces.lire")}
