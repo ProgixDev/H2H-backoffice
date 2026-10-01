@@ -3,6 +3,8 @@
 import { geste } from "@/lib/db/geste";
 import {
   cheminCompte,
+  type NomReserveDecide,
+  type ProfessionnelDecide,
   type DecisionRecours,
   type PorteeRestriction,
   type RecoursExamine,
@@ -106,6 +108,43 @@ export async function examinerRecours(p: {
     p_recours: p.recours,
     p_decision: p.decision,
     p_reponse: p.reponse,
+    p_motif: p.motif,
+    p_cle: p.cle,
+  });
+}
+
+/**
+ * Reconnaître un vendeur professionnel, ou ne plus le présenter comme tel : la
+ * mention publique et la marque vérifiée bougent ensemble, identité reconfirmée,
+ * la personne prévenue. Une décision qui changerait les règles d'une vente en
+ * cours (l'attestation de vente) est refusée : elle attend la fin de la vente.
+ */
+export async function deciderProfessionnel(p: { profil: string; professionnel: boolean; motif: string; cle: string }) {
+  return geste<ProfessionnelDecide>([CHEMIN, cheminCompte(p.profil)], "bo_utilisateur_professionnel", {
+    p_profil: p.profil,
+    p_professionnel: p.professionnel,
+    p_motif: p.motif,
+    p_cle: p.cle,
+  });
+}
+
+/**
+ * Autoriser un terme réservé — avec le pseudonyme convenu avec la personne,
+ * posé dans le même geste —, ou retirer l'autorisation — avec un pseudonyme
+ * ordinaire quand l'actuel emploie un terme réservé. Les insultes et les
+ * doublons restent refusés ; la personne est prévenue.
+ */
+export async function deciderNomReserve(p: {
+  profil: string;
+  autoriser: boolean;
+  pseudo: string | null;
+  motif: string;
+  cle: string;
+}) {
+  return geste<NomReserveDecide>([CHEMIN, cheminCompte(p.profil)], "bo_utilisateur_nom_reserve", {
+    p_profil: p.profil,
+    p_autoriser: p.autoriser,
+    p_pseudo: p.pseudo,
     p_motif: p.motif,
     p_cle: p.cle,
   });

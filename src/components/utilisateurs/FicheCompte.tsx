@@ -31,6 +31,7 @@ import { SupportLu } from "@/components/support/FilSupport";
 import type { FilSupportLu } from "@/lib/support/types";
 import type { SignalementsCible } from "@/lib/signalements/types";
 import { noteDite } from "./ListeComptes";
+import { GestesVerification } from "./GestesVerification";
 import { SanctionsCompte } from "./SanctionsCompte";
 
 const DOCUMENT: Record<string, string> = {
@@ -249,11 +250,16 @@ export function FicheCompte({
               ["Vendeur professionnel vérifié", ouiNon(v.professionnel_verifie)],
               [
                 "Documents du cotransporteur",
-                v.documents_cotransporteur === null ? "Sans objet" : v.documents_cotransporteur ? "Vérifiés" : "Non vérifiés",
+                v.documents_cotransporteur === null
+                  ? "Sans objet"
+                  : v.documents_cotransporteur
+                    ? "Vérifiés — rôle de cotransporteur actif"
+                    : "Non vérifiés — rôle de cotransporteur pas actif",
               ],
-              ["Pseudonyme autorisé à l’affichage", ouiNon(v.pseudo_autorise)],
+              ["Terme réservé autorisé dans le pseudonyme", ouiNon(v.pseudo_autorise)],
             ]}
           />
+          <GestesVerification profil={c.id} v={v} />
           {v.demandes.length > 0 && (
             <Tableau entetes={["Vérification demandée", "État", "Mode", "Échecs", "Issue"]} largeur={560}>
               {v.demandes.map((d, i) => (

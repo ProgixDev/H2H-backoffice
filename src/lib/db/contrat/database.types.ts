@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@2288504 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@6c179ce : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261001003000_une_condition_s_accepte.sql
+// Base : 20261001004000_un_compte_se_verifie.sql
 
 export type Json =
   | string
@@ -9062,6 +9062,25 @@ export type Database = {
         Returns: Json
       }
       bo_utilisateur_lire: { Args: { p_profil: string }; Returns: Json }
+      bo_utilisateur_nom_reserve: {
+        Args: {
+          p_autoriser: boolean
+          p_cle: string
+          p_motif: string
+          p_profil: string
+          p_pseudo: string
+        }
+        Returns: Json
+      }
+      bo_utilisateur_professionnel: {
+        Args: {
+          p_cle: string
+          p_motif: string
+          p_professionnel: boolean
+          p_profil: string
+        }
+        Returns: Json
+      }
       bo_utilisateur_restreindre: {
         Args: {
           p_cle: string

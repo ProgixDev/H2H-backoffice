@@ -165,10 +165,22 @@ export type FicheCompte = {
       selfie: boolean;
       mode_test: boolean;
     }[];
+    /** La mention publique « Professionnel » et la marque vérifiée, posées ensemble par l'équipe. */
     professionnel_verifie: boolean;
+    /** Le compte peut employer un terme réservé à la plateforme (« officiel », « support »…). */
     pseudo_autorise: boolean;
-    /** Nul si la personne n'a pas de profil de cotransporteur. */
+    /**
+     * Ce que H2H Logistic vérifie : un rôle de cotransporteur actif — validé sur ses
+     * pièces, ni suspendu, ni refusé. Nul : la personne n'a pas ce rôle.
+     */
     documents_cotransporteur: boolean | null;
+    /** Ce que l'équipier peut décider des vérifications, ou ce qui l'en empêche. */
+    possibles: {
+      verifier: boolean;
+      raison: string | null;
+      /** Le pseudonyme actuel emploie un terme réservé : retirer l'autorisation en demande un autre. */
+      pseudo_reserve: boolean;
+    };
   };
   roles: (RoleCompte & { demande_le: string; active_le: string | null; decide_le: string | null; motif: string | null })[];
   point_relais: { nom: string; ville: string | null; statut: string; verifie_le: string | null; en_pause: boolean } | null;
@@ -402,6 +414,20 @@ export const LIBELLE_CONNEXION: Record<string, string> = {
   facebook: "Facebook",
   phone: "Téléphone",
 };
+
+/** Ce que rend une décision sur la mention de vendeur professionnel. */
+export type ProfessionnelDecide = { profil: string; professionnel: boolean };
+
+/** Ce que rend une décision sur le terme réservé : le pseudonyme qui en résulte. */
+export type NomReserveDecide = { profil: string; autorise: boolean; pseudo: string };
+
+/** Les bornes que la base impose : le motif des vérifications, et un pseudonyme. */
+export const MOTIF_VERIFICATION_MIN = 5;
+export const MOTIF_VERIFICATION_MAX = 500;
+export const PSEUDO_MIN = 3;
+export const PSEUDO_MAX = 20;
+/** Lettres sans accent, chiffres, point ou tiret bas — la règle de `validate_username`. */
+export const PSEUDO_FORME = /^[a-zA-Z0-9_.]+$/;
 
 /** Un texte accepté par le compte : quelle version, quand, depuis quelle application. */
 export type AcceptationTexte = {
