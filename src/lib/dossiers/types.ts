@@ -90,7 +90,7 @@ export const CLOTURE_AUTOMATIQUE: Record<Exclude<Dossier["source"], "manuel" | "
   rapprochement:
     "Ce dossier se clôt tout seul quand l’écart disparaît d’un rapprochement suivant, ou quand la Finance l’explique (Paiements et comptabilité › Rapprochement).",
   recours:
-    "Ce dossier se clôt tout seul quand le recours est examiné : sur la fiche du compte (Utilisateurs) pour une sanction, sur celle de l’annonce (Annonces) pour une décision de modération.",
+    "Ce dossier se clôt tout seul quand le recours est examiné : sur la fiche du compte (Utilisateurs) pour une sanction, sur celle de l’annonce (Annonces) pour une décision de modération, sur celle de ce qui a été signalé pour l’examen d’un signalement.",
   verification:
     "Ce dossier se clôt tout seul quand l’équipe autorise ou refuse la publication, sur la fiche de l’annonce (Annonces).",
   signalement:

@@ -80,7 +80,7 @@ const LIGNE: CompteListe = {
 };
 
 /** Aucun signalement : ce que `bo_signalements_cible` rend d'une cible jamais signalée. */
-const SANS_SIGNALEMENT: SignalementsCible = { signalements: [], a_examiner: 0, dossier: null, possibles: { examiner: true, raison: null } };
+const SANS_SIGNALEMENT: SignalementsCible = { signalements: [], a_examiner: 0, recours_a_examiner: 0, dossier: null, possibles: { examiner: true, raison: null } };
 const FICHE: Fiche = {
   compte: {
     id: ID,

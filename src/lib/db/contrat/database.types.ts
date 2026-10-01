@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@db5f34f : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@9ef969c : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20260930009000_un_signalement_s_examine.sql
+// Base : 20261001001000_un_signalement_se_conteste.sql
 
 export type Json =
   | string
@@ -8872,6 +8872,16 @@ export type Database = {
         Args: { p_motif: string; p_rang: number; p_recours: string }
         Returns: Json
       }
+      bo_recours_signalement_examiner: {
+        Args: {
+          p_cle: string
+          p_decision: string
+          p_motif: string
+          p_recours: string
+          p_reponse: string
+        }
+        Returns: Json
+      }
       bo_regles_delai: {
         Args: never
         Returns: unknown[]
@@ -10386,6 +10396,15 @@ export type Database = {
       }
       recours_moderation_deposer: {
         Args: { p_moderation: string; p_pieces?: string[]; p_texte: string }
+        Returns: Json
+      }
+      recours_signalement_deposer: {
+        Args: {
+          p_genre: string
+          p_pieces?: string[]
+          p_signalement: string
+          p_texte: string
+        }
         Returns: Json
       }
       refuser_mission: {

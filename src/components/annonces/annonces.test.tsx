@@ -48,7 +48,7 @@ const { LignesIndicateur } = await import("@/components/tableau/LignesIndicateur
 
 const ID = "ff000000-0000-4000-a000-00000000aa01";
 /** Aucun signalement : ce que `bo_signalements_cible` rend d'une cible jamais signalée. */
-const SANS_SIGNALEMENT: SignalementsCible = { signalements: [], a_examiner: 0, dossier: null, possibles: { examiner: true, raison: null } };
+const SANS_SIGNALEMENT: SignalementsCible = { signalements: [], a_examiner: 0, recours_a_examiner: 0, dossier: null, possibles: { examiner: true, raison: null } };
 const VENDEUSE = "ff000000-0000-4000-a000-000000000001";
 const LIGNE: AnnonceListe = {
   id: ID, nature: "annonce", titre: "Lampe de bureau vintage", image: "https://img.h2h/lampe-t.jpg",
@@ -275,7 +275,7 @@ describe("la fiche d'une annonce", () => {
         signalements={{ ...SANS_SIGNALEMENT, a_examiner: 1, signalements: [{
           id: "51000000-0000-4000-a000-000000000001", raison: "off_platform", raison_libelle: "Coordonnées ou paiement hors plateforme",
           explication: "Le vendeur propose un virement direct.", preuves: [], priorite: "elevee", bonne_foi: true,
-          le: "2026-09-30T08:00:00Z", signale_par: null, examen: null }] }}
+          le: "2026-09-30T08:00:00Z", signale_par: null, examen: null, recours: null }] }}
       />,
     );
     expect(f).toContain("Le vendeur");

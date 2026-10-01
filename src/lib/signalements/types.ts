@@ -1,6 +1,9 @@
 // LES SIGNALEMENTS D'UNE ANNONCE, D'UNE RECHERCHE OU D'UN COMPTE, ET LEUR EXAMEN
 // (hand-to-hand `20260930009000`) : la base dit tout — leurs mots, leur priorité,
 // leur examen, ce que l'équipier qui lit peut en faire. L'écran le montre.
+// Un examen « non fondé » se conteste par la personne qui a signalé
+// (`20261001001000`) : son recours se lit avec son signalement.
+import type { DecisionRecours, RecoursLu } from "@/lib/utilisateurs/types";
 
 /** Ce qu'un signalement vise. */
 export type GenreSignale = "annonce" | "recherche" | "utilisateur";
@@ -30,13 +33,22 @@ export type SignalementLu = {
     motif: string;
     par: string | null;
     le: string;
+    /** Revu sur le recours d'une personne qui avait signalé (20261001001000). */
+    revu: boolean;
   } | null;
+  /**
+   * Le recours de la personne qui a fait ce signalement contre son examen « non fondé »
+   * (20261001001000) — le même que contre une sanction ou une décision de modération.
+   */
+  recours: RecoursLu | null;
 };
 
 /** Les signalements d'une cible, son dossier « À traiter », et ce que l'équipier peut faire. */
 export type SignalementsCible = {
   signalements: SignalementLu[];
   a_examiner: number;
+  /** Les recours contre leurs examens qui attendent une réponse. */
+  recours_a_examiner: number;
   dossier: { id: string; reference: string; statut: "ouvert" | "clos" } | null;
   possibles: { examiner: boolean; raison: string | null };
 };
@@ -68,4 +80,16 @@ export const CIBLE_DITE: Record<GenreSignale, string> = {
 export const PHRASE_ISSUE: Record<IssueSignalement, string> = {
   fonde: "L’équipe HandtoHand a constaté un manquement à ses règles et a pris les mesures nécessaires.",
   non_fonde: "L’équipe HandtoHand n’a pas constaté de manquement à ses règles.",
+};
+
+/** Un examen « non fondé » se conteste : l'avis le dit, après la réponse de l'équipe (20261001001000). */
+export const PHRASE_CONTESTER = "Vous pouvez contester cette décision pendant six mois, depuis l’état de votre compte.";
+
+/** Ce que rend l'examen d'un recours contre l'examen de signalements. */
+export type RecoursSignalementExamine = {
+  recours: string;
+  examen: string;
+  genre: GenreSignale;
+  cible: string;
+  decision: DecisionRecours;
 };

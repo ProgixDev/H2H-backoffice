@@ -4,13 +4,15 @@
 // fois, une même cible) ; on vérifie ici que le bloc dit ce qui attend et ce qui
 // a été examiné — la réponse envoyée et le motif interne, distingués —, qui a
 // signalé seulement quand la base le dit, le geste ou la raison de ne pas
-// pouvoir, un échec de lecture qui ne ressemble pas à « aucun signalement » ; et
-// que le registre des litiges dit où en est chaque signalement.
+// pouvoir, un échec de lecture qui ne ressemble pas à « aucun signalement », le
+// recours d'une personne contre un examen « non fondé » ; et que le registre des
+// litiges dit où en est chaque signalement.
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { Signalement } from "@/lib/litiges/types";
 import type { SignalementLu, SignalementsCible } from "@/lib/signalements/types";
+import type { RecoursLu } from "@/lib/utilisateurs/types";
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...reste }: { href: string; children: ReactNode }) => (
@@ -20,7 +22,11 @@ vi.mock("next/link", () => ({
   ),
 }));
 vi.mock("@/lib/db/useGeste", () => ({ useGeste: () => ({ lancer: vi.fn(), enCours: false }) }));
-vi.mock("@/lib/signalements/actions", () => ({ examinerSignalements: vi.fn() }));
+vi.mock("@/lib/signalements/actions", () => ({ examinerSignalements: vi.fn(), examinerRecoursSignalement: vi.fn() }));
+// Une pièce s'ouvre avec la session de l'équipier : ici, on ne garde que ce qu'elle reçoit.
+vi.mock("@/components/utilisateurs/GestesRecours", () => ({
+  PieceRecours: ({ recours, rang }: { recours: string; rang: number }) => <button data-piece={`${recours}:${rang}`} />,
+}));
 // Requalifier se teste avec les litiges : ici, la liste dit seulement à qui le bouton s'adresse.
 vi.mock("@/components/litiges/GestesDossier", () => ({
   BoutonRequalifier: ({ genre, objet }: { genre: string; objet: string }) => <button data-requalifier={`${genre}:${objet}`} />,
@@ -47,6 +53,7 @@ const OUVERT: SignalementLu = {
   le: "2026-09-30T08:00:00Z",
   signale_par: "@coursier_cl",
   examen: null,
+  recours: null,
 };
 const EXAMINE: SignalementLu = {
   ...OUVERT,
@@ -67,14 +74,34 @@ const EXAMINE: SignalementLu = {
     motif: "Photos vérifiées une à une",
     par: "mod1@handtohand.pro",
     le: "2026-09-21T09:00:00Z",
+    revu: false,
   },
 };
 const LU: SignalementsCible = {
   signalements: [OUVERT, EXAMINE],
   a_examiner: 1,
+  recours_a_examiner: 0,
   dossier: { id: DOSSIER, reference: "DOS-000042", statut: "ouvert" },
   possibles: { examiner: true, raison: null },
 };
+/** Le recours de la personne qui a fait le signalement EXAMINE contre son examen « non fondé ». */
+const RECOURS: RecoursLu = {
+  id: "c0000000-0000-4000-a000-000000000001",
+  reference: "REC-000003",
+  statut: "a_examiner",
+  depose_le: "2026-09-25T10:00:00Z",
+  texte: "Les photos sont celles d’une autre montre : je joins l’annonce d’origine.",
+  pieces: 1,
+  examine_le: null,
+  examine_par: null,
+  reponse: null,
+  motif: null,
+  dossier: "DOS-000051",
+  examinable: true,
+  raison: null,
+  pieces_ouvrables: true,
+};
+const CONTESTE: SignalementsCible = { ...LU, recours_a_examiner: 1, signalements: [OUVERT, { ...EXAMINE, recours: RECOURS }] };
 const rendre = (s: SignalementsCible) => renderToStaticMarkup(<BlocSignalements genre="annonce" cible={CIBLE} s={s} />);
 
 describe("les signalements d'une cible", () => {
@@ -120,9 +147,41 @@ describe("les signalements d'une cible", () => {
     const tout = rendre({ ...LU, signalements: [EXAMINE], a_examiner: 0, dossier: { ...LU.dossier!, statut: "clos" } });
     expect(tout).toContain("Tous les signalements sont examinés.");
     expect(tout).not.toContain("<button");
-    expect(rendre({ signalements: [], a_examiner: 0, dossier: null, possibles: { examiner: true, raison: null } })).toContain(
+    expect(rendre({ signalements: [], a_examiner: 0, recours_a_examiner: 0, dossier: null, possibles: { examiner: true, raison: null } })).toContain(
       "Aucun signalement.",
     );
+  });
+
+  it("un examen « non fondé » contesté : le recours sous son signalement, le geste — ou la raison", () => {
+    const b = rendre(CONTESTE);
+    expect(b).toContain("1 recours à examiner contre un examen");
+    expect(b).toContain(`data-recours="${RECOURS.id}"`);
+    expect(b).toContain("REC-000003");
+    expect(b).toMatch(/Contre : l’examen SIG-000007 du [^,]+, non fondé/);
+    expect(b).toContain("« Les photos sont celles d’une autre montre : je joins l’annonce d’origine. »");
+    expect(b).toContain(`data-piece="${RECOURS.id}:1"`);
+    expect(b).toContain("Examiner le recours");
+    // Celui qui a examiné, une partie, un rôle sans la permission : la raison, pas le geste.
+    const raison = "Vous avez examiné ces signalements : un autre membre de l’équipe examine le recours.";
+    const tenu = rendre({ ...CONTESTE, signalements: [{ ...EXAMINE, recours: { ...RECOURS, examinable: false, raison } }] });
+    expect(tenu).toContain(raison);
+    expect(tenu).not.toContain("Examiner le recours");
+    // Accepté : l'examen est revu, et la réponse et le motif se lisent, distingués.
+    const revu = rendre({
+      ...LU,
+      signalements: [{
+        ...EXAMINE,
+        examen: { ...EXAMINE.examen!, revu: true },
+        recours: { ...RECOURS, statut: "accepte", examinable: false, examine_le: "2026-09-26T10:00:00Z",
+          examine_par: "mod2@handtohand.pro", reponse: "L’annonce reprend bien les photos d’un autre vendeur.",
+          motif: "Annonce d’origine retrouvée" },
+      }],
+    });
+    expect(revu).toContain("Revu sur recours");
+    expect(revu).toContain("« L’annonce reprend bien les photos d’un autre vendeur. »");
+    expect(revu).toContain("Annonce d’origine retrouvée");
+    expect(revu).not.toContain("recours à examiner");
+    expect(rendre(LU)).not.toContain("Revu sur recours");
   });
 
   it("une lecture échouée ne ressemble jamais à « aucun signalement »", () => {

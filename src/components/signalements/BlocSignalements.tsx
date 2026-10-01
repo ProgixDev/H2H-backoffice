@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { cn } from "cn";
+import { CarteRecours } from "@/components/bo/CarteRecours";
+import { DialogueExamenRecours, type ExamenSaisi as ExamenRecoursSaisi } from "@/components/bo/DialogueExamenRecours";
 import { LectureEchouee } from "@/components/bo/LectureEchouee";
 import { StatutPastille } from "@/components/bo/StatutPastille";
 import { Button } from "@/components/ui/button";
@@ -18,10 +20,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { dateHeure } from "@/lib/dates";
 import { useGeste } from "@/lib/db/useGeste";
-import { examinerSignalements } from "@/lib/signalements/actions";
+import { examinerRecoursSignalement, examinerSignalements } from "@/lib/signalements/actions";
 import {
   CIBLE_DITE,
   LIBELLE_ISSUE_SIGNALEMENT,
+  PHRASE_CONTESTER,
   PHRASE_ISSUE,
   type GenreSignale,
   type IssueSignalement,
@@ -37,8 +40,60 @@ const MOTIF_MIN = 5;
 
 const GENRE_PREUVE: Record<string, string> = { link: "Lien", message: "Message recopié", detail: "Précision" };
 
-/** Un signalement : son motif, sa priorité, ses mots, ses preuves écrites — et son examen. */
-function CarteSignalement({ s }: { s: SignalementLu }) {
+/**
+ * Examiner le recours d'une personne contre l'examen « non fondé » de son
+ * signalement (20261001001000) : la même fenêtre que les autres recours.
+ */
+function ExaminerRecoursSignalement({
+  recours,
+  genre,
+  cible,
+  reference,
+}: {
+  recours: string;
+  genre: GenreSignale;
+  cible: string;
+  reference: string;
+}) {
+  const [ouvert, setOuvert] = useState(false);
+  const examiner = useGeste(examinerRecoursSignalement);
+
+  async function confirmer(s: ExamenRecoursSaisi) {
+    const r = await examiner.lancer(
+      { recours, genre, cible, ...s },
+      s.decision === "accepte"
+        ? "Recours accepté : la personne est prévenue. Prenez maintenant la mesure sur cette fiche."
+        : "Recours rejeté : la personne est prévenue.",
+    );
+    if (r?.ok) setOuvert(false);
+  }
+
+  return (
+    <>
+      <Button size="sm" onClick={() => setOuvert(true)}>
+        Examiner le recours
+      </Button>
+      {/* Remontée à chaque ouverture : une saisie abandonnée ne revient pas. */}
+      <DialogueExamenRecours
+        key={ouvert ? "ouvert" : "ferme"}
+        ouvert={ouvert}
+        surFermeture={() => setOuvert(false)}
+        reference={reference}
+        description="La personne qui a signalé reçoit votre réponse. Le dossier « À traiter » se clôt."
+        aides={{
+          accepte:
+            "L’examen est revu : la personne apprend qu’un manquement est constaté et que l’équipe prend les mesures nécessaires. La mesure — masquer, retirer, sanctionner — se prend ensuite sur cette fiche.",
+          rejete: "L’examen est maintenu. La personne en connaît la raison par votre réponse.",
+        }}
+        enCours={examiner.enCours}
+        surConfirmation={confirmer}
+      />
+    </>
+  );
+}
+
+/** Un signalement : son motif, sa priorité, ses mots, ses preuves écrites — son examen, et le recours contre lui. */
+function CarteSignalement({ s, genre, cible }: { s: SignalementLu; genre: GenreSignale; cible: string }) {
   return (
     <li className="grid gap-1 rounded-lg border p-3">
       <span className="flex flex-wrap items-center gap-2">
@@ -53,6 +108,7 @@ function CarteSignalement({ s }: { s: SignalementLu }) {
         ) : (
           <StatutPastille ton="actif">À examiner</StatutPastille>
         )}
+        {s.examen?.revu && <StatutPastille ton="attention">Revu sur recours</StatutPastille>}
       </span>
       <span className="text-legende text-muted-foreground">
         Signalé le {dateHeure(s.le)}
@@ -81,6 +137,22 @@ function CarteSignalement({ s }: { s: SignalementLu }) {
           </span>
           <span className="text-muted-foreground">Motif interne : {s.examen.motif}</span>
         </div>
+      )}
+      {s.examen && s.recours && (
+        <ul className="mt-1 grid gap-2">
+          <CarteRecours
+            r={s.recours}
+            contre={`l’examen ${s.examen.reference} du ${dateHeure(s.examen.le)}, non fondé`}
+            geste={
+              <ExaminerRecoursSignalement
+                recours={s.recours.id}
+                genre={genre}
+                cible={cible}
+                reference={s.recours.reference}
+              />
+            }
+          />
+        </ul>
       )}
     </li>
   );
@@ -129,7 +201,11 @@ function DialogueExamenSignalements({
       libelle: "Fondés",
       aide: "Un manquement est constaté. La mesure — masquer, retirer, sanctionner — se prend à part, sur la fiche.",
     },
-    { valeur: "non_fonde", libelle: "Non fondés", aide: `Rien ne justifie d’agir sur ${CIBLE_DITE[genre]}.` },
+    {
+      valeur: "non_fonde",
+      libelle: "Non fondés",
+      aide: `Rien ne justifie d’agir sur ${CIBLE_DITE[genre]}. Chaque personne qui a signalé peut contester cet examen pendant six mois.`,
+    },
   ];
 
   return (
@@ -182,7 +258,12 @@ function DialogueExamenSignalements({
           </div>
           <div className="grid gap-2">
             <Label htmlFor="reponse-signalements">Réponse aux personnes qui ont signalé</Label>
-            {issue && <p className="text-legende text-muted-foreground">Elle suit la phrase : « {PHRASE_ISSUE[issue]} »</p>}
+            {issue && (
+              <p className="text-legende text-muted-foreground">
+                Elle suit la phrase : « {PHRASE_ISSUE[issue]} »
+                {issue === "non_fonde" && <> — et l’avis finit par : « {PHRASE_CONTESTER} »</>}
+              </p>
+            )}
             <Textarea
               id="reponse-signalements"
               value={reponse}
@@ -226,7 +307,9 @@ function DialogueExamenSignalements({
 /**
  * Les signalements d'une annonce, d'une recherche ou d'un compte (§8, §9) :
  * ceux qui attendent d'abord, leur examen, le dossier « À traiter » — et le
- * geste d'examen, ou la raison de ne pas pouvoir.
+ * geste d'examen, ou la raison de ne pas pouvoir. Sous un signalement jugé non
+ * fondé, le recours de la personne qui l'a fait (art. 20 du règlement sur les
+ * services numériques), examiné ici par un autre regard.
  *
  * ⚠️ L'ÉCRAN MONTRE CE QUE LA BASE PERMET (`possibles`), et la base décide encore.
  */
@@ -255,6 +338,8 @@ export function BlocSignalements({ genre, cible, s }: { genre: GenreSignale; cib
           {s.a_examiner > 0
             ? `${s.a_examiner} signalement${s.a_examiner > 1 ? "s" : ""} à examiner`
             : "Tous les signalements sont examinés."}
+          {s.recours_a_examiner > 0 &&
+            ` · ${s.recours_a_examiner} recours à examiner contre ${s.recours_a_examiner > 1 ? "leurs examens" : "un examen"}`}
           {s.dossier && (
             <>
               {" · "}
@@ -278,7 +363,7 @@ export function BlocSignalements({ genre, cible, s }: { genre: GenreSignale; cib
       </div>
       <ul className="grid gap-2">
         {s.signalements.map((x) => (
-          <CarteSignalement key={x.id} s={x} />
+          <CarteSignalement key={x.id} s={x} genre={genre} cible={cible} />
         ))}
       </ul>
       {/* Remontée à chaque ouverture : une saisie abandonnée ne revient pas, et le choix reprend tout ce qui attend. */}
