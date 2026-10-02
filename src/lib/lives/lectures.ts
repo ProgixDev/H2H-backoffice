@@ -1,7 +1,7 @@
 import "server-only";
 import { rpc } from "@/lib/db/rpc";
 import { supabaseServeur } from "@/lib/supabase/serveur";
-import type { CompteursLives, FiltreLive, FiltresLives, LiveLigne, PlaceLive } from "./types";
+import type { CompteursLives, FicheLive, FiltreLive, FiltresLives, LiveLigne, PlaceLive } from "./types";
 
 /**
  * Les lives (§14) : la base place chaque live dans sa zone, lit son moment sur
@@ -30,4 +30,9 @@ export async function listerPlaces(f: FiltresLives): Promise<PlaceLive[]> {
     p_recherche: f.q,
     p_inclure_test: f.test,
   });
+}
+
+/** La fiche d'un live et ses articles, avec pour chacun si le retrait est possible. */
+export async function lireLive(id: string): Promise<FicheLive> {
+  return rpc<FicheLive>(await supabaseServeur(), "bo_live_lire", { p_live: id });
 }

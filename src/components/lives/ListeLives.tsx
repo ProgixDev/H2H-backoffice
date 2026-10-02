@@ -10,7 +10,7 @@ import { StatutPastille, type Ton } from "@/components/bo/StatutPastille";
 import { AnimationH2H } from "@/components/marque/AnimationH2H";
 import { ActionsTicket } from "@/components/operations/ActionsTicket";
 import { dateHeure, jourMoyen } from "@/lib/dates";
-import { LIBELLE_ACTEUR_LIVE, adresseLives, type LiveLigne, type ZoneLive } from "@/lib/lives/types";
+import { LIBELLE_ACTEUR_LIVE, adresseLives, cheminLive, type LiveLigne, type ZoneLive } from "@/lib/lives/types";
 import { LIBELLE_DIFFUSION, LIBELLE_FORMAT_LIVE } from "@/lib/operations/libelles";
 import { cheminFiche } from "@/lib/operations/types";
 
@@ -102,7 +102,10 @@ export function DetailLive({ l, peutTraiter }: { l: LiveLigne; peutTraiter: bool
         </dl>
       </div>
       <div className="grid content-start gap-3">
-        <Link href={cheminFiche(l.ref)} className="text-corps font-medium text-h2h-primary hover:underline">
+        <Link href={cheminLive(l.id)} className="text-corps font-medium text-h2h-primary hover:underline">
+          Gérer le live et ses articles
+        </Link>
+        <Link href={cheminFiche(l.ref)} className="text-corps text-h2h-primary hover:underline">
           Ouvrir la fiche complète
         </Link>
         <Link href={cheminFiche(l.ref, "bien-et-accord")} className="text-corps text-h2h-primary hover:underline">

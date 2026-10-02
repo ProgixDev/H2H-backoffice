@@ -145,3 +145,34 @@ export const LIBELLE_ACTEUR_LIVE: Record<string, string> = {
   vendeur: "L’hôte",
   acheteurs: "Les spectateurs",
 };
+
+/** Un article d'un live, pour l'équipe : son issue, sa phase s'il est en cours, et si le retrait est possible. */
+export type ArticleLive = {
+  id: string;
+  position: number;
+  titre: string | null;
+  prix_depart_cents: number | null;
+  image: string | null;
+  issue: E["live_article_outcome"];
+  mode: E["live_selection_mode"] | null;
+  en_cours: boolean;
+  phase: E["live_article_phase"] | null;
+  offres: number;
+  meilleure_offre_cents: number | null;
+  vendu_a: string | null;
+  acces_ouverts: number;
+  /** La base décide : la permission, jamais son propre live, ni vendu, ni retiré, ni un achat en cours. */
+  retrait: { possible: boolean; raison: string | null };
+};
+
+/**
+ * La fiche d'un live (`bo_live_lire`) : la ligne de la liste, et ses articles dans l'ordre de passage.
+ * ⚠️ `articles` Y EST LA LISTE, PAS LE NOMBRE : la base la pose par-dessus le compte de la ligne
+ * (`to_jsonb(l) || {articles: [...]}`) ; le nombre est sa longueur.
+ */
+export type FicheLive = Omit<LiveLigne, "articles"> & { articles: ArticleLive[] };
+
+/** Ce que rend le retrait d'un article. */
+export type ArticleRetire = { article: string; live: string; issue: "cancelled"; acces_clos: number };
+
+export const cheminLive = (id: string) => `/live-shopping/${id}`;
