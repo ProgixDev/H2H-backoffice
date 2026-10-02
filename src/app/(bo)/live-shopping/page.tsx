@@ -48,9 +48,11 @@ function lireFiltres(p: Params, testPermis: boolean): FiltresLives {
  * - Les réservations et les accès (R14.3) : chaque place sous l'état du cahier
  *   des charges, et son accès — complet ou spectateur seulement.
  *
- * ⚠️ CETTE PAGE LIT. Autoriser ou refuser un live (D24), arrêter une
- * diffusion, retirer un article, désactiver une rediffusion : la suite de la
- * phase 5.
+ * ⚠️ CETTE PAGE LIT. Arrêter une diffusion, retirer un article, examiner un
+ * signalement se font sur la fiche d'un live (`/live-shopping/[id]`).
+ * ⚠️ UN LIVE NE S'AUTORISE PAS AVANT LE DIRECT (D24, décidé par la propriétaire
+ * le 02/10/2026 : non) : pas de geste « autoriser » ni « refuser ».
+ * Désactiver une rediffusion attend que l'application en enregistre.
  */
 export default async function PageLiveShopping({ searchParams }: { searchParams: Promise<Params> }) {
   const moi = await equipierPourRubrique(rubrique);
