@@ -356,13 +356,15 @@ export function BienDunLive({ b, maintenant }: { b: BienLive; maintenant: number
             ["Titre", b.titre],
             ["Format", b.format ? LIBELLE_FORMAT_LIVE[b.format] : null],
             ["Statut", LIBELLE_LIVE[b.statut]],
+            ["Déroulé", b.deroule],
             ["Diffusion", b.diffusion ? LIBELLE_DIFFUSION[b.diffusion] : null],
             ["Programmé le", <Quand key="p" iso={b.programme_le} maintenant={maintenant} />],
             ["Lancé le", <Quand key="d" iso={b.debut} maintenant={maintenant} />],
             ["Terminé le", <Quand key="f" iso={b.fin} maintenant={maintenant} />],
             ["Places", b.places],
             ["dont places VIP acheteur", b.places_vip],
-            ["Spectateurs", b.spectateurs],
+            // L'audience n'est pas mesurée : un « 0 » serait un chiffre inventé.
+            ["Audience", b.spectateurs ?? "Non mesurée"],
             ["Articles prévus", b.articles_prevus],
             ["Rediffusion", b.rediffusion ? "Disponible" : "Aucune"],
           ]}

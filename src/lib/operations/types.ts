@@ -226,7 +226,10 @@ export type BienLive = {
   fin: string | null;
   places: number | null;
   places_vip: number | null;
+  /** Toujours nul : l'application ne compte pas les spectateurs (hand-to-hand 20261002004000). */
   spectateurs: number | null;
+  /** Le moment du déroulé, lu sur l'horloge du live : « Article 3 sur 8 · offres », « Live terminé »… */
+  deroule: string | null;
   articles_prevus: number | null;
   rediffusion: boolean;
   articles: {

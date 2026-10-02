@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@a6df85e : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@43fb14d : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261002003000_les_offres_flash_se_suivent.sql
+// Base : 20261002004000_les_lives_se_suivent.sql
 
 export type Json =
   | string
@@ -8732,6 +8732,38 @@ export type Database = {
           signalements: number
         }[]
       }
+      bo_live_places_lister: {
+        Args: {
+          p_inclure_test?: boolean
+          p_live?: string
+          p_recherche?: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["bo_live_place"][]
+        SetofOptions: {
+          from: "*"
+          to: "bo_live_place"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      bo_lives_compteurs: {
+        Args: { p_inclure_test?: boolean; p_recherche?: string }
+        Returns: Json
+      }
+      bo_lives_lister: {
+        Args: {
+          p_inclure_test?: boolean
+          p_recherche?: string
+          p_zone?: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["bo_live"][]
+        SetofOptions: {
+          from: "*"
+          to: "bo_live"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       bo_moi: { Args: never; Returns: Json }
       bo_notifications_lister: {
         Args: { p_filtre?: string; p_inclure_test?: boolean }
@@ -12076,6 +12108,63 @@ export type Database = {
         piste_courante: string | null
         anomalies: Json | null
         moderation: string | null
+        est_test: boolean | null
+      }
+      bo_live: {
+        id: string | null
+        ref: string | null
+        cree_le: string | null
+        maj_le: string | null
+        titre: string | null
+        image: string | null
+        format: string | null
+        statut: string | null
+        diffusion: string | null
+        vendeur: string | null
+        vendeur_id: string | null
+        ville: string | null
+        programme_le: string | null
+        debut: string | null
+        fin: string | null
+        zone: string | null
+        moment: Json | null
+        moment_libelle: string | null
+        action_attendue: string | null
+        acteur_attendu: string | null
+        echeance: string | null
+        articles: number | null
+        vendus: number | null
+        invendus: number | null
+        retires: number | null
+        en_cours: number | null
+        acces_ouverts: number | null
+        paiements_ouverts: number | null
+        places: Json | null
+        rediffusion: boolean | null
+        anomalies: Json | null
+        est_test: boolean | null
+      }
+      bo_live_place: {
+        id: string | null
+        live_id: string | null
+        live_ref: string | null
+        live_titre: string | null
+        live_format: string | null
+        live_zone: string | null
+        programme_le: string | null
+        pseudo: string | null
+        role: string | null
+        etat: string | null
+        categorie: string | null
+        categorie_libelle: string | null
+        acces: string | null
+        acces_libelle: string | null
+        rang: number | null
+        reserve_le: string | null
+        confirme_le: string | null
+        libere_le: string | null
+        verrou_fin: string | null
+        alerte_le: string | null
         est_test: boolean | null
       }
       bo_operation: {
