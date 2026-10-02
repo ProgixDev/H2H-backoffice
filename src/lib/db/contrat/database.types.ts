@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@1f40c15 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@27e6d7c : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261002008000_un_live_programme_s_annule.sql
+// Base : 20261003001000_un_avis_se_modere.sql
 
 export type Json =
   | string
@@ -6364,6 +6364,7 @@ export type Database = {
           mission_id: string | null
           order_id: string | null
           rating: number
+          retire_le: string | null
           reviewee_id: string
           reviewer_id: string
           role: string
@@ -6375,6 +6376,7 @@ export type Database = {
           mission_id?: string | null
           order_id?: string | null
           rating: number
+          retire_le?: string | null
           reviewee_id: string
           reviewer_id: string
           role: string
@@ -6386,6 +6388,7 @@ export type Database = {
           mission_id?: string | null
           order_id?: string | null
           rating?: number
+          retire_le?: string | null
           reviewee_id?: string
           reviewer_id?: string
           role?: string
@@ -8389,6 +8392,35 @@ export type Database = {
           version: number
           versions: number
         }[]
+      }
+      bo_avis_compteurs: {
+        Args: { p_inclure_test?: boolean; p_recherche?: string }
+        Returns: Json
+      }
+      bo_avis_lire: { Args: { p_avis: string }; Returns: Json }
+      bo_avis_lister: {
+        Args: {
+          p_filtre?: string
+          p_inclure_test?: boolean
+          p_recherche?: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["bo_avis"][]
+        SetofOptions: {
+          from: "*"
+          to: "bo_avis"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      bo_avis_moderer: {
+        Args: {
+          p_avis: string
+          p_cle: string
+          p_decision: string
+          p_message: string
+          p_motif: string
+        }
+        Returns: Json
       }
       bo_candidature_relais_trancher: {
         Args: {
@@ -12173,6 +12205,26 @@ export type Database = {
         | "courtage"
     }
     CompositeTypes: {
+      bo_avis: {
+        id: string | null
+        ref: string | null
+        depose_le: string | null
+        retire_le: string | null
+        statut: string | null
+        note: number | null
+        commentaire: string | null
+        role: string | null
+        auteur: string | null
+        auteur_id: string | null
+        destinataire: string | null
+        destinataire_id: string | null
+        commande_id: string | null
+        commande_ref: string | null
+        mission_id: string | null
+        signalements: number | null
+        signalements_ouverts: number | null
+        est_test: boolean | null
+      }
       bo_dossier: {
         id: string | null
         ref: string | null

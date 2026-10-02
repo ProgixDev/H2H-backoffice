@@ -155,7 +155,7 @@ const FICHE: Fiche = {
   ],
   colivraisons: [],
   avis: {
-    recus: [{ id: "a1", note: 4, commentaire: "Acheteur sérieux", le: "2026-09-29T10:00:00Z", avec: "ven_deuse_cl", role: "buyer" }],
+    recus: [{ id: "a1", note: 4, commentaire: "Acheteur sérieux", le: "2026-09-29T10:00:00Z", avec: "ven_deuse_cl", role: "buyer", retire_le: null }],
     donnes: [],
   },
   signalements: { recus: [], recus_total: 0, faits: 1, annonces: 0, lives: 0, avis: 1, blocages: 0 },

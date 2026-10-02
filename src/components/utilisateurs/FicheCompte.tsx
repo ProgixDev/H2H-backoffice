@@ -69,6 +69,7 @@ function Avis({ avis, sens }: { avis: AvisCompte[]; sens: "recus" | "donnes" }) 
             {sens === "recus" ? `par ${pseudo(a.avec)}, comme ${LIBELLE_ROLE_NOTE[a.role]}` : `à ${pseudo(a.avec)}, ${LIBELLE_ROLE_NOTE[a.role]}`}
             {" · "}
             {jour(a.le)}
+            {a.retire_le && <StatutPastille ton="erreur">Retiré le {jour(a.retire_le)}</StatutPastille>}
           </span>
           {a.commentaire && <span className="text-corps">« {a.commentaire} »</span>}
         </li>

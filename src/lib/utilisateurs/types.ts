@@ -124,6 +124,8 @@ export type AvisCompte = {
   avec: string | null;
   /** En tant que quoi la personne notée l'a été. */
   role: "seller" | "buyer" | "transporter" | "relais";
+  /** Retiré par l'équipe (20261003001000) : il ne se lit plus et ne compte plus dans la moyenne. */
+  retire_le: string | null;
 };
 
 /** La fiche d'un compte (§8) : tout ce qui se lit sans rien révéler. */
