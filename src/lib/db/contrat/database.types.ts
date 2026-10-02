@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@c49d342 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@a6df85e : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261002002000_une_vente_payee_tient.sql
+// Base : 20261002003000_les_offres_flash_se_suivent.sql
 
 export type Json =
   | string
@@ -8548,6 +8548,24 @@ export type Database = {
           service: string
         }[]
       }
+      bo_flash_compteurs: {
+        Args: { p_inclure_test?: boolean; p_recherche?: string }
+        Returns: Json
+      }
+      bo_flash_lister: {
+        Args: {
+          p_etape?: string
+          p_inclure_test?: boolean
+          p_recherche?: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["bo_flash"][]
+        SetofOptions: {
+          from: "*"
+          to: "bo_flash"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       bo_fonds_liberer: {
         Args: { p_cle: string; p_motif: string; p_retenue: string }
         Returns: Json
@@ -12028,6 +12046,37 @@ export type Database = {
         acteur_type: string | null
         acteur: string | null
         interne: boolean | null
+      }
+      bo_flash: {
+        id: string | null
+        ref: string | null
+        produit_id: string | null
+        cree_le: string | null
+        maj_le: string | null
+        statut: string | null
+        mode: string | null
+        etape: string | null
+        etape_libelle: string | null
+        action_attendue: string | null
+        acteur_attendu: string | null
+        echeance: string | null
+        bien_titre: string | null
+        bien_image: string | null
+        prix_depart_cents: number | null
+        vendeur: string | null
+        vendeur_id: string | null
+        ville: string | null
+        offres: number | null
+        offres_fin: string | null
+        tentatives_exclu: number | null
+        vagues_flash: number | null
+        selectionnes: Json | null
+        paiement: Json | null
+        pistes: Json | null
+        piste_courante: string | null
+        anomalies: Json | null
+        moderation: string | null
+        est_test: boolean | null
       }
       bo_operation: {
         ref: string | null

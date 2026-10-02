@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "cn";
 import { AnimationH2H } from "@/components/marque/AnimationH2H";
-import { StatutPastille, type Ton } from "@/components/bo/StatutPastille";
+import { POINT_PISTE, TON_PISTE } from "@/components/bo/pistes";
+import { StatutPastille } from "@/components/bo/StatutPastille";
 import { ActionsTicket } from "@/components/operations/ActionsTicket";
 import { dateHeure, jourMoyen } from "@/lib/dates";
 import { LIBELLE_STATUT_COMMANDE, LIBELLE_TYPE_ANNONCE } from "@/lib/operations/libelles";
@@ -15,32 +16,10 @@ import {
   LIBELLE_ETAT_PISTE,
   LIBELLE_ETAT_TRANSACTION,
   ONGLET_PISTE,
-  type EtatPiste,
   type Piste,
   type Transaction,
 } from "@/lib/transactions/types";
 import { BoutonAnnulerTransaction } from "./GesteAnnulation";
-
-// ⚠️ UNE ISSUE DÉFAVORABLE N'EST JAMAIS VERTE : bloqué est ambre, en échec rouge.
-export const TON_PISTE: Record<EtatPiste, Ton> = {
-  fait: "succes",
-  en_cours: "marque",
-  a_venir: "neutre",
-  bloque: "attention",
-  echoue: "erreur",
-  annule: "muet",
-  sans_objet: "muet",
-};
-
-const POINT: Record<EtatPiste, string> = {
-  fait: "bg-[var(--h2h-success)] border-[var(--h2h-success)]",
-  en_cours: "bg-[var(--h2h-primary)] border-[var(--h2h-primary)]",
-  a_venir: "border-[var(--h2h-text-muted)]",
-  bloque: "bg-[#B45309] border-[#B45309]",
-  echoue: "bg-[var(--h2h-error)] border-[var(--h2h-error)]",
-  annule: "bg-[var(--h2h-text-muted)] border-[var(--h2h-text-muted)] opacity-60",
-  sans_objet: "border-dashed border-[var(--h2h-text-muted)] opacity-50",
-};
 
 /** La fiche où se lit une piste ; une réception en litige se lit dans l'onglet Litiges. */
 const ongletDe = (p: Piste): Onglet =>
@@ -56,7 +35,7 @@ function Bande({ pistes }: { pistes: Piste[] }) {
           role="listitem"
           title={`${p.libelle} — ${LIBELLE_ETAT_PISTE[p.etat]} : ${p.detail}`}
           aria-label={`${p.libelle} : ${LIBELLE_ETAT_PISTE[p.etat]}`}
-          className={cn("size-3 shrink-0 rounded-full border-2", POINT[p.etat])}
+          className={cn("size-3 shrink-0 rounded-full border-2", POINT_PISTE[p.etat])}
         />
       ))}
     </span>
@@ -94,7 +73,7 @@ function Detail({ t, peutAnnuler, peutTraiter }: { t: Transaction; peutAnnuler: 
       <ol className="grid gap-2">
         {t.pistes.map((p) => (
           <li key={p.code} className="grid grid-cols-[14px_1fr_auto] items-start gap-3">
-            <span className={cn("mt-1 size-3 rounded-full border-2", POINT[p.etat])} aria-hidden />
+            <span className={cn("mt-1 size-3 rounded-full border-2", POINT_PISTE[p.etat])} aria-hidden />
             <span className="grid gap-0.5">
               <span className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{p.libelle}</span>
