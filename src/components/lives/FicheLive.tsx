@@ -4,8 +4,9 @@ import Link from "next/link";
 import { TriangleAlert } from "lucide-react";
 import { Echeance } from "@/components/activite/Echeance";
 import { useMaintenant } from "@/components/activite/commun";
-import { StatutPastille } from "@/components/bo/StatutPastille";
-import { LIBELLE_ACTEUR_LIVE, adresseLives, type FicheLive } from "@/lib/lives/types";
+import { StatutPastille, type Ton } from "@/components/bo/StatutPastille";
+import { dateHeure } from "@/lib/dates";
+import { LIBELLE_ACTEUR_LIVE, LIBELLE_ARRET, adresseLives, type ArretLive, type FicheLive } from "@/lib/lives/types";
 import {
   LIBELLE_DIFFUSION,
   LIBELLE_FORMAT_LIVE,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/operations/libelles";
 import { cheminFiche } from "@/lib/operations/types";
 import { euros } from "@/lib/paiements/types";
+import { GesteArretLive } from "./GesteArretLive";
 import { GesteRetraitArticle } from "./GesteRetraitArticle";
 import { TON_ZONE_LIVE } from "./ListeLives";
 
@@ -23,6 +25,9 @@ import { TON_ZONE_LIVE } from "./ListeLives";
  * et ses articles dans l'ordre de passage — chacun avec son issue, ses offres,
  * ses fenêtres d'achat, et « Retirer l'article » quand la base le permet (R14.4).
  */
+// ⚠️ UNE ISSUE DÉFAVORABLE N'EST JAMAIS VERTE : l'arrêt qui n'aboutit pas est rouge.
+const TON_ARRET: Record<ArretLive["statut"], Ton> = { demande: "actif", en_cours: "actif", reussi: "muet", echoue: "erreur" };
+
 export function FicheLiveVue({ f }: { f: FicheLive }) {
   const maintenant = useMaintenant();
   return (
@@ -83,6 +88,32 @@ export function FicheLiveVue({ f }: { f: FicheLive }) {
               </li>
             ))}
           </ul>
+        )}
+        {(f.arret || f.arret_possible.possible || f.zone === "en_direct") && (
+          <div className="grid gap-2 border-t pt-3">
+            <span className="text-legende font-semibold text-muted-foreground">Arrêter la diffusion</span>
+            {f.arret && (
+              <span className="flex flex-wrap items-center gap-2 text-corps">
+                <StatutPastille ton={TON_ARRET[f.arret.statut]}>{LIBELLE_ARRET[f.arret.statut]}</StatutPastille>
+                <span className="text-legende text-muted-foreground tabular-nums">
+                  demandé le {dateHeure(f.arret.demande_le)} · {f.arret.tentatives} tentative{f.arret.tentatives > 1 ? "s" : ""}
+                  {f.arret.erreur && ` · ${f.arret.erreur}`}
+                </span>
+              </span>
+            )}
+            {f.arret_possible.possible ? (
+              <span className="flex flex-wrap items-center gap-3">
+                <GesteArretLive live={f.id} titre={f.titre} />
+                <span className="max-w-xl text-legende text-muted-foreground">
+                  Le live est terminé pour tout le monde et la vidéo s’arrête chez le prestataire ; les achats déjà
+                  ouverts vont au bout.
+                </span>
+              </span>
+            ) : (
+              f.zone === "en_direct" &&
+              f.arret_possible.raison && <span className="text-legende text-muted-foreground">{f.arret_possible.raison}</span>
+            )}
+          </div>
         )}
         <div className="flex flex-wrap gap-4 text-corps">
           <Link href={cheminFiche(f.ref)} className="font-medium text-h2h-primary hover:underline">

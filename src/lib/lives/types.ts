@@ -170,7 +170,32 @@ export type ArticleLive = {
  * ⚠️ `articles` Y EST LA LISTE, PAS LE NOMBRE : la base la pose par-dessus le compte de la ligne
  * (`to_jsonb(l) || {articles: [...]}`) ; le nombre est sa longueur.
  */
-export type FicheLive = Omit<LiveLigne, "articles"> & { articles: ArticleLive[] };
+export type FicheLive = Omit<LiveLigne, "articles"> & {
+  articles: ArticleLive[];
+  /** Le dernier ordre d'arrêt de la diffusion, et son issue chez le prestataire vidéo. */
+  arret: ArretLive | null;
+  /** La base décide : la permission de modérer, jamais son propre live, un live en direct seulement. */
+  arret_possible: { possible: boolean; raison: string | null };
+};
+
+/** L'ordre d'arrêt : demandé, en cours chez le prestataire, réussi, ou échoué après cinq tentatives. */
+export type ArretLive = {
+  statut: "demande" | "en_cours" | "reussi" | "echoue";
+  tentatives: number;
+  erreur: string | null;
+  demande_le: string;
+  resultat_le: string | null;
+};
+
+export const LIBELLE_ARRET: Record<ArretLive["statut"], string> = {
+  demande: "Arrêt demandé au prestataire",
+  en_cours: "Arrêt en cours chez le prestataire",
+  reussi: "Diffusion arrêtée chez le prestataire",
+  echoue: "L’arrêt n’a pas abouti chez le prestataire",
+};
+
+/** Ce que rend l'arrêt d'un live. */
+export type LiveArrete = { live: string; statut: "ended"; arret: string };
 
 /** Ce que rend le retrait d'un article. */
 export type ArticleRetire = { article: string; live: string; issue: "cancelled"; acces_clos: number };

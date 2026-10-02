@@ -20,7 +20,7 @@ vi.mock("@/components/marque/AnimationH2H", () => ({ AnimationH2H: () => <span d
 vi.mock("@/components/operations/ActionsTicket", () => ({ ActionsTicket: () => <span data-ticket /> }));
 // Le geste passe par la base : ici, seulement ce que l'écran en montre.
 vi.mock("@/lib/db/useGeste", () => ({ useGeste: () => ({ lancer: vi.fn(), enCours: false }) }));
-vi.mock("@/lib/lives/actions", () => ({ retirerArticle: vi.fn() }));
+vi.mock("@/lib/lives/actions", () => ({ retirerArticle: vi.fn(), arreterLive: vi.fn() }));
 
 const { FicheLiveVue } = await import("./FicheLive");
 const { GesteRetraitArticle } = await import("./GesteRetraitArticle");
@@ -44,6 +44,8 @@ const FICHE: FicheLive = {
   rediffusion: false,
   anomalies: [{ code: "places_depassees", libelle: "Plus de places occupées que le live n’en compte." }],
   est_test: false,
+  arret: null,
+  arret_possible: { possible: true, raison: null },
 };
 const decode = (html: string) => html.replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
 
@@ -90,5 +92,38 @@ describe("la fiche d’un live", () => {
     expect(html).toContain("Il est vendu : il ne se retire plus.");
     expect(html).toContain("HTH-2026-ABC123");
     expect((html.match(/Retirer l’article/g) ?? []).length).toBe(1);
+  });
+});
+
+describe("« Arrêter la diffusion »", () => {
+  it("possible : le bouton, et ce qu’il fait", () => {
+    const html = decode(renderToStaticMarkup(<FicheLiveVue f={FICHE} />));
+    expect(html).toContain("Arrêter la diffusion");
+    expect(html).toContain("ouverts vont au bout");
+    expect(html).toContain("la vidéo s’arrête chez le prestataire");
+  });
+
+  it("l’arrêt qui n’aboutit pas se dit : l’issue, les tentatives, l’erreur du prestataire", () => {
+    const html = decode(renderToStaticMarkup(
+      <FicheLiveVue f={{ ...FICHE, zone: "termine", statut: "ended",
+        arret: { statut: "echoue", tentatives: 5, erreur: "fin 503 · relecture 503", demande_le: "2026-10-02T10:00:00Z", resultat_le: "2026-10-02T10:06:00Z" },
+        arret_possible: { possible: false, raison: "Le live est déjà terminé." } }} />,
+    ));
+    expect(html).toContain("L’arrêt n’a pas abouti chez le prestataire");
+    expect(html).toContain("5 tentatives");
+    expect(html).toContain("fin 503 · relecture 503");
+    expect(html).not.toContain("Le live est déjà terminé.");
+  });
+
+  it("en direct sans le droit : la raison de la base, sans bouton ; terminé sans arrêt : rien", () => {
+    const sans = decode(renderToStaticMarkup(
+      <FicheLiveVue f={{ ...FICHE, arret_possible: { possible: false, raison: "Arrêter un live demande la permission de modérer les lives." } }} />,
+    ));
+    expect(sans).toContain("Arrêter un live demande la permission de modérer les lives.");
+    expect((sans.match(/>Arrêter la diffusion</g) ?? []).length).toBe(1);
+    const fini = decode(renderToStaticMarkup(
+      <FicheLiveVue f={{ ...FICHE, zone: "termine", arret: null, arret_possible: { possible: false, raison: "Le live est déjà terminé." } }} />,
+    ));
+    expect(fini).not.toContain("Arrêter la diffusion");
   });
 });

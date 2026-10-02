@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@1a3fd10 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@6a6e630 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261002005000_un_article_de_live_se_retire.sql
+// Base : 20261002006000_un_live_s_arrete.sql
 
 export type Json =
   | string
@@ -8732,6 +8732,15 @@ export type Database = {
           signalements: number
         }[]
       }
+      bo_live_arreter: {
+        Args: {
+          p_cle: string
+          p_live: string
+          p_message: string
+          p_motif: string
+        }
+        Returns: Json
+      }
       bo_live_article_retirer: {
         Args: {
           p_article: string
@@ -9903,6 +9912,23 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      live_arret_resultat: {
+        Args: {
+          p_arret: string
+          p_erreur?: string
+          p_resultat: string
+          p_tentative: number
+        }
+        Returns: boolean
+      }
+      live_arrets_a_traiter: {
+        Args: { p_limite?: number }
+        Returns: {
+          arret: string
+          live: string
+          tentative: number
+        }[]
       }
       live_demarrer: {
         Args: { p_session_id: string }
