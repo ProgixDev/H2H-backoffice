@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@ef20235 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@2af433c : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261001005000_une_verification_se_demande.sql
+// Base : 20261002001000_seul_l_acheteur_choisi_achete.sql
 
 export type Json =
   | string
@@ -10392,6 +10392,7 @@ export type Database = {
           retard_minutes: number
         }[]
       }
+      prix_convenu: { Args: { p_product_id: string }; Returns: Json }
       publier_trajet: {
         Args: {
           p_arrets: Json
