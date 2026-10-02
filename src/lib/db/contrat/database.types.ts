@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@58f2719 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@1f40c15 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261002007000_un_live_se_signale.sql
+// Base : 20261002008000_un_live_programme_s_annule.sql
 
 export type Json =
   | string
@@ -8812,6 +8812,15 @@ export type Database = {
           reclamations: number
           signalements: number
         }[]
+      }
+      bo_live_annuler: {
+        Args: {
+          p_cle: string
+          p_live: string
+          p_message: string
+          p_motif: string
+        }
+        Returns: Json
       }
       bo_live_arreter: {
         Args: {

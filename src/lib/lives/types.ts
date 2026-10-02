@@ -176,7 +176,19 @@ export type FicheLive = Omit<LiveLigne, "articles"> & {
   arret: ArretLive | null;
   /** La base décide : la permission de modérer, jamais son propre live, un live en direct seulement. */
   arret_possible: { possible: boolean; raison: string | null };
+  /** L'annulation d'un live programmé, quand l'équipe l'a décidée (D24 : aucun live n'attend d'autorisation). */
+  annulation: AnnulationLive | null;
+  /** La base décide : la permission de modérer, jamais son propre live, un live qui n'a pas commencé. */
+  annulation_possible: { possible: boolean; raison: string | null };
+  /** Ce que l'hôte a réglé pour ce live (options encaissées) : l'annuler ne le rembourse pas. */
+  options_payees_cents: number;
 };
+
+/** Un live programmé annulé par l'équipe : par qui, quand, le message à l'hôte, le motif gardé. */
+export type AnnulationLive = { le: string; par: string | null; message: string; motif: string };
+
+/** Ce que rend l'annulation d'un live programmé. */
+export type LiveAnnule = { live: string; statut: "annule"; places_prevenues: number; options_payees_cents: number };
 
 /** L'ordre d'arrêt : demandé, en cours chez le prestataire, réussi, ou échoué après cinq tentatives. */
 export type ArretLive = {

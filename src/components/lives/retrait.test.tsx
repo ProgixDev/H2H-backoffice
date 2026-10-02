@@ -20,7 +20,7 @@ vi.mock("@/components/marque/AnimationH2H", () => ({ AnimationH2H: () => <span d
 vi.mock("@/components/operations/ActionsTicket", () => ({ ActionsTicket: () => <span data-ticket /> }));
 // Le geste passe par la base : ici, seulement ce que l'écran en montre.
 vi.mock("@/lib/db/useGeste", () => ({ useGeste: () => ({ lancer: vi.fn(), enCours: false }) }));
-vi.mock("@/lib/lives/actions", () => ({ retirerArticle: vi.fn(), arreterLive: vi.fn() }));
+vi.mock("@/lib/lives/actions", () => ({ retirerArticle: vi.fn(), arreterLive: vi.fn(), annulerLive: vi.fn() }));
 // Le bloc des signalements se teste à part (`signalements.test.tsx`) : ici, ce que la fiche lui passe.
 vi.mock("@/components/signalements/BlocSignalements", () => ({
   SignalementsLus: ({ genre, cible, s }: { genre: string; cible: string; s: { a_examiner: number } | null }) => (
@@ -52,6 +52,9 @@ const FICHE: FicheLive = {
   est_test: false,
   arret: null,
   arret_possible: { possible: true, raison: null },
+  annulation: null,
+  annulation_possible: { possible: false, raison: "Le live est en direct : arrêtez la diffusion plutôt." },
+  options_payees_cents: 0,
 };
 const decode = (html: string) => html.replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
 
@@ -144,5 +147,48 @@ describe("les signalements des spectateurs (R14.4)", () => {
     expect(decode(renderToStaticMarkup(<FicheLiveVue f={FICHE} signalements={null} />))).toContain(
       `data-signalements="live:${ID}:echec"`,
     );
+  });
+});
+
+describe("« Annuler le live » (D24 : aucun live n’attend d’autorisation)", () => {
+  const PROGRAMME = { ...FICHE, zone: "programme" as const, statut: "upcoming" as const, debut: null, arret_possible: { possible: false, raison: "Le live n’a pas commencé : il n’y a pas de diffusion à arrêter." } };
+
+  it("programmé, avec le droit : le bouton, et ce qu’il fait", () => {
+    const html = decode(renderToStaticMarkup(
+      <FicheLiveVue signalements={null} f={{ ...PROGRAMME, annulation_possible: { possible: true, raison: null }, options_payees_cents: 1999 }} />,
+    ));
+    expect(html).toContain(">Annuler le live<");
+    expect(html).toContain("Aucun live n’attend d’autorisation");
+  });
+
+  it("programmé, sans le droit ou son propre live : la raison de la base, sans bouton", () => {
+    const html = decode(renderToStaticMarkup(
+      <FicheLiveVue signalements={null} f={{ ...PROGRAMME, annulation_possible: { possible: false, raison: "Ce live est le vôtre : un autre membre de l’équipe doit en décider." } }} />,
+    ));
+    expect(html).toContain("Ce live est le vôtre : un autre membre de l’équipe doit en décider.");
+    expect((html.match(/>Annuler le live</g) ?? []).length).toBe(1);
+  });
+
+  it("annulé : par qui, quand, le message à l’hôte et le motif, distingués", () => {
+    const html = decode(renderToStaticMarkup(
+      <FicheLiveVue
+        signalements={null}
+        f={{
+          ...PROGRAMME, zone: "termine", statut: "ended",
+          annulation: { le: "2026-10-02T21:00:00Z", par: "mod1@handtohand.pro", message: "Le titre enfreint les règles.", motif: "Titre injurieux" },
+          annulation_possible: { possible: false, raison: "Le live est déjà terminé." },
+        }}
+      />,
+    ));
+    expect(html).toContain("Annulé par l’équipe");
+    expect(html).toContain("par mod1@handtohand.pro");
+    expect(html).toContain("« Le titre enfreint les règles. »");
+    expect(html).toContain("Motif interne : Titre injurieux");
+    expect(html).not.toContain("Le live est déjà terminé.");
+  });
+
+  it("en direct : pas d’annulation — on arrête la diffusion", () => {
+    const html = decode(renderToStaticMarkup(<FicheLiveVue signalements={null} f={FICHE} />));
+    expect(html).not.toContain("Annuler le live");
   });
 });

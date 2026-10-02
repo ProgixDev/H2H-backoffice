@@ -1,7 +1,7 @@
 "use server";
 
 import { geste } from "@/lib/db/geste";
-import { cheminLive, type ArticleRetire, type LiveArrete } from "./types";
+import { cheminLive, type ArticleRetire, type LiveAnnule, type LiveArrete } from "./types";
 
 // ⚠️ DEUX TEXTES, DEUX LECTEURS : le message part à l'hôte, tel quel, dans un
 // avis qui ne se coupe pas ; le motif reste au journal de l'équipe. La base
@@ -30,6 +30,22 @@ export async function retirerArticle(p: { live: string; article: string; message
  */
 export async function arreterLive(p: { live: string; message: string; motif: string; cle: string }) {
   return geste<LiveArrete>(["/live-shopping", cheminLive(p.live)], "bo_live_arreter", {
+    p_live: p.live,
+    p_message: p.message,
+    p_motif: p.motif,
+    p_cle: p.cle,
+  });
+}
+
+/**
+ * Annuler un live programmé (D24 : aucun live n'attend d'autorisation) — identité
+ * reconfirmée. Il est clos avant d'avoir commencé : l'hôte ne peut plus le lancer,
+ * personne n'y réserve plus de place. L'hôte reçoit le message ; chaque personne qui
+ * avait une place apprend que le live n'aura pas lieu. Les options payées par
+ * l'hôte ne sont pas remboursées par ce geste.
+ */
+export async function annulerLive(p: { live: string; message: string; motif: string; cle: string }) {
+  return geste<LiveAnnule>(["/live-shopping", cheminLive(p.live)], "bo_live_annuler", {
     p_live: p.live,
     p_message: p.message,
     p_motif: p.motif,

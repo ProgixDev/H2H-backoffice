@@ -18,6 +18,7 @@ import {
 import { cheminFiche } from "@/lib/operations/types";
 import { euros } from "@/lib/paiements/types";
 import type { SignalementsCible } from "@/lib/signalements/types";
+import { GesteAnnulationLive } from "./GesteAnnulationLive";
 import { GesteArretLive } from "./GesteArretLive";
 import { GesteRetraitArticle } from "./GesteRetraitArticle";
 import { TON_ZONE_LIVE } from "./ListeLives";
@@ -114,6 +115,41 @@ export function FicheLiveVue({ f, signalements }: { f: FicheLive; signalements: 
             ) : (
               f.zone === "en_direct" &&
               f.arret_possible.raison && <span className="text-legende text-muted-foreground">{f.arret_possible.raison}</span>
+            )}
+          </div>
+        )}
+        {/* Annuler un live programmé (D24 : aucun live n'attend d'autorisation avant le direct). */}
+        {(f.annulation || f.annulation_possible.possible || f.zone === "programme") && (
+          <div className="grid gap-2 border-t pt-3">
+            <span className="text-legende font-semibold text-muted-foreground">Annuler le live</span>
+            {f.annulation && (
+              <span className="grid gap-1 text-corps">
+                <span className="flex flex-wrap items-center gap-2">
+                  <StatutPastille ton="attention">Annulé par l’équipe</StatutPastille>
+                  <span className="text-legende text-muted-foreground tabular-nums">
+                    le {dateHeure(f.annulation.le)}
+                    {f.annulation.par ? ` par ${f.annulation.par}` : ""}
+                  </span>
+                </span>
+                <span>
+                  <span className="text-muted-foreground">Message à l’hôte : </span>« {f.annulation.message} »
+                </span>
+                <span className="text-legende text-muted-foreground">Motif interne : {f.annulation.motif}</span>
+              </span>
+            )}
+            {f.annulation_possible.possible ? (
+              <span className="flex flex-wrap items-center gap-3">
+                <GesteAnnulationLive live={f.id} titre={f.titre} optionsPayeesCents={f.options_payees_cents} />
+                <span className="max-w-xl text-legende text-muted-foreground">
+                  Aucun live n’attend d’autorisation : l’annulation retire de la vitrine un live programmé qui enfreint
+                  les règles, avant qu’il commence.
+                </span>
+              </span>
+            ) : (
+              f.zone === "programme" &&
+              f.annulation_possible.raison && (
+                <span className="text-legende text-muted-foreground">{f.annulation_possible.raison}</span>
+              )
             )}
           </div>
         )}
