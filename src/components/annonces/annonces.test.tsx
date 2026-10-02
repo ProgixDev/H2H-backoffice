@@ -275,7 +275,7 @@ describe("la fiche d'une annonce", () => {
         signalements={{ ...SANS_SIGNALEMENT, a_examiner: 1, signalements: [{
           id: "51000000-0000-4000-a000-000000000001", raison: "off_platform", raison_libelle: "Coordonnées ou paiement hors plateforme",
           explication: "Le vendeur propose un virement direct.", preuves: [], priorite: "elevee", bonne_foi: true,
-          le: "2026-09-30T08:00:00Z", signale_par: null, examen: null, recours: null }] }}
+          le: "2026-09-30T08:00:00Z", signale_par: null, examen: null, recours: null, contexte: null }] }}
       />,
     );
     expect(f).toContain("Le vendeur");

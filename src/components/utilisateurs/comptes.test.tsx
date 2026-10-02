@@ -158,7 +158,7 @@ const FICHE: Fiche = {
     recus: [{ id: "a1", note: 4, commentaire: "Acheteur sérieux", le: "2026-09-29T10:00:00Z", avec: "ven_deuse_cl", role: "buyer" }],
     donnes: [],
   },
-  signalements: { recus: [], recus_total: 0, faits: 1, annonces: 0, avis: 1, blocages: 0 },
+  signalements: { recus: [], recus_total: 0, faits: 1, annonces: 0, lives: 0, avis: 1, blocages: 0 },
   litiges: { total: 1, ouverts: 1 },
   sanctions: {
     en_cours: [],
@@ -573,6 +573,7 @@ describe("la fiche d'un compte", () => {
           signalements: {
             ...FICHE.signalements,
             recus_total: 1,
+            lives: 3,
             recus: [{ id: "s1", motif: "fraud", libelle: "Arnaque ou tentative de fraude", priorite: "elevee", le: "2026-09-27T10:00:00Z", par: "coursier_cl" }],
           },
         }}
@@ -583,6 +584,8 @@ describe("la fiche d'un compte", () => {
     // Les comptes viennent de la fiche ; chaque signalement et son examen, de `bo_signalements_cible`.
     expect(signale).toContain(`data-signalements="utilisateur:${FICHE.compte.id}:0"`);
     expect(signale).toContain("Signalements reçus");
+    // Les signalements de ses lives (20261002007000).
+    expect(signale).toMatch(/Lives signalés.{0,80}>3</);
     const echec = renderToStaticMarkup(<FicheCompte support={SANS_SUPPORT} f={FICHE} signalements={null} peutReveler peutOuvrirFiche />);
     expect(echec).toContain(`data-signalements="utilisateur:${FICHE.compte.id}:echec"`);
     // Le fil avec le support se lit à part, lui aussi — et son échec se dit.

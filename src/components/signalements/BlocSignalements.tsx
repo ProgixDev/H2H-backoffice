@@ -24,8 +24,10 @@ import { examinerRecoursSignalement, examinerSignalements } from "@/lib/signalem
 import {
   CIBLE_DITE,
   LIBELLE_ISSUE_SIGNALEMENT,
+  MESURE_DITE,
   PHRASE_CONTESTER,
   PHRASE_ISSUE,
+  momentLive,
   type GenreSignale,
   type IssueSignalement,
   type SignalementLu,
@@ -82,7 +84,7 @@ function ExaminerRecoursSignalement({
         description="La personne qui a signalé reçoit votre réponse. Le dossier « À traiter » se clôt."
         aides={{
           accepte:
-            "L’examen est revu : la personne apprend qu’un manquement est constaté et que l’équipe prend les mesures nécessaires. La mesure — masquer, retirer, sanctionner — se prend ensuite sur cette fiche.",
+            `L’examen est revu : la personne apprend qu’un manquement est constaté et que l’équipe prend les mesures nécessaires. La mesure — ${MESURE_DITE[genre]} — se prend ensuite sur cette fiche.`,
           rejete: "L’examen est maintenu. La personne en connaît la raison par votre réponse.",
         }}
         enCours={examiner.enCours}
@@ -115,6 +117,8 @@ function CarteSignalement({ s, genre, cible }: { s: SignalementLu; genre: GenreS
         {s.signale_par ? ` par ${s.signale_par}` : ""}
         {s.bonne_foi ? "" : " · sans déclaration de bonne foi"}
       </span>
+      {/* Un live ne se revoit pas : le moment gelé par la base dit quel article était à l’écran. */}
+      {s.contexte && <span className="text-legende">{momentLive(s.contexte)}</span>}
       {s.explication && <p className="whitespace-pre-line text-corps">« {s.explication} »</p>}
       {s.preuves.length > 0 && (
         <ul className="grid gap-0.5 text-legende">
@@ -199,7 +203,7 @@ function DialogueExamenSignalements({
     {
       valeur: "fonde",
       libelle: "Fondés",
-      aide: "Un manquement est constaté. La mesure — masquer, retirer, sanctionner — se prend à part, sur la fiche.",
+      aide: `Un manquement est constaté. La mesure — ${MESURE_DITE[genre]} — se prend à part, sur la fiche.`,
     },
     {
       valeur: "non_fonde",
@@ -305,7 +309,7 @@ function DialogueExamenSignalements({
 }
 
 /**
- * Les signalements d'une annonce, d'une recherche ou d'un compte (§8, §9) :
+ * Les signalements d'une annonce, d'une recherche, d'un compte ou d'un live (§8, §9, §14) :
  * ceux qui attendent d'abord, leur examen, le dossier « À traiter » — et le
  * geste d'examen, ou la raison de ne pas pouvoir. Sous un signalement jugé non
  * fondé, le recours de la personne qui l'a fait (art. 20 du règlement sur les

@@ -5,6 +5,7 @@ import { TriangleAlert } from "lucide-react";
 import { Echeance } from "@/components/activite/Echeance";
 import { useMaintenant } from "@/components/activite/commun";
 import { StatutPastille, type Ton } from "@/components/bo/StatutPastille";
+import { SignalementsLus } from "@/components/signalements/BlocSignalements";
 import { dateHeure } from "@/lib/dates";
 import { LIBELLE_ACTEUR_LIVE, LIBELLE_ARRET, adresseLives, type ArretLive, type FicheLive } from "@/lib/lives/types";
 import {
@@ -16,19 +17,20 @@ import {
 } from "@/lib/operations/libelles";
 import { cheminFiche } from "@/lib/operations/types";
 import { euros } from "@/lib/paiements/types";
+import type { SignalementsCible } from "@/lib/signalements/types";
 import { GesteArretLive } from "./GesteArretLive";
 import { GesteRetraitArticle } from "./GesteRetraitArticle";
 import { TON_ZONE_LIVE } from "./ListeLives";
 
 /**
  * La fiche d'un live pour l'équipe : où en est son déroulé, ce qui ne va pas,
- * et ses articles dans l'ordre de passage — chacun avec son issue, ses offres,
+ * ses signalements et leur examen (R14.4), et ses articles dans l'ordre de passage — chacun avec son issue, ses offres,
  * ses fenêtres d'achat, et « Retirer l'article » quand la base le permet (R14.4).
  */
 // ⚠️ UNE ISSUE DÉFAVORABLE N'EST JAMAIS VERTE : l'arrêt qui n'aboutit pas est rouge.
 const TON_ARRET: Record<ArretLive["statut"], Ton> = { demande: "actif", en_cours: "actif", reussi: "muet", echoue: "erreur" };
 
-export function FicheLiveVue({ f }: { f: FicheLive }) {
+export function FicheLiveVue({ f, signalements }: { f: FicheLive; signalements: SignalementsCible | null }) {
   const maintenant = useMaintenant();
   return (
     <div className="grid gap-6">
@@ -129,6 +131,12 @@ export function FicheLiveVue({ f }: { f: FicheLive }) {
           )}
         </div>
       </div>
+
+      {/* Les signalements des spectateurs (20261002007000) : leur examen se fait ici, la mesure aussi. */}
+      <section className="grid gap-2">
+        <h3 className="text-h3 font-semibold">Signalements</h3>
+        <SignalementsLus genre="live" cible={f.id} s={signalements} />
+      </section>
 
       <section className="grid gap-2">
         <h3 className="text-h3 font-semibold">Articles · {f.articles.length}</h3>

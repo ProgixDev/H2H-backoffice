@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@6a6e630 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@58f2719 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261002006000_un_live_s_arrete.sql
+// Base : 20261002007000_un_live_se_signale.sql
 
 export type Json =
   | string
@@ -3515,6 +3515,87 @@ export type Database = {
           {
             foreignKeyName: "live_purchase_accesses_buyer_id_fkey"
             columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profils_publics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_reports: {
+        Row: {
+          created_at: string
+          examen_id: string | null
+          explanation: string | null
+          good_faith: boolean
+          host_id: string | null
+          id: string
+          live_id: string | null
+          priority: Database["public"]["Enums"]["report_priority"]
+          proofs: Json
+          reason: Database["public"]["Enums"]["live_report_reason"]
+          reporter_id: string
+          snapshot: Json
+        }
+        Insert: {
+          created_at?: string
+          examen_id?: string | null
+          explanation?: string | null
+          good_faith?: boolean
+          host_id?: string | null
+          id?: string
+          live_id?: string | null
+          priority: Database["public"]["Enums"]["report_priority"]
+          proofs?: Json
+          reason: Database["public"]["Enums"]["live_report_reason"]
+          reporter_id: string
+          snapshot: Json
+        }
+        Update: {
+          created_at?: string
+          examen_id?: string | null
+          explanation?: string | null
+          good_faith?: boolean
+          host_id?: string | null
+          id?: string
+          live_id?: string | null
+          priority?: Database["public"]["Enums"]["report_priority"]
+          proofs?: Json
+          reason?: Database["public"]["Enums"]["live_report_reason"]
+          reporter_id?: string
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_reports_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_reports_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "profils_publics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_reports_live_id_fkey"
+            columns: ["live_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
             isOneToOne: false
             referencedRelation: "profils_publics"
             referencedColumns: ["id"]
@@ -11014,6 +11095,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      signaler_live: {
+        Args: {
+          p_explanation: string
+          p_live_id: string
+          p_proofs?: Json
+          p_reason: Database["public"]["Enums"]["live_report_reason"]
+        }
+        Returns: Json
+      }
       signaler_presence: { Args: { p_session_id: string }; Returns: undefined }
       signaler_recherche: {
         Args: {
@@ -11810,6 +11900,17 @@ export type Database = {
         | "article_extension"
         | "seats"
       live_pack_id: "live_plus" | "live_vip_premium"
+      live_report_reason:
+        | "inappropriate"
+        | "hate_speech"
+        | "harassment"
+        | "dangerous"
+        | "prohibited"
+        | "counterfeit"
+        | "misleading"
+        | "fraud"
+        | "off_platform"
+        | "other"
       live_seat_role: "buyer" | "spectator"
       live_seat_state:
         | "reserved"
@@ -12616,6 +12717,18 @@ export const Constants = {
         "seats",
       ],
       live_pack_id: ["live_plus", "live_vip_premium"],
+      live_report_reason: [
+        "inappropriate",
+        "hate_speech",
+        "harassment",
+        "dangerous",
+        "prohibited",
+        "counterfeit",
+        "misleading",
+        "fraud",
+        "off_platform",
+        "other",
+      ],
       live_seat_role: ["buyer", "spectator"],
       live_seat_state: [
         "reserved",

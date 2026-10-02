@@ -475,6 +475,7 @@ export function FicheCompte({
           items={[
             ["Signalements reçus", String(f.signalements.recus_total)],
             ["Annonces signalées", String(f.signalements.annonces)],
+            ["Lives signalés", String(f.signalements.lives)],
             ["Avis signalés", String(f.signalements.avis)],
             ["Personnes qui l’ont bloqué", String(f.signalements.blocages)],
             ["Signalements faits par ce compte", String(f.signalements.faits)],

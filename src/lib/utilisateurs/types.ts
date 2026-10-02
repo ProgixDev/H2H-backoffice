@@ -231,9 +231,14 @@ export type FicheCompte = {
   signalements: {
     recus: { id: string; motif: string; libelle: string; priorite: string; le: string; par: string | null }[];
     recus_total: number;
-    /** Ce que la personne a signalé elle-même : un compte, une annonce, un avis, un point de rendez-vous. */
+    /**
+     * Ce que la personne a signalé elle-même : un compte, une annonce, une recherche, un live, un avis, un
+     * point de rendez-vous.
+     */
     faits: number;
     annonces: number;
+    /** Les signalements de ses lives (20261002007000). */
+    lives: number;
     avis: number;
     blocages: number;
   };

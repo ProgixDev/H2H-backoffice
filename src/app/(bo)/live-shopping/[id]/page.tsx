@@ -8,6 +8,8 @@ import { RefusBO } from "@/lib/db/rpc";
 import { lireLive } from "@/lib/lives/lectures";
 import type { FicheLive } from "@/lib/lives/types";
 import { rubriqueObligatoire } from "@/lib/navigation";
+import { lireSignalementsCible } from "@/lib/signalements/lectures";
+import type { SignalementsCible } from "@/lib/signalements/types";
 
 const rubrique = rubriqueObligatoire("/live-shopping");
 export const metadata: Metadata = { title: rubrique.titre };
@@ -16,7 +18,8 @@ const IDENTIFIANT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 
 /**
  * La fiche d'un live pour l'équipe (§14) : son déroulé, ses anomalies, ses
- * articles — et « Retirer l'article » quand la base le permet (R14.4).
+ * signalements et leur examen, ses articles — et « Retirer l'article » quand la
+ * base le permet (R14.4).
  *
  * ⚠️ UN IDENTIFIANT INCONNU OU UN LIVE DE L'AUTRE MONDE (test ou réel) donnent
  * la même réponse : « introuvable ».
@@ -29,12 +32,20 @@ export default async function PageLive({ params }: { params: Promise<{ id: strin
 
   // On LIT dans le try, on construit l'écran après (règle `react-hooks/error-boundaries`).
   let fiche: FicheLive | null = null;
+  let signalements: SignalementsCible | null = null;
   let introuvable = !IDENTIFIANT.test(id);
   if (!introuvable) {
     try {
       fiche = await lireLive(id);
     } catch (e) {
       introuvable = e instanceof RefusBO && e.indice === "BO_INTROUVABLE";
+    }
+  }
+  if (fiche) {
+    try {
+      signalements = await lireSignalementsCible("live", id);
+    } catch {
+      // La fiche le dit à leur place : « Les signalements ne se lisent pas ».
     }
   }
 
@@ -48,7 +59,7 @@ export default async function PageLive({ params }: { params: Promise<{ id: strin
         Live Shopping
       </Link>
       {fiche ? (
-        <FicheLiveVue f={fiche} />
+        <FicheLiveVue f={fiche} signalements={signalements} />
       ) : introuvable ? (
         <LectureEchouee
           titre="Ce live est introuvable"

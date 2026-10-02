@@ -21,6 +21,12 @@ vi.mock("@/components/operations/ActionsTicket", () => ({ ActionsTicket: () => <
 // Le geste passe par la base : ici, seulement ce que l'écran en montre.
 vi.mock("@/lib/db/useGeste", () => ({ useGeste: () => ({ lancer: vi.fn(), enCours: false }) }));
 vi.mock("@/lib/lives/actions", () => ({ retirerArticle: vi.fn(), arreterLive: vi.fn() }));
+// Le bloc des signalements se teste à part (`signalements.test.tsx`) : ici, ce que la fiche lui passe.
+vi.mock("@/components/signalements/BlocSignalements", () => ({
+  SignalementsLus: ({ genre, cible, s }: { genre: string; cible: string; s: { a_examiner: number } | null }) => (
+    <span data-signalements={`${genre}:${cible}:${s === null ? "echec" : s.a_examiner}`} />
+  ),
+}));
 
 const { FicheLiveVue } = await import("./FicheLive");
 const { GesteRetraitArticle } = await import("./GesteRetraitArticle");
@@ -63,6 +69,7 @@ describe("« Retirer l’article »", () => {
 describe("la fiche d’un live", () => {
   const html = decode(renderToStaticMarkup(
     <FicheLiveVue
+      signalements={null}
       f={{
         ...FICHE,
         articles: [
@@ -97,7 +104,7 @@ describe("la fiche d’un live", () => {
 
 describe("« Arrêter la diffusion »", () => {
   it("possible : le bouton, et ce qu’il fait", () => {
-    const html = decode(renderToStaticMarkup(<FicheLiveVue f={FICHE} />));
+    const html = decode(renderToStaticMarkup(<FicheLiveVue signalements={null} f={FICHE} />));
     expect(html).toContain("Arrêter la diffusion");
     expect(html).toContain("ouverts vont au bout");
     expect(html).toContain("la vidéo s’arrête chez le prestataire");
@@ -105,7 +112,7 @@ describe("« Arrêter la diffusion »", () => {
 
   it("l’arrêt qui n’aboutit pas se dit : l’issue, les tentatives, l’erreur du prestataire", () => {
     const html = decode(renderToStaticMarkup(
-      <FicheLiveVue f={{ ...FICHE, zone: "termine", statut: "ended",
+      <FicheLiveVue signalements={null} f={{ ...FICHE, zone: "termine", statut: "ended",
         arret: { statut: "echoue", tentatives: 5, erreur: "fin 503 · relecture 503", demande_le: "2026-10-02T10:00:00Z", resultat_le: "2026-10-02T10:06:00Z" },
         arret_possible: { possible: false, raison: "Le live est déjà terminé." } }} />,
     ));
@@ -117,13 +124,25 @@ describe("« Arrêter la diffusion »", () => {
 
   it("en direct sans le droit : la raison de la base, sans bouton ; terminé sans arrêt : rien", () => {
     const sans = decode(renderToStaticMarkup(
-      <FicheLiveVue f={{ ...FICHE, arret_possible: { possible: false, raison: "Arrêter un live demande la permission de modérer les lives." } }} />,
+      <FicheLiveVue signalements={null} f={{ ...FICHE, arret_possible: { possible: false, raison: "Arrêter un live demande la permission de modérer les lives." } }} />,
     ));
     expect(sans).toContain("Arrêter un live demande la permission de modérer les lives.");
     expect((sans.match(/>Arrêter la diffusion</g) ?? []).length).toBe(1);
     const fini = decode(renderToStaticMarkup(
-      <FicheLiveVue f={{ ...FICHE, zone: "termine", arret: null, arret_possible: { possible: false, raison: "Le live est déjà terminé." } }} />,
+      <FicheLiveVue signalements={null} f={{ ...FICHE, zone: "termine", arret: null, arret_possible: { possible: false, raison: "Le live est déjà terminé." } }} />,
     ));
     expect(fini).not.toContain("Arrêter la diffusion");
+  });
+});
+
+describe("les signalements des spectateurs (R14.4)", () => {
+  it("la fiche passe au bloc ceux du live — et dit l’échec de leur lecture plutôt qu’une liste vide", () => {
+    const lus = { signalements: [], a_examiner: 2, recours_a_examiner: 0, dossier: null, possibles: { examiner: true, raison: null } };
+    const html = decode(renderToStaticMarkup(<FicheLiveVue f={FICHE} signalements={lus} />));
+    expect(html).toContain("Signalements");
+    expect(html).toContain(`data-signalements="live:${ID}:2"`);
+    expect(decode(renderToStaticMarkup(<FicheLiveVue f={FICHE} signalements={null} />))).toContain(
+      `data-signalements="live:${ID}:echec"`,
+    );
   });
 });

@@ -77,7 +77,8 @@ export type GenreDossier =
   | "incident"
   | "signalement_utilisateur"
   | "signalement_annonce"
-  | "signalement_recherche";
+  | "signalement_recherche"
+  | "signalement_live";
 export type Partie = "buyer" | "seller";
 export type Canal = "e_mail" | "telephone" | "messagerie" | "courrier" | "autre";
 export type StatutRecours = "a_examiner" | "recevable" | "irrecevable" | "tranche";
@@ -113,7 +114,7 @@ export type Signalement = {
   commande_id: string | null;
   reference: string | null;
   participants: string;
-  /** Ce qu'un signalement vise : l'annonce, la recherche ou le compte ; nul pour un incident. */
+  /** Ce qu'un signalement vise : l'annonce, la recherche, le compte ou le live ; nul pour un incident. */
   cible: string | null;
   est_test: boolean;
 };
@@ -123,6 +124,7 @@ export const LIBELLE_GENRE: Record<Signalement["genre"], string> = {
   signalement_utilisateur: "Signalement d’un utilisateur",
   signalement_annonce: "Signalement d’une annonce",
   signalement_recherche: "Signalement d’une recherche",
+  signalement_live: "Signalement d’un live",
 };
 
 export const LIBELLE_ETAT_SIGNALEMENT: Record<string, string> = {

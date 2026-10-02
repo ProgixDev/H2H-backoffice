@@ -11,7 +11,13 @@ import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { Signalement } from "@/lib/litiges/types";
-import type { SignalementLu, SignalementsCible } from "@/lib/signalements/types";
+import {
+  cheminCible,
+  MESURE_DITE,
+  momentLive,
+  type SignalementLu,
+  type SignalementsCible,
+} from "@/lib/signalements/types";
 import type { RecoursLu } from "@/lib/utilisateurs/types";
 
 vi.mock("next/link", () => ({
@@ -54,6 +60,7 @@ const OUVERT: SignalementLu = {
   signale_par: "@coursier_cl",
   examen: null,
   recours: null,
+  contexte: null,
 };
 const EXAMINE: SignalementLu = {
   ...OUVERT,
@@ -245,5 +252,78 @@ describe("le registre des litiges", () => {
     expect(rien).not.toContain("/annonces/");
     expect(rien).not.toContain("/utilisateurs/");
     expect(rien).toContain("Annonce « Lampe de bureau vintage »");
+  });
+});
+
+describe("les signalements d'un live (20261002007000)", () => {
+  const LIVE = "ff000000-0000-4000-a000-00000000ee01";
+  const SUR_LIVE: SignalementLu = {
+    ...OUVERT,
+    raison: "harassment",
+    raison_libelle: "Harcèlement, insultes ou menaces",
+    explication: "L’hôte insulte un spectateur.",
+    contexte: { moment: "article", article_position: 2, article_titre: "Montre de collection", article_phase: "propositions" },
+  };
+
+  it("chaque signalement dit le moment du live — un live ne se revoit pas", () => {
+    const b = renderToStaticMarkup(
+      <BlocSignalements genre="live" cible={LIVE} s={{ ...LU, signalements: [SUR_LIVE] }} />,
+    );
+    expect(b).toContain("Pendant l’article 2 « Montre de collection » · offres");
+    expect(b).toContain("« L’hôte insulte un spectateur. »");
+    // Ce qui n'est pas un live n'a pas de moment.
+    expect(rendre(LU)).not.toContain("Pendant l’");
+  });
+
+  it("le moment se dit à chaque étape ; la mesure et la fiche sont celles d'un live", () => {
+    const c = { article_position: null, article_titre: null, article_phase: null };
+    expect([
+      momentLive({ ...c, moment: "attente" }),
+      momentLive({ ...c, moment: "intro" }),
+      momentLive({ ...c, moment: "conclusion" }),
+      momentLive({ ...c, moment: "termine" }),
+      momentLive({ moment: "article", article_position: 1, article_titre: null, article_phase: "choix" }),
+    ]).toEqual([
+      "Avant le direct",
+      "Pendant l’introduction",
+      "Pendant la conclusion",
+      "Après la fin du live",
+      "Pendant l’article 1 · choix du vendeur",
+    ]);
+    expect(MESURE_DITE.live).toBe("retirer un article, arrêter la diffusion, sanctionner l’hôte");
+    expect([cheminCible("live", LIVE), cheminCible("annonce", CIBLE), cheminCible("utilisateur", COMPTE)]).toEqual([
+      `/live-shopping/${LIVE}`,
+      `/annonces/${CIBLE}`,
+      `/utilisateurs/${COMPTE}`,
+    ]);
+  });
+
+  it("le registre des litiges range le signalement d'un live — sa fiche s'ouvre avec la permission des lives", () => {
+    const ligneLive: Signalement = {
+      genre: "signalement_live",
+      id: "52000000-0000-4000-a000-000000000009",
+      motif: "comportement",
+      motif_libelle: "Comportement",
+      motif_qualifie: false,
+      titre: "Harcèlement, insultes ou menaces",
+      etat: "a_examiner",
+      ouvert: true,
+      ouvert_le: "2026-10-02T20:00:00Z",
+      commande_id: null,
+      reference: "Montres de collection en direct",
+      participants: "Signalé par un_cl · live de hote_cl",
+      cible: LIVE,
+      est_test: false,
+    };
+    const avec = renderToStaticMarkup(
+      <ListeSignalements signalements={[ligneLive]} motifs={[]} peutInstruire peutOuvrirLive />,
+    );
+    expect(avec).toContain("Signalement d’un live");
+    expect(avec).toContain(`href="/live-shopping/${LIVE}"`);
+    expect(avec).toContain("« Montres de collection en direct »");
+    expect(avec).toContain(`data-requalifier="signalement_live:${ligneLive.id}"`);
+    const sans = renderToStaticMarkup(<ListeSignalements signalements={[ligneLive]} motifs={[]} peutInstruire={false} />);
+    expect(sans).not.toContain("/live-shopping/");
+    expect(sans).toContain("Live « Montres de collection en direct »");
   });
 });

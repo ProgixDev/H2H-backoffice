@@ -4,6 +4,7 @@ import Link from "next/link";
 import { StatutPastille } from "@/components/bo/StatutPastille";
 import { cheminAnnonce } from "@/lib/annonces/types";
 import { dateHeure } from "@/lib/dates";
+import { cheminLive } from "@/lib/lives/types";
 import {
   LIBELLE_ETAT_SIGNALEMENT,
   LIBELLE_GENRE,
@@ -15,10 +16,11 @@ import { cheminCompte } from "@/lib/utilisateurs/types";
 import { BoutonRequalifier } from "./GestesDossier";
 
 /** Ce qu'un signalement vise, et la fiche où il s'examine — quand l'équipier peut l'ouvrir. */
-function Cible({ s, peutOuvrirAnnonce, peutOuvrirCompte }: {
+function Cible({ s, peutOuvrirAnnonce, peutOuvrirCompte, peutOuvrirLive }: {
   s: Signalement;
   peutOuvrirAnnonce: boolean;
   peutOuvrirCompte: boolean;
+  peutOuvrirLive: boolean;
 }) {
   if (s.genre === "signalement_utilisateur") {
     return s.cible && peutOuvrirCompte ? (
@@ -26,6 +28,21 @@ function Cible({ s, peutOuvrirAnnonce, peutOuvrirCompte }: {
         Ouvrir le compte signalé
       </Link>
     ) : null;
+  }
+  // Un live (20261002007000) : ses signalements s'examinent sur sa fiche, avec la permission des lives.
+  if (s.genre === "signalement_live") {
+    return (
+      <span className="text-corps">
+        Live{" "}
+        {s.cible && peutOuvrirLive ? (
+          <Link href={cheminLive(s.cible)} className="font-medium text-h2h-primary hover:underline">
+            « {s.reference ?? "sans titre"} »
+          </Link>
+        ) : (
+          `« ${s.reference ?? "supprimé"} »`
+        )}
+      </span>
+    );
   }
   if (s.genre !== "signalement_annonce" && s.genre !== "signalement_recherche") return null;
   const quoi = s.genre === "signalement_annonce" ? "Annonce" : "Recherche";
@@ -50,7 +67,7 @@ function Cible({ s, peutOuvrirAnnonce, peutOuvrirCompte }: {
  *
  * ⚠️ LEUR TRAITEMENT A SA PLACE : un incident se tranche avec la phase 4
  * (H2H Logistic) ; un signalement s'examine sur la fiche de ce qu'il vise —
- * l'annonce, la recherche, le compte. Ici, on les voit, on dit où en est chaque
+ * l'annonce, la recherche, le compte, le live. Ici, on les voit, on dit où en est chaque
  * signalement, on ouvre ce qu'il vise ou l'achat d'un incident, et on les range.
  */
 export function ListeSignalements({
@@ -59,6 +76,7 @@ export function ListeSignalements({
   peutInstruire,
   peutOuvrirAnnonce = false,
   peutOuvrirCompte = false,
+  peutOuvrirLive = false,
 }: {
   signalements: Signalement[];
   motifs: CompteMotif[];
@@ -67,6 +85,8 @@ export function ListeSignalements({
   peutOuvrirAnnonce?: boolean;
   /** `utilisateurs.lire` : le compte signalé s'ouvre, et ses signalements s'y examinent. */
   peutOuvrirCompte?: boolean;
+  /** `live.lire` : le live signalé s'ouvre, et ses signalements s'y examinent. */
+  peutOuvrirLive?: boolean;
 }) {
   if (signalements.length === 0) {
     return <p className="text-corps text-muted-foreground">Aucun incident ni signalement sous ce motif.</p>;
@@ -95,7 +115,12 @@ export function ListeSignalements({
                   </Link>
                 </span>
               )}
-              <Cible s={s} peutOuvrirAnnonce={peutOuvrirAnnonce} peutOuvrirCompte={peutOuvrirCompte} />
+              <Cible
+                s={s}
+                peutOuvrirAnnonce={peutOuvrirAnnonce}
+                peutOuvrirCompte={peutOuvrirCompte}
+                peutOuvrirLive={peutOuvrirLive}
+              />
             </div>
             {peutInstruire && <BoutonRequalifier genre={s.genre} objet={s.id} motifs={motifs} actuel={s.motif} />}
           </div>

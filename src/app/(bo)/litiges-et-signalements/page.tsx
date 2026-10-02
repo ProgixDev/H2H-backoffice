@@ -85,6 +85,7 @@ export default async function PageLitiges({
               peutInstruire={peut(moi, "litiges.instruire")}
               peutOuvrirAnnonce={peut(moi, "annonces.lire")}
               peutOuvrirCompte={peut(moi, "utilisateurs.lire")}
+              peutOuvrirLive={peut(moi, "live.lire")}
             />
           </section>
         </>

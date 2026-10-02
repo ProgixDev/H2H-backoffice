@@ -35,6 +35,7 @@ import {
   type Priorite,
 } from "@/lib/dossiers/types";
 import { cheminAnnonce } from "@/lib/annonces/types";
+import { cheminLive } from "@/lib/lives/types";
 import { cheminFiche } from "@/lib/operations/types";
 import { cheminCompte } from "@/lib/utilisateurs/types";
 import { TON_CATEGORIE, TON_PRIORITE } from "./tons";
@@ -178,15 +179,22 @@ export function FicheDossier({
                   {d.escalade_vers ? ` · escaladé vers ${LIBELLE_EQUIPE[d.escalade_vers] ?? d.escalade_vers}` : ""}
                   {" · "}Responsable : {d.responsable_nom ?? "personne"}
                 </p>
-                {d.objet_table && OPERATIONS.includes(d.objet_table) && d.objet_ref && (
+                {/* ⚠️ PAS POUR UN RECOURS : sa référence est celle du recours (REC-…), pas celle d'une
+                    opération — même quand il porte un live (20261002007000). */}
+                {d.source !== "recours" && d.objet_table && OPERATIONS.includes(d.objet_table) && d.objet_ref && (
                   <Link href={cheminFiche(d.objet_ref)} className="text-legende font-semibold text-h2h-primary">
                     Ouvrir la fiche complète de l’opération
                   </Link>
                 )}
                 {/* Un recours s'examine là où est la décision contestée : le dossier porte le compte
-                    (une sanction) ou l'annonce (une décision de modération). */}
+                    (une sanction) ou l'annonce (une décision de modération) — ou le live dont les
+                    signalements ont été jugés non fondés (20261002007000). */}
                 {d.source === "recours" && d.objet_id && (
-                  d.objet_table === "products" || d.objet_table === "je_cherche_demandes" ? (
+                  d.objet_table === "live_sessions" ? (
+                    <Link href={cheminLive(d.objet_id)} className="text-legende font-semibold text-h2h-primary">
+                      Examiner le recours sur la fiche du live
+                    </Link>
+                  ) : d.objet_table === "products" || d.objet_table === "je_cherche_demandes" ? (
                     <Link href={cheminAnnonce(d.objet_id)} className="text-legende font-semibold text-h2h-primary">
                       Examiner le recours sur la fiche de {d.objet_table === "products" ? "l’annonce" : "la recherche"}
                     </Link>
@@ -214,13 +222,16 @@ export function FicheDossier({
                     Ouvrir la fiche du compte
                   </Link>
                 )}
-                {/* Des signalements s'examinent sur la fiche de ce qu'ils visent : l'annonce, la recherche, le compte. */}
+                {/* Des signalements s'examinent sur la fiche de ce qu'ils visent : l'annonce, la recherche, le compte,
+                    le live (20261002007000). */}
                 {d.source === "signalement" && d.objet_id && (
                   <Link
                     href={
                       d.objet_table === "products" || d.objet_table === "je_cherche_demandes"
                         ? cheminAnnonce(d.objet_id)
-                        : cheminCompte(d.objet_id)
+                        : d.objet_table === "live_sessions"
+                          ? cheminLive(d.objet_id)
+                          : cheminCompte(d.objet_id)
                     }
                     className="text-legende font-semibold text-h2h-primary"
                   >
@@ -229,7 +240,9 @@ export function FicheDossier({
                       ? "de l’annonce"
                       : d.objet_table === "je_cherche_demandes"
                         ? "de la recherche"
-                        : "du compte"}
+                        : d.objet_table === "live_sessions"
+                          ? "du live"
+                          : "du compte"}
                   </Link>
                 )}
               </Bloc>
