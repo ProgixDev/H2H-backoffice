@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@27e6d7c : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@d96b7ba : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261003001000_un_avis_se_modere.sql
+// Base : 20261003002000_un_document_se_publie.sql
 
 export type Json =
   | string
@@ -8480,6 +8480,31 @@ export type Database = {
           ville: string
         }[]
       }
+      bo_document_annuler: {
+        Args: {
+          p_cle: string
+          p_code: string
+          p_motif: string
+          p_version: string
+        }
+        Returns: Json
+      }
+      bo_document_demander: {
+        Args: {
+          p_application: string
+          p_cle: string
+          p_code: string
+          p_effet: string
+          p_empreinte: string
+          p_motif: string
+          p_obligatoire: boolean
+          p_titre: string
+          p_url: string
+          p_version: string
+        }
+        Returns: Json
+      }
+      bo_documents_lire: { Args: never; Returns: Json }
       bo_dossier_attribuer: {
         Args: {
           p_cle: string

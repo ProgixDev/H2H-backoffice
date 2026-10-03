@@ -1,9 +1,81 @@
 import type { Metadata } from "next";
-import { PageRubrique } from "@/components/bo/PageRubrique";
+import Link from "next/link";
+import { cn } from "cn";
+import { AccesRefuse, equipierPourRubrique } from "@/components/bo/PageRubrique";
+import { LectureEchouee } from "@/components/bo/LectureEchouee";
+import { ListeTextes } from "@/components/documents/ListeTextes";
+import { lireDocuments } from "@/lib/documents/lectures";
+import type { Texte } from "@/lib/documents/types";
 import { rubriqueObligatoire } from "@/lib/navigation";
 
-export const metadata: Metadata = { title: rubriqueObligatoire("/documents-et-parametres").titre };
+const rubrique = rubriqueObligatoire("/documents-et-parametres");
+export const metadata: Metadata = { title: rubrique.titre };
 
-export default function Page() {
-  return <PageRubrique chemin="/documents-et-parametres" animation="vault-shield" />;
+type Onglet = "documents" | "notifications" | "parametres";
+
+/**
+ * Documents et paramètres (§20).
+ *
+ * - Documents (R20.1, R20.2) : chaque texte, ses versions, les acceptations ; publier
+ *   une version, à deux clés ; annuler une version programmée.
+ * - Notifications (R20.5, R20.6) : le renvoi arrive avec la tranche suivante.
+ * - Paramètres (R20.3, R20.4) : les applications recopient encore ces réglages ; ils se
+ *   changeront d'ici quand elles les liront du serveur — sinon l'écran annoncerait un
+ *   délai ou un tarif que la base n'applique pas.
+ */
+export default async function PageDocumentsEtParametres({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const moi = await equipierPourRubrique(rubrique);
+  if (!moi) return <AccesRefuse rubrique={rubrique} />;
+
+  const p = await searchParams;
+  const onglet: Onglet = p.onglet === "notifications" || p.onglet === "parametres" ? p.onglet : "documents";
+  const onglets: { id: Onglet; libelle: string }[] = [
+    { id: "documents", libelle: "Documents" },
+    { id: "notifications", libelle: "Notifications" },
+    { id: "parametres", libelle: "Paramètres" },
+  ];
+
+  // On LIT dans le try, on construit l'écran après (règle `react-hooks/error-boundaries`).
+  let textes: Texte[] | null = null;
+  if (onglet === "documents") {
+    try {
+      textes = await lireDocuments();
+    } catch {
+      textes = null;
+    }
+  }
+
+  return (
+    <div className="mx-auto grid max-w-7xl gap-6">
+      <p className="max-w-4xl text-corps text-muted-foreground">
+        {onglet === "documents"
+          ? "Chaque texte que les personnes acceptent — CGU, conditions de vente, confidentialité — et ceux qui se versionnent seulement. Une version publiée ne change plus ; chaque acceptation dit laquelle, et quand. Publier demande une seconde validation de la Direction."
+          : onglet === "notifications"
+            ? "Le suivi de chaque notification — prévue, envoyée, distribuée, échouée, consultée — se lit dans Activité en direct. Renvoyer une notification arrive avec la tranche suivante : une nouvelle tentative sur la même notification, sans jamais faire repartir une échéance."
+            : "Les délais de réclamation, les frais et la commission, les règles des rendez-vous de co-livraison se publient déjà par versions, jamais rétroactives. Mais les applications en recopient encore les valeurs dans leurs calculs et leurs textes : changer un réglage d’ici leur ferait annoncer un délai ou un tarif que la base n’applique pas. Ils se changeront d’ici quand les applications les liront du serveur."}
+      </p>
+      <nav className="flex gap-1 border-b" aria-label="Onglets">
+        {onglets.map((o) => (
+          <Link
+            key={o.id}
+            href={`/documents-et-parametres?onglet=${o.id}`}
+            className={cn(
+              "-mb-px border-b-2 px-3 py-2 text-corps font-medium transition-colors",
+              o.id === onglet
+                ? "border-h2h-primary text-h2h-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {o.libelle}
+          </Link>
+        ))}
+      </nav>
+      {onglet === "documents" &&
+        (textes === null ? <LectureEchouee /> : <ListeTextes textes={textes} />)}
+    </div>
+  );
 }

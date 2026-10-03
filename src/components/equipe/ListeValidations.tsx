@@ -24,6 +24,35 @@ function detail(v: Validation): string {
 }
 
 /**
+ * Une version d'un texte (`documents.publier`) : ce que la seconde personne relit avant de
+ * valider — l'adresse, l'empreinte, la date d'effet, et si elle se fera accepter.
+ */
+function VersionDemandee({ v }: { v: Validation }) {
+  const p = v.parametres as {
+    url?: string;
+    empreinte?: string;
+    effet?: string | null;
+    obligatoire?: boolean;
+    titre?: string;
+  };
+  if (v.action !== "documents.publier" || !p.url) return null;
+  return (
+    <div className="grid gap-0.5 text-legende">
+      <span>« {p.titre} » — {p.effet ? `en vigueur le ${quand(p.effet)}` : "en vigueur dès la validation"}</span>
+      <a href={p.url} target="_blank" rel="noreferrer" className="break-all text-h2h-primary hover:underline">
+        {p.url}
+      </a>
+      <code className="break-all text-muted-foreground">sha-256 {p.empreinte}</code>
+      {p.obligatoire && (
+        <span className="font-semibold text-[#B45309]">
+          Chaque personne devra l’accepter à sa prochaine ouverture de l’application.
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
  * Les demandes qui attendent une seconde clé.
  *
  * ⚠️ LE DEMANDEUR VOIT SA DEMANDE, IL NE LA TRANCHE PAS. `peut_decider` vient
@@ -56,6 +85,7 @@ export function ListeValidations({ validations }: { validations: Validation[] })
                 {v.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
               </div>
               {v.cible && <span className="text-corps">{v.cible}</span>}
+              <VersionDemandee v={v} />
               <span className="text-legende text-muted-foreground">
                 Demandé par {v.demandeur_email ?? "—"} le {quand(v.demande_le)} · « {v.motif} »
               </span>
