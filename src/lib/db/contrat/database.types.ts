@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@d96b7ba : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@5cd46b3 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261003002000_un_document_se_publie.sql
+// Base : 20261003003000_une_notification_se_renvoie.sql
 
 export type Json =
   | string
@@ -8931,6 +8931,10 @@ export type Database = {
         }
       }
       bo_moi: { Args: never; Returns: Json }
+      bo_notification_renvoyer: {
+        Args: { p_cle: string; p_motif: string; p_notification: string }
+        Returns: Json
+      }
       bo_notifications_lister: {
         Args: { p_filtre?: string; p_inclure_test?: boolean }
         Returns: {
@@ -8950,6 +8954,9 @@ export type Database = {
           push_erreur: string
           push_statut: string
           push_tentatives: number
+          renvoi_possible: boolean
+          renvoi_raison: string
+          renvois: number
           titre: string
           type: string
         }[]

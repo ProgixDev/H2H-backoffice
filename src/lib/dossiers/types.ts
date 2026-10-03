@@ -88,7 +88,8 @@ export const CLOTURE_AUTOMATIQUE: Record<Exclude<Dossier["source"], "manuel" | "
   operation: "Ce dossier se clôt tout seul quand l’opération n’attend plus l’équipe.",
   tache: "Ce dossier se clôt tout seul quand le travail tourne de nouveau normalement.",
   echeance: "Ce dossier se clôt tout seul quand l’échéance est exécutée.",
-  notification: "Ce dossier se clôt tout seul dès que l’avis est lu, ou remis.",
+  notification:
+    "Ce dossier se clôt tout seul dès que l’avis est lu, remis ou renvoyé — un push se renvoie depuis Documents et paramètres › Notifications (« Non parvenues »). S’il échoue encore, le dossier se rouvre.",
   rapprochement:
     "Ce dossier se clôt tout seul quand l’écart disparaît d’un rapprochement suivant, ou quand la Finance l’explique (Paiements et comptabilité › Rapprochement).",
   recours:

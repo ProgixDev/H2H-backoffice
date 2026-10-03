@@ -174,6 +174,14 @@ export type NotificationSuivie = {
   objet_id: string | null;
   objet_ref: string | null;
   est_test: boolean;
+  /** Les renvois de l'équipe (trois au plus) ; null pour un avis retenu par une préférence. */
+  renvois: number | null;
+  /**
+   * La base dit si le push se renvoie, sinon pourquoi (`app.notification_renvoi_empeche`,
+   * migration 20261003003000) — la même règle que le geste.
+   */
+  renvoi_possible: boolean;
+  renvoi_raison: string | null;
 };
 
 export type ReponseNotifications = { notifications: NotificationSuivie[] };

@@ -73,3 +73,15 @@ export async function listerNotifications(
     p_inclure_test: inclureTest,
   });
 }
+
+/**
+ * La même liste, et l'heure de sa lecture : un écran rendu sur le serveur y cale ses
+ * « il y a », que le navigateur redit à l'identique.
+ */
+export async function listerNotificationsLues(
+  filtre: FiltreNotifications | null,
+  inclureTest: boolean,
+): Promise<{ liste: NotificationSuivie[]; lu: number }> {
+  const liste = await listerNotifications(filtre, inclureTest);
+  return { liste, lu: Date.now() };
+}

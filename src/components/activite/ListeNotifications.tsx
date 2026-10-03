@@ -8,6 +8,7 @@ import {
   type NotificationSuivie,
 } from "@/lib/activite/types";
 import { cheminFiche } from "@/lib/operations/types";
+import { GesteRenvoi } from "./GesteRenvoi";
 
 // ⚠️ UNE ISSUE DÉFAVORABLE N'EST JAMAIS VERTE : seule la lecture l'est.
 const ETAT: Record<EtatNotification, { ton: Ton; libelle: string }> = {
@@ -75,6 +76,7 @@ function remise(n: NotificationSuivie, maintenant: number): string {
     PUSH[n.push_statut] + (n.push_erreur ? ` — ${n.push_erreur}` : ""),
     n.push_tentatives ? pluriel(n.push_tentatives, "tentative") : null,
     n.push_appareils ? pluriel(n.push_appareils, "appareil") : null,
+    n.renvois ? `renvoyée ${n.renvois} fois par l’équipe` : null,
     n.consultee_le ? `lue ${dateCourte(n.consultee_le, maintenant)}` : n.etat === "consultee" ? "lue" : "non lue",
   ]
     .filter(Boolean)
@@ -88,17 +90,23 @@ function remise(n: NotificationSuivie, maintenant: number): string {
  * 🔴 UN AVIS OBLIGATOIRE QUE PERSONNE N'A REÇU remonte dans « À traiter » (R7.3) :
  * la liste le dit, le dossier s'y traite. Et ni le contenu d'un avis, ni les
  * messages entre utilisateurs : la base ne les rend pas.
+ *
+ * « Renvoyer » (R20.6) quand la base le permet ; sinon, pour un avis qui n'est
+ * pas arrivé, sa raison.
  */
 export function ListeNotifications({
   notifications,
   filtre,
   surFiltre,
   maintenant,
+  surRenvoi,
 }: {
   notifications: NotificationSuivie[];
   filtre: FiltreNotifications | null;
   surFiltre: (f: FiltreNotifications | null) => void;
   maintenant: number;
+  /** Relire la liste après un renvoi (Activité en direct la relit elle-même). */
+  surRenvoi?: () => void;
 }) {
   return (
     <div className="grid gap-4">
@@ -159,14 +167,24 @@ export function ListeNotifications({
                   </span>
                 )}
               </span>
-              {n.objet_ref && n.objet_table && (
-                <Link
-                  href={cheminFiche(n.objet_ref, "chronologie")}
-                  className="self-center text-legende font-semibold text-h2h-primary tabular-nums"
-                >
-                  {n.objet_ref} →
-                </Link>
-              )}
+              <span className="flex flex-wrap items-center gap-3 self-center md:justify-end">
+                {n.renvoi_possible ? (
+                  <GesteRenvoi notification={n} surRenvoi={surRenvoi} />
+                ) : (
+                  (n.etat === "echec" || n.non_parvenue) &&
+                  n.renvoi_raison && (
+                    <span className="max-w-xs text-legende text-muted-foreground">{n.renvoi_raison}</span>
+                  )
+                )}
+                {n.objet_ref && n.objet_table && (
+                  <Link
+                    href={cheminFiche(n.objet_ref, "chronologie")}
+                    className="text-legende font-semibold text-h2h-primary tabular-nums"
+                  >
+                    {n.objet_ref} →
+                  </Link>
+                )}
+              </span>
             </li>
           ))}
         </ul>

@@ -365,6 +365,7 @@ export function ActiviteEnDirect({ initial, initialCle, peutInclureTest, peutTra
             filtre={f.avis}
             surFiltre={(avis) => setF({ avis })}
             maintenant={maintenantLocal}
+            surRenvoi={() => void lesNotifications.refetch()}
           />
         )
       ) : f.vue === "taches" ? (
