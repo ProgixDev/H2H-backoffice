@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@6657aa6 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@fd1c7e8 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261004005000_une_option_se_lit_et_s_arrete.sql
+// Base : 20261004006000_une_facture_d_essai_a_sa_serie.sql
 
 export type Json =
   | string
@@ -1152,6 +1152,21 @@ export type Database = {
         ]
       }
       credit_note_counters: {
+        Row: {
+          annee: number
+          dernier: number
+        }
+        Insert: {
+          annee: number
+          dernier?: number
+        }
+        Update: {
+          annee?: number
+          dernier?: number
+        }
+        Relationships: []
+      }
+      credit_note_counters_test: {
         Row: {
           annee: number
           dernier: number
@@ -2390,6 +2405,21 @@ export type Database = {
         ]
       }
       invoice_counters: {
+        Row: {
+          annee: number
+          dernier: number
+        }
+        Insert: {
+          annee: number
+          dernier?: number
+        }
+        Update: {
+          annee?: number
+          dernier?: number
+        }
+        Relationships: []
+      }
+      invoice_counters_test: {
         Row: {
           annee: number
           dernier: number
