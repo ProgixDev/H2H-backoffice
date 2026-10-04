@@ -107,8 +107,12 @@ const FICHE: FicheAnnonce = {
   visibilite: {
     mise_en_avant: true, urgent_jusqu_au: null,
     remontees: [
-      { option: "bump", active: true, prix_cents: 199, depuis: "2026-09-29T10:00:00Z", jusqu_a: "2026-10-01T10:00:00Z" },
-      { option: "daily7", active: false, prix_cents: 499, depuis: "2026-09-01T10:00:00Z", jusqu_a: "2026-09-08T10:00:00Z" },
+      { id: "0b000000-0000-4000-a000-0000000000b1", option: "bump", active: true, etat: "en_cours", fin_motif: null,
+        prix_cents: 199, depuis: "2026-09-29T10:00:00Z", jusqu_a: "2026-10-01T10:00:00Z" },
+      { id: "0b000000-0000-4000-a000-0000000000b2", option: "daily7", active: false, etat: "en_pause", fin_motif: null,
+        prix_cents: 499, depuis: "2026-09-01T10:00:00Z", jusqu_a: "2026-09-08T10:00:00Z" },
+      { id: "0b000000-0000-4000-a000-0000000000b3", option: "urgent", active: false, etat: "terminee", fin_motif: "vendue",
+        prix_cents: 99, depuis: "2026-08-01T10:00:00Z", jusqu_a: "2026-08-02T10:00:00Z" },
     ],
     options: [{ genre: "photo_pack", valeur: "pack10", prix_cents: 99, achetee_le: "2026-09-29T08:00:00Z", appliquee_le: null }],
   },
@@ -283,7 +287,13 @@ describe("la fiche d'une annonce", () => {
     expect(f).toContain("Gratuite");
     expect(f).toContain("Remontée");
     expect(f).toContain("Remontée quotidienne · 7 jours");
-    expect(f).toContain("Terminée");
+    // L'état que la base dit (20261004005000) : une option en pause n'est pas terminée ; un arrêt se dit.
+    expect(f).toContain("En pause");
+    expect(f).toContain("Terminée — arrêtée par la vente");
+    // Chaque option ouvre sa fiche, pour qui lit les options — et pour lui seul.
+    expect(f).not.toContain('href="/visibilite-et-publicite/');
+    const avecLien = renderToStaticMarkup(<FicheAnnonceVue signalements={SANS_SIGNALEMENT} f={FICHE} lienOption />);
+    expect(avecLien).toContain('href="/visibilite-et-publicite/0b000000-0000-4000-a000-0000000000b2"');
     expect(f).toContain("Pack de photos");
     // Les signalements se lisent à part (`bo_signalements_cible`) : la fiche passe sa cible, et compte ce qui est lu.
     expect(un).toContain(`data-signalements="annonce:${ID}:1"`);

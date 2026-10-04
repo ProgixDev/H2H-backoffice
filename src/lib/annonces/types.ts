@@ -279,11 +279,17 @@ export type Auteur = {
   publication_restreinte: boolean;
 };
 
+/** Une option de visibilité de l'annonce ou de la demande (20261004005000 : son identifiant, son état). */
 export type Remontee = {
+  id: string;
   option: E["visibility_option"];
   active: boolean;
+  etat: "reservee" | "en_cours" | "en_pause" | "terminee";
+  fin_motif: string | null;
   prix_cents: number;
+  /** Le début : l'activation, à défaut la réservation. */
   depuis: string;
+  /** La fin : effective, à défaut prévue. */
   jusqu_a: string | null;
 };
 

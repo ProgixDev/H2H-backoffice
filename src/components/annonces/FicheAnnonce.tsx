@@ -42,6 +42,7 @@ import {
 import { SignalementsLus } from "@/components/signalements/BlocSignalements";
 import type { SignalementsCible } from "@/lib/signalements/types";
 import { cheminCompte, type RecoursLu } from "@/lib/utilisateurs/types";
+import { cheminOption, LIBELLE_FIN_OPTION } from "@/lib/visibilite/types";
 
 const libelle = (table: Record<string, string>, code: string | null | undefined) =>
   code ? (table[code] ?? code) : null;
@@ -106,19 +107,47 @@ function AuteurBloc({ a, droits, role }: { a: Auteur; droits: Droits; role: stri
   );
 }
 
-function Remontees({ remontees }: { remontees: Remontee[] }) {
+/** L'état d'une option, tel que la base le dit (20261004005000) : une option en pause n'est pas terminée. */
+function EtatRemontee({ r }: { r: Remontee }) {
+  switch (r.etat) {
+    case "en_cours":
+      return <StatutPastille ton="actif">En cours</StatutPastille>;
+    case "en_pause":
+      return <StatutPastille ton="attention">En pause</StatutPastille>;
+    case "reservee":
+      return <StatutPastille ton="neutre">Réservée</StatutPastille>;
+    default:
+      return (
+        <StatutPastille ton={r.fin_motif === "arretee" ? "erreur" : "muet"}>
+          Terminée{r.fin_motif ? ` — ${LIBELLE_FIN_OPTION[r.fin_motif] ?? r.fin_motif}` : ""}
+        </StatutPastille>
+      );
+  }
+}
+
+function Remontees({ remontees, lienOption }: { remontees: Remontee[]; lienOption: boolean }) {
   if (remontees.length === 0) return <Aucun>Aucune remontée achetée.</Aucun>;
   return (
     <Tableau entetes={["Option", "Depuis", "Jusqu’au", "Prix", "État"]}>
       {remontees.map((r, i) => (
         <tr key={`${r.option}:${r.depuis}:${i}`}>
-          <td className="font-medium">{LIBELLE_OPTION_VISIBILITE[r.option] ?? r.option}</td>
+          <td className="font-medium">
+            {lienOption ? (
+              <Link href={cheminOption(r.id)} className="text-h2h-primary hover:underline">
+                {LIBELLE_OPTION_VISIBILITE[r.option] ?? r.option}
+              </Link>
+            ) : (
+              (LIBELLE_OPTION_VISIBILITE[r.option] ?? r.option)
+            )}
+          </td>
           <td className="whitespace-nowrap tabular-nums">{dateHeure(r.depuis)}</td>
           <td className="whitespace-nowrap tabular-nums">{r.jusqu_a ? dateHeure(r.jusqu_a) : "—"}</td>
           <td className="whitespace-nowrap">
             <Montant cents={r.prix_cents} />
           </td>
-          <td>{r.active ? <StatutPastille ton="actif">En cours</StatutPastille> : <StatutPastille ton="muet">Terminée</StatutPastille>}</td>
+          <td>
+            <EtatRemontee r={r} />
+          </td>
         </tr>
       ))}
     </Tableau>
@@ -251,7 +280,11 @@ function BlocModeration({ id, nature, m }: { id: string; nature: NatureAnnonce; 
   );
 }
 
-function Annonce({ f, signalements }: { f: FicheAnnonce; signalements: SignalementsCible | null }) {
+function Annonce({ f, signalements, lienOption }: {
+  f: FicheAnnonce;
+  signalements: SignalementsCible | null;
+  lienOption: boolean;
+}) {
   const a = f.annonce;
   const e = f.eligibilite;
   const typeDit = a.mode === "exchange" ? LIBELLE_MODE.exchange : (LIBELLE_TYPE_ANNONCE[a.type] ?? a.type);
@@ -471,7 +504,7 @@ function Annonce({ f, signalements }: { f: FicheAnnonce; signalements: Signaleme
       </Bloc>
 
       <Bloc titre="Visibilité achetée">
-        <Remontees remontees={f.visibilite.remontees} />
+        <Remontees remontees={f.visibilite.remontees} lienOption={lienOption} />
         {f.visibilite.urgent_jusqu_au && (
           <p className="text-corps">Badge « Urgent » jusqu’au {dateHeure(f.visibilite.urgent_jusqu_au)}</p>
         )}
@@ -499,7 +532,11 @@ function Annonce({ f, signalements }: { f: FicheAnnonce; signalements: Signaleme
   );
 }
 
-function Recherche({ f, signalements }: { f: FicheRecherche; signalements: SignalementsCible | null }) {
+function Recherche({ f, signalements, lienOption }: {
+  f: FicheRecherche;
+  signalements: SignalementsCible | null;
+  lienOption: boolean;
+}) {
   const r = f.recherche;
   return (
     <div className="grid gap-4">
@@ -591,7 +628,7 @@ function Recherche({ f, signalements }: { f: FicheRecherche; signalements: Signa
       </Bloc>
 
       <Bloc titre="Visibilité achetée">
-        <Remontees remontees={f.visibilite.remontees} />
+        <Remontees remontees={f.visibilite.remontees} lienOption={lienOption} />
         {f.visibilite.urgent_jusqu_au && (
           <p className="text-corps">Badge « Urgent » jusqu’au {jour(f.visibilite.urgent_jusqu_au)}</p>
         )}
@@ -609,10 +646,19 @@ function Recherche({ f, signalements }: { f: FicheRecherche; signalements: Signa
  * laquelle, et ce que l'équipier peut ouvrir d'autre. Ses signalements se lisent
  * à part (`bo_signalements_cible`) : nuls, leur lecture a échoué.
  */
-export function FicheAnnonceVue({ f, signalements }: { f: Fiche; signalements: SignalementsCible | null }) {
+export function FicheAnnonceVue({
+  f,
+  signalements,
+  lienOption = false,
+}: {
+  f: Fiche;
+  signalements: SignalementsCible | null;
+  /** `visibilite.lire` : chaque option ouvre sa fiche. */
+  lienOption?: boolean;
+}) {
   return f.nature === "annonce" ? (
-    <Annonce f={f} signalements={signalements} />
+    <Annonce f={f} signalements={signalements} lienOption={lienOption} />
   ) : (
-    <Recherche f={f} signalements={signalements} />
+    <Recherche f={f} signalements={signalements} lienOption={lienOption} />
   );
 }

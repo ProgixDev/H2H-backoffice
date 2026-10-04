@@ -7,6 +7,7 @@ import { FicheAnnonceVue } from "@/components/annonces/FicheAnnonce";
 import { lireAnnonce } from "@/lib/annonces/lectures";
 import type { Fiche } from "@/lib/annonces/types";
 import { RefusBO } from "@/lib/db/rpc";
+import { peut } from "@/lib/equipe/types";
 import { rubriqueObligatoire } from "@/lib/navigation";
 import { lireSignalementsCible } from "@/lib/signalements/lectures";
 import type { SignalementsCible } from "@/lib/signalements/types";
@@ -59,7 +60,7 @@ export default async function PageAnnonce({ params }: { params: Promise<{ id: st
         {fiche?.nature === "recherche" ? "Je cherche" : "Annonces"}
       </Link>
       {fiche ? (
-        <FicheAnnonceVue f={fiche} signalements={signalements} />
+        <FicheAnnonceVue f={fiche} signalements={signalements} lienOption={peut(moi, "visibilite.lire")} />
       ) : introuvable ? (
         <LectureEchouee
           titre="Cette annonce est introuvable"

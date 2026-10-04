@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@4136598 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@6657aa6 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261004004000_un_paiement_de_service_se_conteste.sql
+// Base : 20261004005000_une_option_se_lit_et_s_arrete.sql
 
 export type Json =
   | string
@@ -9128,6 +9128,17 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      bo_option_arreter: {
+        Args: {
+          p_cle: string
+          p_message: string
+          p_motif: string
+          p_option: string
+          p_rembourser: boolean
+        }
+        Returns: Json
+      }
+      bo_option_lire: { Args: { p_option: string }; Returns: Json }
       bo_option_remboursement_lire: {
         Args: { p_boost?: string; p_dossier?: string; p_kind?: string }
         Returns: Json
@@ -9141,6 +9152,24 @@ export type Database = {
           p_motif: string
         }
         Returns: Json
+      }
+      bo_options_compteurs: {
+        Args: { p_inclure_test?: boolean; p_recherche?: string }
+        Returns: Json
+      }
+      bo_options_lister: {
+        Args: {
+          p_filtre?: string
+          p_inclure_test?: boolean
+          p_recherche?: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["bo_option"][]
+        SetofOptions: {
+          from: "*"
+          to: "bo_option"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       bo_ordre_annuler: {
         Args: { p_cle: string; p_motif: string; p_ordre: string }
@@ -12606,6 +12635,43 @@ export type Database = {
         paiement_en_attente: boolean | null
         est_test: boolean | null
         termine_le: string | null
+      }
+      bo_option: {
+        id: string | null
+        famille: string | null
+        ref: string | null
+        option: string | null
+        prix_cents: number | null
+        etat: string | null
+        fin_motif: string | null
+        reservee_le: string | null
+        active_depuis: string | null
+        fin_prevue: string | null
+        termine_le: string | null
+        cible_id: string | null
+        cible_titre: string | null
+        cible_statut: string | null
+        acheteur_id: string | null
+        acheteur: string | null
+        paiement_id: string | null
+        paiement_statut: string | null
+        paiement_reel: boolean | null
+        remontees_faites: number | null
+        remontees_prevues: number | null
+        remontees_manquees: number | null
+        pause_depuis: string | null
+        pause_cause: string | null
+        pauses: number | null
+        accord: string | null
+        retractation_ref: string | null
+        retractation_reste_cents: number | null
+        rembourser_avant: string | null
+        rembourse_cents: number | null
+        remboursement_statut: string | null
+        contestation: string | null
+        arrete_le: string | null
+        anomalies: string[] | null
+        est_test: boolean | null
       }
     }
   }

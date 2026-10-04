@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { HandCoins } from "lucide-react";
@@ -18,9 +19,11 @@ import { useGeste } from "@/lib/db/useGeste";
 import { centimes, euros, LIBELLE_STATUT_ORDRE, saisieEuros } from "@/lib/paiements/types";
 import { demanderRemboursementOption } from "@/lib/visibilite/actions";
 import {
+  cheminOption,
   LIBELLE_ETAT_OPTION,
   LIBELLE_OPTION,
   partEnMots,
+  type FamilleOption,
   type RemboursementOption as Lecture,
 } from "@/lib/visibilite/types";
 
@@ -29,6 +32,76 @@ function Ligne({ libelle, children }: { libelle: string; children: React.ReactNo
     <div className="flex flex-wrap justify-between gap-x-3 text-corps">
       <span className="text-muted-foreground">{libelle}</span>
       <span className="text-right font-medium">{children}</span>
+    </div>
+  );
+}
+
+/**
+ * La demande de remboursement d'une option : le montant (la suggestion de la
+ * base, modifiable dans ses bornes), un motif, puis la seconde clé.
+ *
+ * 🔴 LES BORNES VIENNENT DE LA BASE, ET ELLE LES REVÉRIFIE : jamais en deçà de ce
+ * qu'une rétractation impose, jamais au-delà de ce qui reste payé.
+ */
+export function FormulaireRemboursementOption({
+  famille,
+  boost,
+  suggestion,
+  minimum,
+  disponible,
+  surReussite,
+}: {
+  famille: FamilleOption;
+  boost: string;
+  suggestion: number;
+  minimum: number;
+  disponible: number;
+  surReussite?: () => void;
+}) {
+  const demander = useGeste(demanderRemboursementOption);
+  const [montant, setMontant] = useState<string | null>(null);
+  const [motif, setMotif] = useState("");
+
+  const saisie = montant ?? saisieEuros(suggestion);
+  const cents = centimes(saisie);
+  const valide = cents !== null && cents > 0 && cents >= minimum && cents <= disponible && motif.trim().length >= 5;
+
+  return (
+    <div className="grid gap-2">
+      <div className="grid gap-1.5">
+        <Label htmlFor={`montant-${boost}`}>Montant à rembourser (€)</Label>
+        <Input id={`montant-${boost}`} inputMode="decimal" value={saisie} onChange={(e) => setMontant(e.target.value)} />
+        <span className="text-legende text-muted-foreground">
+          Suggestion : {euros(suggestion)}
+          {minimum > 0 && ` · au moins ${euros(minimum)} (la rétractation)`} · au plus {euros(disponible)}
+        </span>
+      </div>
+      <Textarea
+        value={motif}
+        onChange={(e) => setMotif(e.target.value)}
+        rows={2}
+        placeholder="Motif — il reste interne, conservé au journal d’audit."
+        aria-label="Motif du remboursement"
+      />
+      <Button
+        size="sm"
+        className="w-fit"
+        disabled={!valide || demander.enCours}
+        onClick={async () => {
+          if (cents === null) return;
+          const res = await demander.lancer({ famille, boost, montant: cents, motif: motif.trim() }, "Remboursement demandé.");
+          if (res?.ok) {
+            toast.message("Soumis à validation", {
+              description: "Une seconde personne (Finance ou Direction) validera avant tout envoi à Stripe.",
+            });
+            setMontant(null);
+            setMotif("");
+            surReussite?.();
+          }
+        }}
+      >
+        <HandCoins /> {demander.enCours ? "Un instant…" : "Demander le remboursement"}
+      </Button>
     </div>
   );
 }
@@ -59,9 +132,6 @@ export function RemboursementOption({
     queryFn: ({ signal }) => lireActivite<Lecture>(new URLSearchParams({ dossier }), signal, "/api/options"),
     refetchInterval: 15_000,
   });
-  const demander = useGeste(demanderRemboursementOption);
-  const [montant, setMontant] = useState<string | null>(null);
-  const [motif, setMotif] = useState("");
 
   if (lecture.isError) {
     const e = lecture.error;
@@ -72,11 +142,6 @@ export function RemboursementOption({
   }
   const r = lecture.data;
   if (!r) return <Skeleton className="h-32" />;
-
-  const saisie = montant ?? saisieEuros(r.suggestion_cents);
-  const cents = centimes(saisie);
-  const valide = cents !== null && cents > 0 && cents >= r.minimum_cents && cents <= r.disponible_cents
-    && motif.trim().length >= 5;
 
   return (
     <div className="grid gap-3">
@@ -124,52 +189,23 @@ export function RemboursementOption({
       {!r.possible ? (
         <p className="text-legende text-muted-foreground">{r.raison}</p>
       ) : peutAgir ? (
-        <div className="grid gap-2">
-          <div className="grid gap-1.5">
-            <Label htmlFor={`montant-${dossier}`}>Montant à rembourser (€)</Label>
-            <Input
-              id={`montant-${dossier}`}
-              inputMode="decimal"
-              value={saisie}
-              onChange={(e) => setMontant(e.target.value)}
-            />
-            <span className="text-legende text-muted-foreground">
-              Suggestion : {euros(r.suggestion_cents)}
-              {r.minimum_cents > 0 && ` · au moins ${euros(r.minimum_cents)} (la rétractation)`} · au plus{" "}
-              {euros(r.disponible_cents)}
-            </span>
-          </div>
-          <Textarea
-            value={motif}
-            onChange={(e) => setMotif(e.target.value)}
-            rows={2}
-            placeholder="Motif — il reste interne, conservé au journal d’audit."
-            aria-label="Motif du remboursement"
-          />
-          <Button
-            size="sm"
-            disabled={!valide || demander.enCours}
-            onClick={async () => {
-              if (cents === null) return;
-              const res = await demander.lancer(
-                { famille: r.famille, boost: r.boost, montant: cents, motif: motif.trim() },
-                "Remboursement demandé.",
-              );
-              if (res?.ok) {
-                toast.message("Soumis à validation", {
-                  description: "Une seconde personne (Finance ou Direction) validera avant tout envoi à Stripe.",
-                });
-                setMontant(null);
-                setMotif("");
-                void client.invalidateQueries({ queryKey: ["remboursement-option", dossier] });
-                surGeste?.();
-              }
-            }}
-          >
-            <HandCoins /> {demander.enCours ? "Un instant…" : "Demander le remboursement"}
-          </Button>
-        </div>
+        <FormulaireRemboursementOption
+          famille={r.famille}
+          boost={r.boost}
+          suggestion={r.suggestion_cents}
+          minimum={r.minimum_cents}
+          disponible={r.disponible_cents}
+          surReussite={() => {
+            void client.invalidateQueries({ queryKey: ["remboursement-option", dossier] });
+            surGeste?.();
+          }}
+        />
       ) : null}
+
+      {/* Tout ce que l'option a vécu — ses remontées, ses pauses, l'accord, ses contestations — se lit sur sa fiche. */}
+      <Link href={cheminOption(r.boost)} className="text-legende font-semibold text-h2h-primary">
+        Ouvrir la fiche de l’option
+      </Link>
     </div>
   );
 }

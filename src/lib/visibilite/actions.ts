@@ -1,9 +1,9 @@
 "use server";
 
 import { geste } from "@/lib/db/geste";
-import type { FamilleOption } from "./types";
+import { cheminOption, type FamilleOption, type OptionArretee } from "./types";
 
-const CHEMINS = ["/a-traiter", "/paiements-et-comptabilite", "/equipe-et-audit"];
+const CHEMINS = ["/a-traiter", "/paiements-et-comptabilite", "/equipe-et-audit", "/visibilite-et-publicite"];
 
 /**
  * Demander le remboursement d'une option.
@@ -20,8 +20,30 @@ export async function demanderRemboursementOption(p: {
   cle: string;
 }) {
   return geste<{ ordre: string; ref: string; statut: string; montant_cents: number; validation: string | null }>(
-    CHEMINS,
+    [...CHEMINS, cheminOption(p.boost)],
     "bo_option_rembourser_demander",
     { p_kind: p.famille, p_boost: p.boost, p_montant_cents: p.montant, p_motif: p.motif, p_cle: p.cle },
+  );
+}
+
+/**
+ * Arrêter une option — identité reconfirmée. Elle s'arrête pour de bon ;
+ * l'acheteur reçoit le message, jamais le motif, qui reste au journal.
+ *
+ * 🔴 LE REMBOURSEMENT SE PROPOSE, IL NE PART PAS : la part non exécutée, que la
+ * base calcule, attend une seconde personne (Finance ou Direction) avant tout
+ * envoi à Stripe.
+ */
+export async function arreterOption(p: {
+  option: string;
+  message: string;
+  motif: string;
+  rembourser: boolean;
+  cle: string;
+}) {
+  return geste<OptionArretee>(
+    [...CHEMINS, cheminOption(p.option), "/annonces"],
+    "bo_option_arreter",
+    { p_option: p.option, p_message: p.message, p_motif: p.motif, p_rembourser: p.rembourser, p_cle: p.cle },
   );
 }
