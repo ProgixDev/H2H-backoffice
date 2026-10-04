@@ -222,6 +222,12 @@ export function FicheDossier({
                     Ouvrir la fiche du compte
                   </Link>
                 )}
+                {/* Une rétractation porte l'annonce (ou la recherche) dont l'option est arrêtée. */}
+                {d.source === "retractation" && d.objet_id && (
+                  <Link href={cheminAnnonce(d.objet_id)} className="text-legende font-semibold text-h2h-primary">
+                    Ouvrir la fiche de {d.objet_table === "je_cherche_demandes" ? "la recherche" : "l’annonce"}
+                  </Link>
+                )}
                 {/* Des signalements s'examinent sur la fiche de ce qu'ils visent : l'annonce, la recherche, le compte,
                     le live (20261002007000). */}
                 {d.source === "signalement" && d.objet_id && (

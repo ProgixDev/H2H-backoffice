@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@50f75ed : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@2211810 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261004001000_une_remontee_s_execute.sql
+// Base : 20261004002000_une_option_se_retracte.sql
 
 export type Json =
   | string
@@ -9676,6 +9676,7 @@ export type Database = {
         }
       }
       confirmer_reception: { Args: { p_order_id: string }; Returns: string }
+      consentement_option_en_vigueur: { Args: never; Returns: Json }
       constater_absence: {
         Args: { p_photo_path: string; p_shipment_id: string }
         Returns: string
@@ -10008,6 +10009,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      demander_retractation_option: {
+        Args: { p_boost: string; p_kind: string }
+        Returns: Json
       }
       deposer_avis: {
         Args: { p_commentaire?: string; p_note: number; p_order_id: string }
@@ -10378,6 +10383,10 @@ export type Database = {
         }[]
       }
       mes_moderations: { Args: never; Returns: Json }
+      mes_options_visibilite: {
+        Args: { p_cible: string; p_kind: string }
+        Returns: Json
+      }
       mes_participations: {
         Args: never
         Returns: {
@@ -11003,6 +11012,7 @@ export type Database = {
       }
       reserver_option_demande: {
         Args: {
+          p_consentement?: string
           p_demande_id: string
           p_option_id: Database["public"]["Enums"]["visibility_option"]
         }
@@ -11030,6 +11040,7 @@ export type Database = {
       }
       reserver_option_visibilite: {
         Args: {
+          p_consentement?: string
           p_option_id: Database["public"]["Enums"]["visibility_option"]
           p_product_id: string
         }
