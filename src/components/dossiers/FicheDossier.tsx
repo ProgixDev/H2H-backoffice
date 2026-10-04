@@ -223,6 +223,17 @@ export function FicheDossier({
                     Ouvrir la fiche du compte
                   </Link>
                 )}
+                {/* L'opposition bancaire d'un paiement de service porte ce qu'il a acheté : l'annonce, la
+                    recherche, le live. */}
+                {d.source === "contestation" && d.objet_id && (
+                  <Link
+                    href={d.objet_table === "live_sessions" ? cheminLive(d.objet_id) : cheminAnnonce(d.objet_id)}
+                    className="text-legende font-semibold text-h2h-primary"
+                  >
+                    Ouvrir la fiche {d.objet_table === "live_sessions" ? "du live"
+                      : d.objet_table === "je_cherche_demandes" ? "de la recherche" : "de l’annonce"}
+                  </Link>
+                )}
                 {/* Une rétractation porte l'annonce (ou la recherche) dont l'option est arrêtée. */}
                 {d.source === "retractation" && d.objet_id && (
                   <Link href={cheminAnnonce(d.objet_id)} className="text-legende font-semibold text-h2h-primary">

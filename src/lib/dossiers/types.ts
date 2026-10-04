@@ -52,7 +52,8 @@ export type Dossier = {
     | "signalement"
     | "support"
     | "verification_compte"
-    | "retractation";
+    | "retractation"
+    | "contestation";
   titre: string;
   motif: string | null;
   categorie: string;
@@ -103,6 +104,8 @@ export const CLOTURE_AUTOMATIQUE: Record<Exclude<Dossier["source"], "manuel" | "
     "Ce dossier se clôt tout seul quand l’équipe clôt la demande de vérification, sur la fiche du compte (Utilisateurs). La réponse de la personne arrive dans son fil avec le support.",
   retractation:
     "Ce dossier se clôturera tout seul quand le remboursement sera exécuté : le remboursement d’une option, et son avoir, arrivent avec la tranche suivante de Visibilité et publicité. La somme due et l’échéance légale sont dans le motif.",
+  contestation:
+    "Ce dossier se clôt tout seul avec l’issue de la contestation, que Stripe annonce : gagnée, la somme est rétablie ; perdue, la banque la garde. Les preuves se fournissent dans le tableau de bord Stripe, avant l’échéance du motif.",
   signalement:
     "Ce dossier se clôt tout seul quand plus aucun signalement n’attend : ils s’examinent sur la fiche de ce qu’ils visent — l’annonce, la recherche ou le compte. Un nouveau signalement le rouvre.",
 };
