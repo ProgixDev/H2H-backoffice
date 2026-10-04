@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@d0a1d6f : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@50f75ed : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261003005000_un_parametre_se_change.sql
+// Base : 20261004001000_une_remontee_s_execute.sql
 
 export type Json =
   | string
@@ -2447,36 +2447,48 @@ export type Database = {
       je_cherche_boosts: {
         Row: {
           active: boolean
+          active_depuis: string | null
           category_id: string | null
           created_at: string
           demande_id: string
           expires_at: string | null
+          fin_motif: string | null
           id: string
           option_id: Database["public"]["Enums"]["visibility_option"]
           payment_id: string | null
           price_cents: number
+          tarif: Json | null
+          termine_le: string | null
         }
         Insert: {
           active?: boolean
+          active_depuis?: string | null
           category_id?: string | null
           created_at?: string
           demande_id: string
           expires_at?: string | null
+          fin_motif?: string | null
           id?: string
           option_id: Database["public"]["Enums"]["visibility_option"]
           payment_id?: string | null
           price_cents: number
+          tarif?: Json | null
+          termine_le?: string | null
         }
         Update: {
           active?: boolean
+          active_depuis?: string | null
           category_id?: string | null
           created_at?: string
           demande_id?: string
           expires_at?: string | null
+          fin_motif?: string | null
           id?: string
           option_id?: Database["public"]["Enums"]["visibility_option"]
           payment_id?: string | null
           price_cents?: number
+          tarif?: Json | null
+          termine_le?: string | null
         }
         Relationships: [
           {
@@ -5293,36 +5305,51 @@ export type Database = {
       product_boosts: {
         Row: {
           active: boolean
+          active_depuis: string | null
           category_id: string | null
           created_at: string
           expires_at: string | null
+          fin_motif: string | null
           id: string
           option_id: Database["public"]["Enums"]["visibility_option"]
+          pause_depuis: string | null
           payment_id: string | null
           price_cents: number
           product_id: string
+          tarif: Json | null
+          termine_le: string | null
         }
         Insert: {
           active?: boolean
+          active_depuis?: string | null
           category_id?: string | null
           created_at?: string
           expires_at?: string | null
+          fin_motif?: string | null
           id?: string
           option_id: Database["public"]["Enums"]["visibility_option"]
+          pause_depuis?: string | null
           payment_id?: string | null
           price_cents: number
           product_id: string
+          tarif?: Json | null
+          termine_le?: string | null
         }
         Update: {
           active?: boolean
+          active_depuis?: string | null
           category_id?: string | null
           created_at?: string
           expires_at?: string | null
+          fin_motif?: string | null
           id?: string
           option_id?: Database["public"]["Enums"]["visibility_option"]
+          pause_depuis?: string | null
           payment_id?: string | null
           price_cents?: number
           product_id?: string
+          tarif?: Json | null
+          termine_le?: string | null
         }
         Relationships: [
           {
@@ -5446,12 +5473,14 @@ export type Database = {
           mode: Database["public"]["Enums"]["product_mode"]
           moderation: string | null
           negotiable: boolean
+          ordre_fil: string | null
           original_price_cents: number | null
           parcel_format: Database["public"]["Enums"]["parcel_format"] | null
           photo_pack: Database["public"]["Enums"]["photo_pack"] | null
           price_cents: number
           published_at: string | null
           region: string | null
+          remonte_le: string | null
           seller_delivery_share: number
           seller_id: string
           seller_service_share: number
@@ -5490,12 +5519,14 @@ export type Database = {
           mode?: Database["public"]["Enums"]["product_mode"]
           moderation?: string | null
           negotiable?: boolean
+          ordre_fil?: string | null
           original_price_cents?: number | null
           parcel_format?: Database["public"]["Enums"]["parcel_format"] | null
           photo_pack?: Database["public"]["Enums"]["photo_pack"] | null
           price_cents?: number
           published_at?: string | null
           region?: string | null
+          remonte_le?: string | null
           seller_delivery_share?: number
           seller_id: string
           seller_service_share?: number
@@ -5534,12 +5565,14 @@ export type Database = {
           mode?: Database["public"]["Enums"]["product_mode"]
           moderation?: string | null
           negotiable?: boolean
+          ordre_fil?: string | null
           original_price_cents?: number | null
           parcel_format?: Database["public"]["Enums"]["parcel_format"] | null
           photo_pack?: Database["public"]["Enums"]["photo_pack"] | null
           price_cents?: number
           published_at?: string | null
           region?: string | null
+          remonte_le?: string | null
           seller_delivery_share?: number
           seller_id?: string
           seller_service_share?: number
@@ -10975,14 +11008,18 @@ export type Database = {
         }
         Returns: {
           active: boolean
+          active_depuis: string | null
           category_id: string | null
           created_at: string
           demande_id: string
           expires_at: string | null
+          fin_motif: string | null
           id: string
           option_id: Database["public"]["Enums"]["visibility_option"]
           payment_id: string | null
           price_cents: number
+          tarif: Json | null
+          termine_le: string | null
         }
         SetofOptions: {
           from: "*"
@@ -10998,14 +11035,19 @@ export type Database = {
         }
         Returns: {
           active: boolean
+          active_depuis: string | null
           category_id: string | null
           created_at: string
           expires_at: string | null
+          fin_motif: string | null
           id: string
           option_id: Database["public"]["Enums"]["visibility_option"]
+          pause_depuis: string | null
           payment_id: string | null
           price_cents: number
           product_id: string
+          tarif: Json | null
+          termine_le: string | null
         }
         SetofOptions: {
           from: "*"
