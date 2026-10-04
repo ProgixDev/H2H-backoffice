@@ -34,6 +34,16 @@ export const LIBELLE_TRANSPORTEUR: Record<string, string> = Object.fromEntries(
 const FORMAT = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
 export const euros = (cents: number | null | undefined) => FORMAT.format(Number(cents ?? 0) / 100);
 
+/** « 12,50 » → 1250 ; `null` si ce n'est pas un montant. */
+export function centimes(saisie: string): number | null {
+  const propre = saisie.replace(/\s|€/g, "").replace(",", ".");
+  if (!/^\d+(\.\d{1,2})?$/.test(propre)) return null;
+  return Math.round(Number(propre) * 100);
+}
+
+/** 1250 → « 12,50 », pour pré-remplir une saisie. */
+export const saisieEuros = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
+
 // ── Les fonds à verser (`bo_fonds_lister`, migration 20260926013000) ─────────
 //
 // 🔴 UNE SEULE RÈGLE DÉCIDE CE QUI RETIENT L'ARGENT : `app.fonds_retenus`, que
@@ -122,9 +132,12 @@ export type OrdreFinancier = {
   id: string;
   /** OF-000042. */
   ordre_ref: string;
-  nature: "remboursement";
+  /** Le remboursement d'une commande, ou d'une option de visibilité (20261004003000). */
+  nature: "remboursement" | "remboursement_option";
   statut: StatutOrdre;
-  commande_id: string;
+  /** Nul pour une option. */
+  commande_id: string | null;
+  /** Le numéro de la commande ; pour une option, sa rétractation (RET-…) ou « Option … ». */
   reference: string;
   litige: boolean;
   montant_cents: number;
@@ -145,6 +158,13 @@ export type OrdreFinancier = {
   peut_decider: boolean;
   reel: boolean;
   est_test: boolean;
+  /** Une option : son annonce ou sa demande, l'option, sa rétractation, son avoir. */
+  famille_option: "annonce" | "demande" | null;
+  cible_id: string | null;
+  option_id: string | null;
+  retractation_ref: string | null;
+  /** HTH-A-… : l'avoir émis à la réussite. */
+  avoir: string | null;
 };
 
 // ── Le rapprochement avec Stripe (`bo_rapprochement_lire`, migration 20260927003000) ──

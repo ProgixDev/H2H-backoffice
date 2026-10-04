@@ -5,7 +5,9 @@ import { cn } from "cn";
 import { AnimationH2H } from "@/components/marque/AnimationH2H";
 import { StatutPastille, type Ton } from "@/components/bo/StatutPastille";
 import { dateHeure } from "@/lib/dates";
+import { cheminAnnonce } from "@/lib/annonces/types";
 import { cheminFiche } from "@/lib/operations/types";
+import { LIBELLE_OPTION } from "@/lib/visibilite/types";
 import {
   LIBELLE_STATUT_ORDRE,
   STATUTS_ORDRE,
@@ -71,7 +73,8 @@ export function OrdresFinanciers({
             {filtre ? `Aucun ordre « ${LIBELLE_STATUT_ORDRE[filtre].toLowerCase()} »` : "Aucun remboursement demandé"}
           </p>
           <p className="text-corps text-muted-foreground">
-            Un remboursement se demande depuis un litige, ou depuis la fiche d’un achat.
+            Un remboursement se demande depuis un litige, depuis la fiche d’un achat, ou depuis la rétractation
+            d’une option (À traiter).
           </p>
         </div>
       ) : (
@@ -84,15 +87,33 @@ export function OrdresFinanciers({
                     <span className="font-semibold tabular-nums">{o.ordre_ref}</span>
                     <StatutPastille ton={TON_ORDRE[o.statut]}>{LIBELLE_STATUT_ORDRE[o.statut]}</StatutPastille>
                     <span className="font-semibold tabular-nums">{euros(o.montant_cents)}</span>
-                    <StatutPastille ton="neutre">{o.litige ? "Litige" : "Hors litige"}</StatutPastille>
+                    <StatutPastille ton="neutre">
+                      {o.nature === "remboursement_option" ? "Option" : o.litige ? "Litige" : "Hors litige"}
+                    </StatutPastille>
                     {o.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
                   </div>
-                  <span className="text-corps">
-                    Remboursement de la commande{" "}
-                    <Link href={cheminFiche(o.reference, "paiements")} className="font-medium hover:underline">
-                      {o.reference}
-                    </Link>
-                  </span>
+                  {o.nature === "remboursement_option" ? (
+                    <span className="text-corps">
+                      Remboursement de l’option {LIBELLE_OPTION[o.option_id ?? ""] ?? o.option_id}
+                      {o.retractation_ref && ` · rétractation ${o.retractation_ref}`}
+                      {o.cible_id && (
+                        <>
+                          {" · "}
+                          <Link href={cheminAnnonce(o.cible_id)} className="font-medium hover:underline">
+                            {o.famille_option === "demande" ? "la recherche" : "l’annonce"}
+                          </Link>
+                        </>
+                      )}
+                      {o.avoir && <span className="text-muted-foreground"> · avoir {o.avoir}</span>}
+                    </span>
+                  ) : (
+                    <span className="text-corps">
+                      Remboursement de la commande{" "}
+                      <Link href={cheminFiche(o.reference, "paiements")} className="font-medium hover:underline">
+                        {o.reference}
+                      </Link>
+                    </span>
+                  )}
                   <span className="text-legende text-muted-foreground">
                     Demandé par {o.demande_par ?? "—"} le {dateHeure(o.cree_le)} · « {o.motif} »
                   </span>

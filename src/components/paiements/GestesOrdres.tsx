@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useGeste } from "@/lib/db/useGeste";
 import { deciderValidation } from "@/lib/equipe/actions";
 import { annulerOrdre, demanderRemboursement, relancerOrdre } from "@/lib/paiements/actions";
-import { euros } from "@/lib/paiements/types";
+import { centimes, euros } from "@/lib/paiements/types";
 
 type Taille = "sm" | "xs";
 
@@ -31,13 +31,6 @@ function annoncer(donnees: unknown) {
       description: `${d.ref ?? "L’ordre"} attend une seconde personne (Finance ou Direction) avant tout envoi à Stripe.`,
     });
   }
-}
-
-/** « 12,50 » → 1250 ; `null` si ce n'est pas un montant. */
-function centimes(saisie: string): number | null {
-  const propre = saisie.replace(/\s|€/g, "").replace(",", ".");
-  if (!/^\d+(\.\d{1,2})?$/.test(propre)) return null;
-  return Math.round(Number(propre) * 100);
 }
 
 /**

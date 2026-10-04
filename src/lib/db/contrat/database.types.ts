@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@2211810 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@eb6d7b3 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261004002000_une_option_se_retracte.sql
+// Base : 20261004003000_une_option_se_rembourse.sql
 
 export type Json =
   | string
@@ -1150,6 +1150,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      credit_note_counters: {
+        Row: {
+          annee: number
+          dernier: number
+        }
+        Insert: {
+          annee: number
+          dernier?: number
+        }
+        Update: {
+          annee?: number
+          dernier?: number
+        }
+        Relationships: []
       }
       delivery_attempts: {
         Row: {
@@ -5239,6 +5254,82 @@ export type Database = {
           },
         ]
       }
+      platform_credit_notes: {
+        Row: {
+          credit_note_number: string
+          currency: string
+          id: string
+          invoice_id: string
+          invoice_number: string
+          issued_at: string
+          lines: Json
+          ordre_id: string
+          profile_id: string
+          reason: string
+          stripe_refund_id: string | null
+          total_cents: number
+          txn_group_id: string | null
+          vat_cents: number | null
+          vat_rate: number | null
+        }
+        Insert: {
+          credit_note_number: string
+          currency?: string
+          id?: string
+          invoice_id: string
+          invoice_number: string
+          issued_at?: string
+          lines?: Json
+          ordre_id: string
+          profile_id: string
+          reason: string
+          stripe_refund_id?: string | null
+          total_cents: number
+          txn_group_id?: string | null
+          vat_cents?: number | null
+          vat_rate?: number | null
+        }
+        Update: {
+          credit_note_number?: string
+          currency?: string
+          id?: string
+          invoice_id?: string
+          invoice_number?: string
+          issued_at?: string
+          lines?: Json
+          ordre_id?: string
+          profile_id?: string
+          reason?: string
+          stripe_refund_id?: string | null
+          total_cents?: number
+          txn_group_id?: string | null
+          vat_cents?: number | null
+          vat_rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_credit_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "platform_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_credit_notes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_credit_notes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profils_publics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_invoices: {
         Row: {
           currency: string
@@ -9037,6 +9128,20 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      bo_option_remboursement_lire: {
+        Args: { p_boost?: string; p_dossier?: string; p_kind?: string }
+        Returns: Json
+      }
+      bo_option_rembourser_demander: {
+        Args: {
+          p_boost: string
+          p_cle: string
+          p_kind: string
+          p_montant_cents: number
+          p_motif: string
+        }
+        Returns: Json
+      }
       bo_ordre_annuler: {
         Args: { p_cle: string; p_motif: string; p_ordre: string }
         Returns: Json
@@ -9048,21 +9153,26 @@ export type Database = {
       bo_ordres_lister: {
         Args: { p_inclure_test?: boolean; p_statut?: string }
         Returns: {
+          avoir: string
+          cible_id: string
           commande_id: string
           cree_le: string
           demande_le: string
           demande_par: string
           erreur: string
           est_test: boolean
+          famille_option: string
           id: string
           litige: boolean
           montant_cents: number
           motif: string
           nature: string
+          option_id: string
           ordre_ref: string
           peut_decider: boolean
           reel: boolean
           reference: string
+          retractation_ref: string
           statut: string
           stripe: string
           tentatives: number

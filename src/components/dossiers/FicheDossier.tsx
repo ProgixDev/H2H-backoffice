@@ -38,6 +38,7 @@ import { cheminAnnonce } from "@/lib/annonces/types";
 import { cheminLive } from "@/lib/lives/types";
 import { cheminFiche } from "@/lib/operations/types";
 import { cheminCompte } from "@/lib/utilisateurs/types";
+import { RemboursementOption } from "@/components/visibilite/RemboursementOption";
 import { TON_CATEGORIE, TON_PRIORITE } from "./tons";
 
 /** Les dossiers qui portent une opération : ceux-là s'ouvrent sur sa fiche complète. */
@@ -252,6 +253,13 @@ export function FicheDossier({
                   </Link>
                 )}
               </Bloc>
+
+              {/* Une rétractation se rembourse d'ici : à deux clés, avec son avoir à la réussite. */}
+              {d.source === "retractation" && (
+                <Bloc titre="Remboursement de l’option">
+                  <RemboursementOption dossier={d.id} peutAgir={agir} maintenant={maintenant} surGeste={relire} />
+                </Bloc>
+              )}
 
               {agir && (
                 <>
