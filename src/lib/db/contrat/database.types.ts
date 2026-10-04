@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@5cd46b3 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@d0a1d6f : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261003003000_une_notification_se_renvoie.sql
+// Base : 20261003005000_un_parametre_se_change.sql
 
 export type Json =
   | string
@@ -9049,6 +9049,26 @@ export type Database = {
         }
         Returns: Json
       }
+      bo_parametre_annuler: {
+        Args: {
+          p_cle: string
+          p_motif: string
+          p_table: string
+          p_version: number
+        }
+        Returns: Json
+      }
+      bo_parametre_demander: {
+        Args: {
+          p_changements: Json
+          p_cle: string
+          p_effet: string
+          p_motif: string
+          p_table: string
+        }
+        Returns: Json
+      }
+      bo_parametres_lire: { Args: never; Returns: Json }
       bo_rapprochement_lire: {
         Args: { p_inclure_test?: boolean }
         Returns: Json
@@ -10720,6 +10740,7 @@ export type Database = {
         Args: { p_mission_id: string; p_motif?: string }
         Returns: undefined
       }
+      reglages_place_de_marche: { Args: never; Returns: Json }
       regler_transporteur_tiers: {
         Args: {
           p_carrier: Database["public"]["Enums"]["shipping_method"]
