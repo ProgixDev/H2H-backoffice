@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@fd1c7e8 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@72acca4 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261004006000_une_facture_d_essai_a_sa_serie.sql
+// Base : 20261006002000_une_proposition_arrive_au_cotransporteur.sql
 
 export type Json =
   | string
@@ -4347,6 +4347,7 @@ export type Database = {
       notifications: {
         Row: {
           action_route: string | null
+          app: string
           body: string
           created_at: string
           id: string
@@ -4361,6 +4362,7 @@ export type Database = {
         }
         Insert: {
           action_route?: string | null
+          app?: string
           body: string
           created_at?: string
           id?: string
@@ -4375,6 +4377,7 @@ export type Database = {
         }
         Update: {
           action_route?: string | null
+          app?: string
           body?: string
           created_at?: string
           id?: string
@@ -9770,6 +9773,16 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      colivraison_accepter: {
+        Args: { p_candidature: string; p_collecte: string; p_route: string }
+        Returns: Json
+      }
+      colivraison_mes_propositions: { Args: never; Returns: Json }
+      colivraison_refuser: {
+        Args: { p_candidature: string; p_motif?: string }
+        Returns: Json
+      }
+      colivraison_retirer: { Args: { p_candidature: string }; Returns: Json }
       confirmer_colivraison_vendeur: {
         Args: { p_shipment_id: string }
         Returns: {
@@ -9848,6 +9861,15 @@ export type Database = {
       consentement_option_en_vigueur: { Args: never; Returns: Json }
       constater_absence: {
         Args: { p_photo_path: string; p_shipment_id: string }
+        Returns: string
+      }
+      cotransporteur_jours_off: { Args: never; Returns: Json }
+      cotransporteur_pas_aujourdhui: {
+        Args: { p_jour?: string }
+        Returns: string
+      }
+      cotransporteur_reprendre_jour: {
+        Args: { p_jour?: string }
         Returns: string
       }
       courtage_annuler: {
