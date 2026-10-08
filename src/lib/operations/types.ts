@@ -383,7 +383,94 @@ export type Paiements = {
 
 // ── Livraison ───────────────────────────────────────────────────────────────
 
+/**
+ * La mise en relation du § 5 des CGU H2H Logistic (hand-to-hand `20261006001000`,
+ * lue par la fiche depuis `20261008001000`). Des textes contraints en base, pas
+ * des énumérations : les unions sont écrites ici, et chaque libellé les couvre.
+ */
+export type StatutRecherche = "ouverte" | "choix" | "validation_vendeur" | "confirmee" | "annulee";
+export type StatutCandidature =
+  | "proposee"
+  | "refusee"
+  | "expiree"
+  | "close"
+  | "en_attente"
+  | "non_selectionnee"
+  | "retenue"
+  | "retiree"
+  | "refusee_vendeur"
+  | "expiree_vendeur"
+  | "confirmee"
+  | "non_retenue";
+/** Pourquoi une candidature en attente ne pourrait pas être choisie maintenant (`app.colivraison_selectionnable`). */
+export type RaisonIndisponible =
+  | "statut"
+  | "trajet_indisponible"
+  | "cotransporteur_indisponible"
+  | "temporairement_indisponible"
+  | "trop_proche"
+  | "complet";
+export type MotifAnnulationRecherche = "sans_candidat" | "choix_expire";
+
+export type CandidatureColivraison = {
+  id: string;
+  statut: StatutCandidature;
+  /** Le pseudonyme ; `null` pour un compte effacé. */
+  cotransporteur: string | null;
+  proposee_le: string;
+  repondre_avant: string;
+  repondue_le: string | null;
+  /** Combien de passages la proposition offrait. */
+  passages: number;
+  collecte_le: string | null;
+  express: boolean | null;
+  hub_collecte: string | null;
+  hub_remise: string | null;
+  remise_le: string | null;
+  choisie_le: string | null;
+  decision_vendeur_le: string | null;
+  close_le: string | null;
+  /** Le motif du cotransporteur qui a refusé la proposition. */
+  motif_refus: string | null;
+  /** Le motif du vendeur qui a refusé ce cotransporteur. */
+  motif_vendeur: string | null;
+  participation_cents: number;
+  raison: RaisonIndisponible | null;
+  /** Entre la confirmation et la collecte, pour la candidature confirmée. */
+  marge_tenue_minutes: number | null;
+};
+
+export type RechercheColivraison = {
+  id: string;
+  numero: number;
+  statut: StatutRecherche;
+  /** 2 et plus : un remplaçant a été cherché (§ 5.3.3). */
+  tour: number;
+  t0: string;
+  collecte_min: string;
+  collecte_max: string;
+  express_avant: string;
+  choix_jusqu_au: string | null;
+  validation_jusqu_au: string | null;
+  confirmee_le: string | null;
+  annulee_le: string | null;
+  motif_annulation: MotifAnnulationRecherche | null;
+  ville_depart: string;
+  ville_arrivee: string;
+  format: E["parcel_format"];
+  /** Les délais et la marge du protocole figé sur la recherche, en minutes. */
+  reponse_minutes: number;
+  choix_minutes: number;
+  validation_minutes: number;
+  marge_minutes: number;
+  /** Combien de cotransporteurs ont reçu la proposition. */
+  propositions: number;
+  candidatures: CandidatureColivraison[];
+};
+
 export type Livraison = {
+  /** Les recherches de cotransporteur du § 5, la plus récente d'abord. */
+  recherches?: RechercheColivraison[];
   mode: E["shipping_method"] | null;
   transporteur: E["carrier_key"] | null;
   suivi: string | null;

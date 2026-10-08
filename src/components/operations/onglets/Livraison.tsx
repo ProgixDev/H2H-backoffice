@@ -11,12 +11,14 @@ import type { Fait, Livraison } from "@/lib/operations/types";
 import { Aucun, Bloc, Champs, Montant, Quand, Reference } from "../commun";
 import { DonneeMasquee } from "../sensibles";
 import { ListeFaits } from "./Chronologie";
+import { RechercheColivraisonBloc } from "./RechercheColivraison";
 
 const tentative = (n: number | null, max: number | null) => (n === null ? null : max ? `${n} sur ${max}` : String(n));
 
 /**
- * Livraison : le mode, les envois, la co-livraison et ses rendez-vous, puis le
- * parcours du colis.
+ * Livraison : le mode, la recherche de cotransporteur (§ 5 des CGU H2H
+ * Logistic), les envois, la co-livraison et ses rendez-vous, puis le parcours du
+ * colis.
  *
  * 🔴 NI CODE, NI POSITION, NI ADRESSE (R4.15) : la commune de destination dit
  * où va le colis ; une remise hors point de rendez-vous dit seulement qu'elle
@@ -24,6 +26,8 @@ const tentative = (n: number | null, max: number | null) => (n === null ? null :
  * consultation est journalisée.
  */
 export function OngletLivraison({ l, parcours, maintenant }: { l: Livraison; parcours: Fait[]; maintenant: number }) {
+  // ⚠️ ABSENT D'UNE BASE ANTÉRIEURE À `20261008001000` : un tableau vide, pas une erreur.
+  const recherches = l.recherches ?? [];
   return (
     <div className="grid gap-4">
       <Bloc titre="Le mode de livraison">
@@ -38,6 +42,10 @@ export function OngletLivraison({ l, parcours, maintenant }: { l: Livraison; par
           ]}
         />
       </Bloc>
+
+      {recherches.map((r) => (
+        <RechercheColivraisonBloc key={r.id} r={r} maintenant={maintenant} />
+      ))}
 
       {l.envois.map((s) => (
         <Bloc
@@ -119,7 +127,7 @@ export function OngletLivraison({ l, parcours, maintenant }: { l: Livraison; par
         </Bloc>
       )}
 
-      {l.envois.length === 0 && l.missions.length === 0 && (
+      {l.envois.length === 0 && l.missions.length === 0 && recherches.length === 0 && (
         <Aucun>Aucun envoi n’a encore été créé pour cet achat.</Aucun>
       )}
 

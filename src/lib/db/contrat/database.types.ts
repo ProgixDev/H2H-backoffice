@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@491ecae : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@81bd2d9 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261006003000_l_acheteur_choisit_le_vendeur_valide.sql
+// Base : 20261008001000_une_recherche_se_supervise.sql
 
 export type Json =
   | string

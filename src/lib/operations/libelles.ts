@@ -6,7 +6,14 @@
 // (`components_logistics_journalexpedition.etat`, `app_checkout_attestation.statuses`),
 // les phases du litige aussi (`components_claim_status`).
 import type { Database } from "@/lib/db/contrat/database.types";
-import type { ChampSensible, SourceFait } from "./types";
+import type {
+  ChampSensible,
+  MotifAnnulationRecherche,
+  RaisonIndisponible,
+  SourceFait,
+  StatutCandidature,
+  StatutRecherche,
+} from "./types";
 
 type E = Database["public"]["Enums"];
 
@@ -96,6 +103,48 @@ export const LIBELLE_MISSION: Record<E["mission_status"], string> = {
   completed: "Terminée",
   cancelled: "Annulée",
   expired: "Expirée",
+};
+
+// ── La mise en relation du § 5 des CGU H2H Logistic ─────────────────────────
+// Les mots de l'application quand elle en a (« Accepté – non sélectionné »,
+// « Délai de réponse du vendeur expiré »), et le paragraphe des CGU qui fonde
+// chaque raison : c'est contre ce texte que le service sera validé.
+
+export const LIBELLE_STATUT_RECHERCHE: Record<StatutRecherche, string> = {
+  ouverte: "Propositions envoyées",
+  choix: "Choix de l’acheteur attendu",
+  validation_vendeur: "Validation du vendeur attendue",
+  confirmee: "Co-livraison confirmée",
+  annulee: "Recherche close",
+};
+
+export const LIBELLE_STATUT_CANDIDATURE: Record<StatutCandidature, string> = {
+  proposee: "Proposition sans réponse",
+  refusee: "Proposition refusée",
+  expiree: "Proposition expirée sans réponse",
+  close: "Proposition close",
+  en_attente: "Candidature — choix de l’acheteur attendu",
+  non_selectionnee: "Accepté – non sélectionné",
+  retenue: "Choisi — validation du vendeur attendue",
+  retiree: "Candidature retirée",
+  refusee_vendeur: "Refusé par le vendeur",
+  expiree_vendeur: "Délai de réponse du vendeur expiré",
+  confirmee: "Co-livraison confirmée",
+  non_retenue: "Non retenu",
+};
+
+export const LIBELLE_RAISON_INDISPONIBLE: Record<RaisonIndisponible, string> = {
+  statut: "Ne peut plus être choisie",
+  trajet_indisponible: "Trajet suspendu ou retiré",
+  cotransporteur_indisponible: "Cotransporteur indisponible : rôle, restriction ou « Pas aujourd’hui »",
+  temporairement_indisponible: "Temporairement indisponible : il attend une décision ailleurs (§ 5.2.6)",
+  trop_proche: "Collecte trop proche pour tenir la marge avant collecte (§ 5.3.5)",
+  complet: "Plus de capacité sur ce passage (§ 5.2.9)",
+};
+
+export const LIBELLE_MOTIF_ANNULATION_RECHERCHE: Record<MotifAnnulationRecherche, string> = {
+  sans_candidat: "Aucun cotransporteur disponible (§ 5.1.7)",
+  choix_expire: "Délai de choix de l’acheteur écoulé (§ 5.2.4)",
 };
 
 export const LIBELLE_ANNULATION: Record<E["cancellation_reason"], string> = {
