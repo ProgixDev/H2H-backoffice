@@ -88,7 +88,9 @@ export function OrdresFinanciers({
                     <StatutPastille ton={TON_ORDRE[o.statut]}>{LIBELLE_STATUT_ORDRE[o.statut]}</StatutPastille>
                     <span className="font-semibold tabular-nums">{euros(o.montant_cents)}</span>
                     <StatutPastille ton="neutre">
-                      {o.nature === "remboursement_option" ? "Option" : o.litige ? "Litige" : "Hors litige"}
+                      {o.nature === "remboursement_option" ? "Option"
+                        : o.nature === "remboursement_part_vendeur" ? "Part du vendeur"
+                          : o.litige ? "Litige" : "Hors litige"}
                     </StatutPastille>
                     {o.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
                   </div>

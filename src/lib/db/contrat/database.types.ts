@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@35accf9 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@5fb5758 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261008002000_l_achat_suit_la_recherche.sql
+// Base : 20261008004000_une_colivraison_s_annule_sans_frais.sql
 
 export type Json =
   | string
@@ -9777,8 +9777,16 @@ export type Database = {
         Args: { p_candidature: string; p_collecte: string; p_route: string }
         Returns: Json
       }
+      colivraison_annuler: {
+        Args: { p_motif?: string; p_order: string }
+        Returns: Json
+      }
       colivraison_choisir: {
         Args: { p_candidature: string; p_hub_remise: string }
+        Returns: Json
+      }
+      colivraison_conditions_annulation: {
+        Args: { p_order: string }
         Returns: Json
       }
       colivraison_de_ma_commande: { Args: { p_order: string }; Returns: Json }

@@ -131,6 +131,7 @@ export const LIBELLE_STATUT_CANDIDATURE: Record<StatutCandidature, string> = {
   expiree_vendeur: "Délai de réponse du vendeur expiré",
   confirmee: "Co-livraison confirmée",
   non_retenue: "Non retenu",
+  annulee: "Co-livraison annulée",
 };
 
 export const LIBELLE_RAISON_INDISPONIBLE: Record<RaisonIndisponible, string> = {
@@ -146,6 +147,9 @@ export const LIBELLE_MOTIF_ANNULATION_RECHERCHE: Record<MotifAnnulationRecherche
   sans_candidat: "Aucun cotransporteur disponible (§ 5.1.7)",
   choix_expire: "Délai de choix de l’acheteur écoulé (§ 5.2.4)",
   achat_annule: "Achat annulé, la recherche avec lui",
+  annulee_acheteur: "Co-livraison annulée par l’acheteur (§ 5.5)",
+  annulee_vendeur: "Co-livraison annulée par le vendeur (§ 5.5)",
+  annulee_cotransporteur: "Co-livraison annulée par le cotransporteur (§ 5.6.2)",
 };
 
 export const LIBELLE_ANNULATION: Record<E["cancellation_reason"], string> = {

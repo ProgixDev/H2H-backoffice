@@ -77,6 +77,12 @@ describe("la recherche de cotransporteur dans la fiche (§ 5 des CGU H2H Logisti
     const achatAnnule = rendu({ ...RECHERCHE, statut: "annulee", annulee_le: "2026-10-08T12:30:00Z",
                                 motif_annulation: "achat_annule", candidatures: [] });
     expect(achatAnnule).toContain("Achat annulé, la recherche avec lui");
+    // Une co-livraison confirmée puis annulée dit qui l'a annulée (20261008004000), et sa candidature l'est aussi.
+    const annulee = rendu({ ...RECHERCHE, statut: "annulee", confirmee_le: "2026-10-08T12:30:00Z",
+                            annulee_le: "2026-10-08T13:00:00Z", motif_annulation: "annulee_vendeur",
+                            candidatures: [candidature({ statut: "annulee" })] });
+    expect(annulee).toContain("Co-livraison annulée par le vendeur (§ 5.5)");
+    expect(annulee).toContain("Co-livraison annulée");
     const confirmee = rendu({
       ...RECHERCHE, statut: "confirmee", confirmee_le: "2026-10-08T12:30:00Z",
       candidatures: [candidature({ statut: "confirmee", marge_tenue_minutes: 210, hub_remise: "Cannes Port" })],

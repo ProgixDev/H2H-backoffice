@@ -22,7 +22,7 @@ const tonCandidature = (c: CandidatureColivraison): Ton =>
     ? "succes"
     : c.statut === "retenue" || c.statut === "en_attente"
       ? "actif"
-      : c.statut === "refusee_vendeur" || c.statut === "expiree_vendeur"
+      : c.statut === "refusee_vendeur" || c.statut === "expiree_vendeur" || c.statut === "annulee"
         ? "attention"
         : c.statut === "non_selectionnee"
           ? "neutre"

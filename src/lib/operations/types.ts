@@ -401,7 +401,9 @@ export type StatutCandidature =
   | "refusee_vendeur"
   | "expiree_vendeur"
   | "confirmee"
-  | "non_retenue";
+  | "non_retenue"
+  /** Confirmée, puis la co-livraison annulée (hand-to-hand 20261008004000) : elle ne tient plus le passage. */
+  | "annulee";
 /** Pourquoi une candidature en attente ne pourrait pas être choisie maintenant (`app.colivraison_selectionnable`). */
 export type RaisonIndisponible =
   | "statut"
@@ -412,7 +414,14 @@ export type RaisonIndisponible =
   | "complet";
 /** `achat_annule` (hand-to-hand 20261008002000) : l'achat est tombé — support, conditions changées, autorisation
  * expirée, encaissement tardif — et sa recherche avec lui. */
-export type MotifAnnulationRecherche = "sans_candidat" | "choix_expire" | "achat_annule";
+export type MotifAnnulationRecherche =
+  | "sans_candidat"
+  | "choix_expire"
+  | "achat_annule"
+  /** La co-livraison annulée par l'un des trois (hand-to-hand 20261008004000). */
+  | "annulee_acheteur"
+  | "annulee_vendeur"
+  | "annulee_cotransporteur";
 
 export type CandidatureColivraison = {
   id: string;

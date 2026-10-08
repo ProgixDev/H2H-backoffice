@@ -132,8 +132,11 @@ export type OrdreFinancier = {
   id: string;
   /** OF-000042. */
   ordre_ref: string;
-  /** Le remboursement d'une commande, ou d'une option de visibilité (20261004003000). */
-  nature: "remboursement" | "remboursement_option";
+  /**
+   * Le remboursement d'une commande, d'une option de visibilité (20261004003000), ou de la part des frais
+   * qu'un vendeur avait payée, quand sa co-livraison est annulée (20261008004000).
+   */
+  nature: "remboursement" | "remboursement_option" | "remboursement_part_vendeur";
   statut: StatutOrdre;
   /** Nul pour une option. */
   commande_id: string | null;
