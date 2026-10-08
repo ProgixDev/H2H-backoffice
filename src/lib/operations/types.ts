@@ -410,7 +410,9 @@ export type RaisonIndisponible =
   | "temporairement_indisponible"
   | "trop_proche"
   | "complet";
-export type MotifAnnulationRecherche = "sans_candidat" | "choix_expire";
+/** `achat_annule` (hand-to-hand 20261008002000) : l'achat est tombé — support, conditions changées, autorisation
+ * expirée, encaissement tardif — et sa recherche avec lui. */
+export type MotifAnnulationRecherche = "sans_candidat" | "choix_expire" | "achat_annule";
 
 export type CandidatureColivraison = {
   id: string;

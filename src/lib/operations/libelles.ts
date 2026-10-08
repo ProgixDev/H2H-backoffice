@@ -145,6 +145,7 @@ export const LIBELLE_RAISON_INDISPONIBLE: Record<RaisonIndisponible, string> = {
 export const LIBELLE_MOTIF_ANNULATION_RECHERCHE: Record<MotifAnnulationRecherche, string> = {
   sans_candidat: "Aucun cotransporteur disponible (§ 5.1.7)",
   choix_expire: "Délai de choix de l’acheteur écoulé (§ 5.2.4)",
+  achat_annule: "Achat annulé, la recherche avec lui",
 };
 
 export const LIBELLE_ANNULATION: Record<E["cancellation_reason"], string> = {

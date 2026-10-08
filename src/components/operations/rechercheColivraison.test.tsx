@@ -73,6 +73,10 @@ describe("la recherche de cotransporteur dans la fiche (§ 5 des CGU H2H Logisti
                           motif_annulation: "sans_candidat", candidatures: [] });
     expect(close).toContain("Recherche close");
     expect(close).toContain("Aucun cotransporteur disponible (§ 5.1.7)");
+    // Depuis la tranche 2a, un achat annulé ferme sa recherche : la fiche dit pourquoi.
+    const achatAnnule = rendu({ ...RECHERCHE, statut: "annulee", annulee_le: "2026-10-08T12:30:00Z",
+                                motif_annulation: "achat_annule", candidatures: [] });
+    expect(achatAnnule).toContain("Achat annulé, la recherche avec lui");
     const confirmee = rendu({
       ...RECHERCHE, statut: "confirmee", confirmee_le: "2026-10-08T12:30:00Z",
       candidatures: [candidature({ statut: "confirmee", marge_tenue_minutes: 210, hub_remise: "Cannes Port" })],
