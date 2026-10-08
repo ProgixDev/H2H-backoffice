@@ -18,6 +18,7 @@ import {
 } from "@/lib/operations/libelles";
 import type { Paiements } from "@/lib/operations/types";
 import { LIBELLE_ATTENTE, LIBELLE_ETAT_FONDS, LIBELLE_ROLE_FONDS, LIBELLE_STATUT_ORDRE } from "@/lib/paiements/types";
+import { AnnulationTardiveBloc } from "./AnnulationTardive";
 import { Aucun, Bloc, Montant, Quand, Reference, Tableau } from "../commun";
 
 // ⚠️ UNE ISSUE DÉFAVORABLE N'EST JAMAIS VERTE.
@@ -211,6 +212,7 @@ function EtatDesFonds({
         ) : undefined
       }
     >
+      {f.annulation_tardive && <AnnulationTardiveBloc a={f.annulation_tardive} maintenant={maintenant} />}
       {f.beneficiaires.length === 0 ? (
         <Aucun>Rien n’est encore dû : l’achat n’est pas encaissé.</Aucun>
       ) : (
@@ -221,7 +223,9 @@ function EtatDesFonds({
             const retenueEquipe = f.historique.some(
               (h) => (h.beneficiaire === b.profil || h.beneficiaire === null) && h.levee_le === null,
             );
-            const ouvert = b.etat === "retenu" || b.etat === "versable" || b.etat === "en_attente";
+            // Des frais à recouvrer se retiennent aussi : la retenue suspend leur recouvrement (un examen).
+            const ouvert = b.etat === "retenu" || b.etat === "versable" || b.etat === "en_attente"
+              || b.etat === "a_recouvrer";
             return (
               <tr key={`${b.role}:${b.profil}`}>
                 <td>
@@ -244,6 +248,10 @@ function EtatDesFonds({
                     </>
                   ) : b.etat === "versable" ? (
                     "La personne peut demander son versement."
+                  ) : b.etat === "a_recouvrer" ? (
+                    "Frais d’annulation tardive : retenus sur le prochain virement de la personne."
+                  ) : b.etat === "recouvre" ? (
+                    <>Retenus sur un virement <Quand iso={b.verse_le} maintenant={maintenant} /></>
                   ) : (
                     "—"
                   )}

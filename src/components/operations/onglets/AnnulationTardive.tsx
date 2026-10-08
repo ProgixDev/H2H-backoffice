@@ -1,0 +1,44 @@
+import { StatutPastille } from "@/components/bo/StatutPastille";
+import type { AnnulationTardive } from "@/lib/operations/types";
+import { Montant, Quand } from "../commun";
+
+const QUI_ANNULE = { acheteur: "l’acheteur", vendeur: "le vendeur", cotransporteur: "le cotransporteur" } as const;
+
+/**
+ * Une co-livraison annulée à moins d'une heure de la collecte (CGU H2H Logistic § 5.5.2, § 5.6.2) : qui, quand,
+ * les frais, d'où ils viennent, vers qui ils vont — tels que la base les a écrits.
+ */
+export function AnnulationTardiveBloc({ a, maintenant }: { a: AnnulationTardive; maintenant: number }) {
+  const lignes: [string, number][] = [];
+  if (a.mise_en_relation_cents > 0) lignes.push(["dont frais de mise en relation, qui restent dus", a.mise_en_relation_cents]);
+  if (a.retenu_cents > 0) {
+    lignes.push([a.role === "acheteur" ? "Retenus sur son remboursement" : "Retenus sur sa part des frais", a.retenu_cents]);
+  }
+  if (a.du_cents > 0) {
+    lignes.push([a.role === "cotransporteur" ? "Dus, retenus sur ses prochaines participations"
+      : "Dus, retenus sur ses prochains virements", a.du_cents]);
+  }
+  if (a.compensation_vendeur_cents > 0) lignes.push(["Compensation du vendeur", a.compensation_vendeur_cents]);
+  if (a.compensation_cotransporteur_cents > 0) lignes.push(["Compensation du cotransporteur", a.compensation_cotransporteur_cents]);
+  lignes.push([a.plateforme_cents < 0 ? "Avancé par HandtoHand" : "Gardé par HandtoHand", Math.abs(a.plateforme_cents)]);
+  return (
+    <div className="grid gap-2 rounded-lg border p-3">
+      <span className="flex flex-wrap items-center gap-2">
+        <StatutPastille ton="attention">Annulation tardive</StatutPastille>
+        <span>
+          Annulée par {QUI_ANNULE[a.role]}{a.par ? ` (${a.par})` : ""} <Quand iso={a.annulee_le} maintenant={maintenant} />,
+          moins d’une heure avant la collecte <Quand iso={a.collecte_le} maintenant={maintenant} />
+        </span>
+      </span>
+      <span className="font-semibold">Frais : <Montant cents={a.frais_cents} fort /></span>
+      <ul className="grid gap-1 text-legende text-muted-foreground">
+        {lignes.map(([libelle, cents]) => (
+          <li key={libelle} className="flex justify-between gap-4">
+            <span>{libelle}</span>
+            <Montant cents={cents} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

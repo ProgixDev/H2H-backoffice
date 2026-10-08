@@ -219,6 +219,9 @@ export const LIBELLE_ECRITURE: Record<E["ledger_event"], string> = {
   courier_payout: "Versement au cotransporteur",
   payout_reversal: "Versement annulé",
   external_carrier_settlement: "Règlement du transporteur",
+  // Une co-livraison annulée à moins d'une heure de la collecte (migration 20261008006000).
+  cancellation_fee: "Frais d’annulation tardive",
+  cancellation_compensation: "Compensation d’annulation tardive",
 };
 
 export const LIBELLE_COMPTE: Record<E["ledger_account_kind"], string> = {

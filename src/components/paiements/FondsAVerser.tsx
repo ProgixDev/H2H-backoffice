@@ -27,6 +27,9 @@ export const TON_FONDS: Record<EtatFonds, Ton> = {
   en_attente: "neutre",
   rien: "muet",
   annule: "muet",
+  // Des frais d'annulation tardive : dus par la personne, puis retenus sur un virement (20261008006000).
+  a_recouvrer: "attention",
+  recouvre: "neutre",
 };
 
 /**

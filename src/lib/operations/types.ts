@@ -259,6 +259,26 @@ export type BienLive = {
   achats: AchatNe[];
 };
 
+/**
+ * Une co-livraison annulée à moins d'une heure de la collecte (CGU H2H Logistic § 5.5.2, § 5.6.2 ; migration
+ * 20261008006000) : les frais de celui qui annule, ce qui en a été retenu tout de suite sur son paiement, ce
+ * qu'il doit encore (retenu sur ses prochains virements), et où ils vont. `plateforme_cents` est NÉGATIF quand
+ * HandtoHand a avancé des compensations que le paiement de l'acheteur ne couvrait pas.
+ */
+export type AnnulationTardive = {
+  role: "acheteur" | "vendeur" | "cotransporteur";
+  par: string | null;
+  annulee_le: string;
+  collecte_le: string;
+  frais_cents: number;
+  retenu_cents: number;
+  du_cents: number;
+  mise_en_relation_cents: number;
+  compensation_vendeur_cents: number;
+  compensation_cotransporteur_cents: number;
+  plateforme_cents: number;
+};
+
 // ── Paiements ───────────────────────────────────────────────────────────────
 
 export type Paiements = {
@@ -339,6 +359,8 @@ export type Paiements = {
       levee_le: string | null;
       motif_levee: string | null;
     }[];
+    /** Une co-livraison annulée à moins d'une heure de la collecte (migration 20261008006000). */
+    annulation_tardive: AnnulationTardive | null;
   };
   /** Les ordres financiers de l'achat (migration 20260926014000), du plus récent au plus ancien. */
   ordres: {

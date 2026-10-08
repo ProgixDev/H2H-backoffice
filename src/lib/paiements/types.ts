@@ -50,8 +50,12 @@ export const saisieEuros = (cents: number) => (cents / 100).toFixed(2).replace("
 // les versements lisent aussi. « Versable » ici est ce que le versement
 // paierait, pas une estimation de l'écran.
 
-/** Où en est ce qu'une commande doit à une personne. */
-export type EtatFonds = "verse" | "retenu" | "versable" | "en_attente" | "rien" | "annule";
+/**
+ * Où en est ce qu'une commande doit à une personne — ou, après une annulation tardive (migration
+ * 20261008006000), ce que la personne doit encore : des frais « à recouvrer » au prochain virement, puis
+ * « recouvrés » par lui.
+ */
+export type EtatFonds = "verse" | "retenu" | "versable" | "en_attente" | "rien" | "annule" | "a_recouvrer" | "recouvre";
 /** Ce qu'attend un dû « en attente ». */
 export type AttenteFonds = "paiement" | "remise" | "fenetre";
 /** Les cinq causes qui retiennent l'argent, dans l'ordre où l'écran les nomme. */
@@ -91,6 +95,8 @@ export const LIBELLE_ETAT_FONDS: Record<EtatFonds, string> = {
   en_attente: "En attente",
   rien: "Rien à verser",
   annule: "Commande annulée",
+  a_recouvrer: "Frais à retenir",
+  recouvre: "Frais retenus",
 };
 
 export const LIBELLE_FILTRE_FONDS: Record<FiltreFonds, string> = {

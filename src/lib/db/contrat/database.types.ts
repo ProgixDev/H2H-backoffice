@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@5fb5758 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@9b9f7b9 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261008004000_une_colivraison_s_annule_sans_frais.sql
+// Base : 20261008006000_une_annulation_tardive_a_ses_frais.sql
 
 export type Json =
   | string
@@ -9778,7 +9778,7 @@ export type Database = {
         Returns: Json
       }
       colivraison_annuler: {
-        Args: { p_motif?: string; p_order: string }
+        Args: { p_frais_cents?: number; p_motif?: string; p_order: string }
         Returns: Json
       }
       colivraison_choisir: {
@@ -12220,6 +12220,8 @@ export type Database = {
         | "courier_payout"
         | "payout_reversal"
         | "external_carrier_settlement"
+        | "cancellation_fee"
+        | "cancellation_compensation"
       listing_edit_origin: "seller" | "handtohand" | "moderation"
       listing_option_kind:
         | "photo_pack"
@@ -13089,6 +13091,8 @@ export const Constants = {
         "courier_payout",
         "payout_reversal",
         "external_carrier_settlement",
+        "cancellation_fee",
+        "cancellation_compensation",
       ],
       listing_edit_origin: ["seller", "handtohand", "moderation"],
       listing_option_kind: [
