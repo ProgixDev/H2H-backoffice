@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@b2c19eb : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@d463c9f : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261008007000_des_frais_se_contestent.sql
+// Base : 20261008010000_la_capacite_d_un_trajet_se_lit.sql
 
 export type Json =
   | string
@@ -9344,6 +9344,16 @@ export type Database = {
         }
         Returns: Json
       }
+      bo_refus_colis_examiner: {
+        Args: {
+          p_cle: string
+          p_contestation: string
+          p_decision: string
+          p_motif: string
+          p_reponse: string
+        }
+        Returns: Json
+      }
       bo_regles_delai: {
         Args: never
         Returns: unknown[]
@@ -9894,6 +9904,7 @@ export type Database = {
         Args: { p_photo_path: string; p_shipment_id: string }
         Returns: string
       }
+      cotransporteur_capacite_trajets: { Args: never; Returns: Json }
       cotransporteur_jours_off: { Args: never; Returns: Json }
       cotransporteur_pas_aujourdhui: {
         Args: { p_jour?: string }
@@ -11008,6 +11019,10 @@ export type Database = {
         }
         Returns: Json
       }
+      refus_colis_de_ma_commande: {
+        Args: { p_commande: string }
+        Returns: Json
+      }
       refuser_mission: {
         Args: { p_mission_id: string; p_motif?: string }
         Returns: undefined
@@ -12078,6 +12093,7 @@ export type Database = {
         | "transporter_cancelled_after_pickup"
         | "seller_timer_expired"
         | "other"
+        | "package_refused"
       carrier_key:
         | "colissimo_home"
         | "mondial_home"
@@ -12195,6 +12211,7 @@ export type Database = {
         | "refuse_package"
         | "collect_absent"
         | "contest_decision"
+        | "contest_refuse_package"
       incident_responsible: "transporter" | "relay" | "shared"
       insurance_tier: "basic" | "premium"
       je_cherche_status:
@@ -12935,6 +12952,7 @@ export const Constants = {
         "transporter_cancelled_after_pickup",
         "seller_timer_expired",
         "other",
+        "package_refused",
       ],
       carrier_key: [
         "colissimo_home",
@@ -13063,6 +13081,7 @@ export const Constants = {
         "refuse_package",
         "collect_absent",
         "contest_decision",
+        "contest_refuse_package",
       ],
       incident_responsible: ["transporter", "relay", "shared"],
       insurance_tier: ["basic", "premium"],

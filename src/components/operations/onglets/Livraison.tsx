@@ -15,6 +15,9 @@ import { CarteRecours } from "@/components/bo/CarteRecours";
 import { euros } from "@/lib/paiements/types";
 import { ExaminerRecoursFrais } from "../GestesFrais";
 import { RechercheColivraisonBloc } from "./RechercheColivraison";
+import { RefusColisBloc } from "./RefusColis";
+import { ExaminerRefusColis } from "../GestesRefus";
+import { Fragment } from "react";
 
 const tentative = (n: number | null, max: number | null) => (n === null ? null : max ? `${n} sur ${max}` : String(n));
 
@@ -58,8 +61,8 @@ export function OngletLivraison({
       </Bloc>
 
       {recherches.map((r) => (
+        <Fragment key={r.id}>
         <RechercheColivraisonBloc
-          key={r.id}
           r={r}
           maintenant={maintenant}
           contestation={
@@ -80,6 +83,23 @@ export function OngletLivraison({
             ) : null
           }
         />
+        {/* 🔴 UN REFUS DU COLIS (20261008009000) : ici, où la Logistique lit les co-livraisons et l'examine. */}
+        {r.refus_colis && (
+          <RefusColisBloc
+            refus={r.refus_colis}
+            maintenant={maintenant}
+            geste={
+              r.refus_colis.examinable && r.refus_colis.contestation ? (
+                <ExaminerRefusColis
+                  contestation={r.refus_colis.contestation.id}
+                  reference={r.refus_colis.contestation.dossier ?? "du refus"}
+                  operation={reference}
+                />
+              ) : null
+            }
+          />
+        )}
+        </Fragment>
       ))}
 
       {l.envois.map((s) => (

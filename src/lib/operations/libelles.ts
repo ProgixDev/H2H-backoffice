@@ -150,6 +150,7 @@ export const LIBELLE_MOTIF_ANNULATION_RECHERCHE: Record<MotifAnnulationRecherche
   annulee_acheteur: "Co-livraison annulée par l’acheteur (§ 5.5)",
   annulee_vendeur: "Co-livraison annulée par le vendeur (§ 5.5)",
   annulee_cotransporteur: "Co-livraison annulée par le cotransporteur (§ 5.6.2)",
+  colis_refuse: "Co-livraison annulée : colis refusé à la collecte (§ 5.6.3)",
 };
 
 export const LIBELLE_ANNULATION: Record<E["cancellation_reason"], string> = {
@@ -159,6 +160,7 @@ export const LIBELLE_ANNULATION: Record<E["cancellation_reason"], string> = {
   transporter_cancelled_after_pickup: "Annulée par le cotransporteur après la collecte",
   seller_timer_expired: "Le vendeur n’a pas confirmé à temps",
   other: "Autre motif",
+  package_refused: "Colis refusé à la collecte",
 };
 
 export const LIBELLE_ASSURANCE: Record<E["insurance_tier"], string> = {

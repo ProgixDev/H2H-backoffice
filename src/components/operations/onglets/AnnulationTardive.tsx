@@ -25,11 +25,25 @@ export function AnnulationTardiveBloc({ a, maintenant }: { a: AnnulationTardive;
   return (
     <div className="grid gap-2 rounded-lg border p-3">
       <span className="flex flex-wrap items-center gap-2">
-        <StatutPastille ton="attention">Annulation tardive</StatutPastille>
-        <span>
-          Annulée par {QUI_ANNULE[a.role]}{a.par ? ` (${a.par})` : ""} <Quand iso={a.annulee_le} maintenant={maintenant} />,
-          moins d’une heure avant la collecte <Quand iso={a.collecte_le} maintenant={maintenant} />
-        </span>
+        {a.cause === "refus_colis" ? (
+          <>
+            {/* Un refus du colis (20261008009000) : ses frais à qui les doit, le vendeur ou le cotransporteur. */}
+            <StatutPastille ton="attention">Refus du colis</StatutPastille>
+            <span>
+              Co-livraison annulée <Quand iso={a.annulee_le} maintenant={maintenant} /> : le colis a été refusé à la
+              collecte — frais à la charge {a.role === "vendeur" ? "du vendeur (refus maintenu)" : "du cotransporteur (refus non retenu)"}
+              {a.par ? ` (${a.par})` : ""}
+            </span>
+          </>
+        ) : (
+          <>
+            <StatutPastille ton="attention">Annulation tardive</StatutPastille>
+            <span>
+              Annulée par {QUI_ANNULE[a.role]}{a.par ? ` (${a.par})` : ""} <Quand iso={a.annulee_le} maintenant={maintenant} />,
+              moins d’une heure avant la collecte <Quand iso={a.collecte_le} maintenant={maintenant} />
+            </span>
+          </>
+        )}
       </span>
       <span className="font-semibold">Frais : <Montant cents={a.frais_cents} fort /></span>
       {/* Sa contestation (20261008007000) : elle s'examine dans l'onglet Livraison ; ici, son état. */}

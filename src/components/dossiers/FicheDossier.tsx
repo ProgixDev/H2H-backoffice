@@ -210,6 +210,12 @@ export function FicheDossier({
                     </Link>
                   )
                 )}
+                {/* La contestation d'un refus du colis (20261008009000) s'examine dans l'onglet Livraison. */}
+                {d.source === "incident" && d.objet_id && (
+                  <Link href={cheminFiche(d.objet_id, "livraison")} className="text-legende font-semibold text-h2h-primary">
+                    Examiner la contestation sur la fiche de l’opération
+                  </Link>
+                )}
                 {/* Une publication qui attend l'équipe s'autorise ou se refuse sur la fiche de l'annonce. */}
                 {d.source === "verification" && d.objet_id && (
                   <Link href={cheminAnnonce(d.objet_id)} className="text-legende font-semibold text-h2h-primary">

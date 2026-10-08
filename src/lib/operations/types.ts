@@ -268,6 +268,8 @@ export type BienLive = {
  */
 export type AnnulationTardive = {
   role: "acheteur" | "vendeur" | "cotransporteur";
+  /** `refus_colis` : les frais d'un refus du colis (20261008009000) — `role` est alors celui qui les doit. */
+  cause?: "annulation" | "refus_colis";
   par: string | null;
   annulee_le: string;
   collecte_le: string;
@@ -448,7 +450,9 @@ export type MotifAnnulationRecherche =
   /** La co-livraison annulée par l'un des trois (hand-to-hand 20261008004000). */
   | "annulee_acheteur"
   | "annulee_vendeur"
-  | "annulee_cotransporteur";
+  | "annulee_cotransporteur"
+  /** Le colis refusé à la collecte, le refus devenu effectif (hand-to-hand 20261008009000). */
+  | "colis_refuse";
 
 export type CandidatureColivraison = {
   id: string;
@@ -484,8 +488,52 @@ export type CandidatureColivraison = {
  * Logistique examine ici (l'onglet Paiements ne s'ouvre pas à elle). `levee_ecrite` : la levée d'une contestation
  * acceptée est écrite au grand livre (par la plateforme, dans la minute).
  */
+/**
+ * Le refus du colis à la collecte d'une recherche confirmée (formulaire 11, CGU H2H Logistic § 5.6.3 ;
+ * hand-to-hand 20261008009000) : la déclaration du cotransporteur, les présences au hub, le délai du vendeur, sa
+ * contestation, l'examen, l'issue. Ni adresse, ni position.
+ */
+export type RefusColisLu = {
+  id: string;
+  declare_le: string;
+  cotransporteur: string | null;
+  motif: string | null;
+  commentaire: string | null;
+  /** Les réponses du formulaire 11 : présenté, conforme, transport sûr, explication. */
+  reponses: Record<string, string>;
+  pieces: number;
+  collecte_le: string | null;
+  presence_cotransporteur_le: string | null;
+  presence_vendeur_le: string | null;
+  contestable_jusqu_au: string;
+  /** `null` tant qu'il attend : le délai du vendeur, ou l'équipe. */
+  issue: "refus_effectif" | "refus_injustifie" | "sans_objet" | null;
+  contestation: {
+    id: string;
+    declaree_le: string;
+    motif: string | null;
+    commentaire: string | null;
+    pieces: number;
+    dossier: string | null;
+  } | null;
+  decision: {
+    decision: "maintenu" | "injustifie";
+    reponse: string;
+    motif: string;
+    par: string | null;
+    le: string;
+  } | null;
+  /** Contesté, sans décision, et cet équipier peut trancher. */
+  examinable: boolean;
+  /** Pourquoi il ne le peut pas (son rôle, ou il est partie à la co-livraison). */
+  raison: string | null;
+  pieces_ouvrables: boolean;
+};
+
 export type AnnulationTardiveRecherche = {
   role: "acheteur" | "vendeur" | "cotransporteur";
+  /** `refus_colis` : les frais d'un refus du colis (20261008009000) — `role` est alors celui qui les doit. */
+  cause?: "annulation" | "refus_colis";
   par: string | null;
   annulee_le: string;
   frais_cents: number;
@@ -522,6 +570,8 @@ export type RechercheColivraison = {
   candidatures: CandidatureColivraison[];
   /** Absente d'une base antérieure à 20261008007000 ; `null` sans annulation tardive. */
   annulation_tardive?: AnnulationTardiveRecherche | null;
+  /** Absent d'une base antérieure à 20261008009000 ; `null` sans refus du colis. */
+  refus_colis?: RefusColisLu | null;
 };
 
 export type Livraison = {

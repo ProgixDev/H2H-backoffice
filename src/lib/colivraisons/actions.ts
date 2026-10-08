@@ -30,3 +30,31 @@ export async function examinerRecoursFrais(p: {
     p_cle: p.cle,
   });
 }
+
+/** Ce que rend l'examen d'une contestation de refus du colis (migration 20261008009000). */
+export type RefusColisExamine = { refus: string; contestation: string; commande: string; decision: "maintenu" | "injustifie" };
+
+/**
+ * Examiner la contestation d'un refus du colis (CGU H2H Logistic § 5.6.3) : la Logistique ou la Direction, identité
+ * reconfirmée, jamais un équipier partie à la co-livraison. Acceptée, le refus est dit injustifié ; rejetée, il est
+ * maintenu. L'examen n'écrit rien au grand livre : la plateforme annule la co-livraison dans la minute, avec les frais
+ * de qui les doit. Le vendeur et le cotransporteur reçoivent la réponse ; le dossier « À traiter » se clôt.
+ */
+export async function examinerRefusColis(p: {
+  contestation: string;
+  /** La référence de l'opération, pour relire sa fiche. */
+  operation: string;
+  decision: DecisionRecours;
+  reponse: string;
+  motif: string;
+  cle: string;
+}) {
+  return geste<RefusColisExamine>([cheminFiche(p.operation), "/a-traiter"], "bo_refus_colis_examiner", {
+    p_contestation: p.contestation,
+    // Accepter la contestation, c'est dire le refus injustifié ; la rejeter, le maintenir.
+    p_decision: p.decision === "accepte" ? "injustifie" : "maintenu",
+    p_reponse: p.reponse,
+    p_motif: p.motif,
+    p_cle: p.cle,
+  });
+}
