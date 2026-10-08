@@ -1,4 +1,5 @@
 import { StatutPastille } from "@/components/bo/StatutPastille";
+import { LIBELLE_STATUT_RECOURS } from "@/lib/utilisateurs/types";
 import type { AnnulationTardive } from "@/lib/operations/types";
 import { Montant, Quand } from "../commun";
 
@@ -31,6 +32,17 @@ export function AnnulationTardiveBloc({ a, maintenant }: { a: AnnulationTardive;
         </span>
       </span>
       <span className="font-semibold">Frais : <Montant cents={a.frais_cents} fort /></span>
+      {/* Sa contestation (20261008007000) : elle s'examine dans l'onglet Livraison ; ici, son état. */}
+      {a.recours ? (
+        <span className="text-legende text-muted-foreground">
+          Contestation {a.recours.reference} : {LIBELLE_STATUT_RECOURS[a.recours.statut].toLowerCase()}
+          {a.recours.statut === "accepte" ? (a.levee_ecrite ? " — frais levés au grand livre" : " — levée en cours d’écriture") : ""}
+        </span>
+      ) : a.contestable_jusqu_au ? (
+        <span className="text-legende text-muted-foreground">
+          Contestable jusqu’au <Quand iso={a.contestable_jusqu_au} maintenant={maintenant} />
+        </span>
+      ) : null}
       <ul className="grid gap-1 text-legende text-muted-foreground">
         {lignes.map(([libelle, cents]) => (
           <li key={libelle} className="flex justify-between gap-4">

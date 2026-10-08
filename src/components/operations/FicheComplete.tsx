@@ -190,6 +190,7 @@ export function FicheComplete({
               <TabsContent value="livraison" className="pt-2">
                 {f.livraison ? (
                   <OngletLivraison
+                    reference={o.ref}
                     l={f.livraison}
                     parcours={f.chronologie.filter((x) => x.source === "remise")}
                     maintenant={maintenant}

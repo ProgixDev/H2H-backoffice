@@ -10,6 +10,7 @@ import type { Database } from "@/lib/db/contrat/database.types";
 import type { Echeance, Operation } from "@/lib/activite/types";
 import type { Priorite } from "@/lib/dossiers/types";
 import type { AttenteFonds, EtatFonds, Retenue, StatutOrdre } from "@/lib/paiements/types";
+import type { RecoursLu } from "@/lib/utilisateurs/types";
 
 type E = Database["public"]["Enums"];
 
@@ -277,6 +278,10 @@ export type AnnulationTardive = {
   compensation_vendeur_cents: number;
   compensation_cotransporteur_cents: number;
   plateforme_cents: number;
+  /** Jusqu'à quand le vendeur ou le cotransporteur peut contester ses frais (20261008007000). */
+  contestable_jusqu_au: string | null;
+  recours: RecoursLu | null;
+  levee_ecrite: boolean;
 };
 
 // ── Paiements ───────────────────────────────────────────────────────────────
@@ -473,6 +478,22 @@ export type CandidatureColivraison = {
   marge_tenue_minutes: number | null;
 };
 
+/**
+ * Une co-livraison annulée à moins d'une heure de la collecte, telle que l'onglet Livraison la montre à la
+ * Logistique (migrations 20261008006000 et 20261008007000) : qui, quand, les frais — et leur contestation, que la
+ * Logistique examine ici (l'onglet Paiements ne s'ouvre pas à elle). `levee_ecrite` : la levée d'une contestation
+ * acceptée est écrite au grand livre (par la plateforme, dans la minute).
+ */
+export type AnnulationTardiveRecherche = {
+  role: "acheteur" | "vendeur" | "cotransporteur";
+  par: string | null;
+  annulee_le: string;
+  frais_cents: number;
+  contestable_jusqu_au: string | null;
+  recours: RecoursLu | null;
+  levee_ecrite: boolean;
+};
+
 export type RechercheColivraison = {
   id: string;
   numero: number;
@@ -499,6 +520,8 @@ export type RechercheColivraison = {
   /** Combien de cotransporteurs ont reçu la proposition. */
   propositions: number;
   candidatures: CandidatureColivraison[];
+  /** Absente d'une base antérieure à 20261008007000 ; `null` sans annulation tardive. */
+  annulation_tardive?: AnnulationTardiveRecherche | null;
 };
 
 export type Livraison = {

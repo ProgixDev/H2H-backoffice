@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@9b9f7b9 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@b2c19eb : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261008006000_une_annulation_tardive_a_ses_frais.sql
+// Base : 20261008007000_des_frais_se_contestent.sql
 
 export type Json =
   | string
@@ -9288,6 +9288,16 @@ export type Database = {
         }
         Returns: Json
       }
+      bo_recours_frais_examiner: {
+        Args: {
+          p_cle: string
+          p_decision: string
+          p_motif: string
+          p_recours: string
+          p_reponse: string
+        }
+        Returns: Json
+      }
       bo_recours_lister: {
         Args: { p_inclure_test?: boolean; p_statut?: string }
         Returns: {
@@ -10275,6 +10285,10 @@ export type Database = {
       }
       expirer_demandes_hors_hub: { Args: never; Returns: number }
       faire_le_point_places: { Args: { p_session_id: string }; Returns: number }
+      frais_annulation_de_ma_commande: {
+        Args: { p_commande: string }
+        Returns: Json
+      }
       frais_modification: { Args: { p_product_id: string }; Returns: number }
       horloge_autorisee: { Args: { p_jeton: string }; Returns: boolean }
       hubs_de_remise_proposes: {
@@ -10975,6 +10989,10 @@ export type Database = {
       }
       recours_deposer: {
         Args: { p_pieces?: string[]; p_sanction: string; p_texte: string }
+        Returns: Json
+      }
+      recours_frais_deposer: {
+        Args: { p_commande: string; p_pieces?: string[]; p_texte: string }
         Returns: Json
       }
       recours_moderation_deposer: {

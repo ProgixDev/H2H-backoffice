@@ -191,7 +191,12 @@ export function FicheDossier({
                     (une sanction) ou l'annonce (une décision de modération) — ou le live dont les
                     signalements ont été jugés non fondés (20261002007000). */}
                 {d.source === "recours" && d.objet_id && (
-                  d.objet_table === "live_sessions" ? (
+                  // Des frais d'annulation tardive contestés (20261008007000) : dans l'onglet Livraison de l'opération.
+                  d.objet_table === "orders" ? (
+                    <Link href={cheminFiche(d.objet_id, "livraison")} className="text-legende font-semibold text-h2h-primary">
+                      Examiner la contestation sur la fiche de l’opération
+                    </Link>
+                  ) : d.objet_table === "live_sessions" ? (
                     <Link href={cheminLive(d.objet_id)} className="text-legende font-semibold text-h2h-primary">
                       Examiner le recours sur la fiche du live
                     </Link>

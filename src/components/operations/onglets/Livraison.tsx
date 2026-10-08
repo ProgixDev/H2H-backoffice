@@ -11,6 +11,9 @@ import type { Fait, Livraison } from "@/lib/operations/types";
 import { Aucun, Bloc, Champs, Montant, Quand, Reference } from "../commun";
 import { DonneeMasquee } from "../sensibles";
 import { ListeFaits } from "./Chronologie";
+import { CarteRecours } from "@/components/bo/CarteRecours";
+import { euros } from "@/lib/paiements/types";
+import { ExaminerRecoursFrais } from "../GestesFrais";
 import { RechercheColivraisonBloc } from "./RechercheColivraison";
 
 const tentative = (n: number | null, max: number | null) => (n === null ? null : max ? `${n} sur ${max}` : String(n));
@@ -25,7 +28,18 @@ const tentative = (n: number | null, max: number | null) => (n === null ? null :
  * l'est. L'adresse de livraison se révèle à part, pour un motif, et la
  * consultation est journalisée.
  */
-export function OngletLivraison({ l, parcours, maintenant }: { l: Livraison; parcours: Fait[]; maintenant: number }) {
+export function OngletLivraison({
+  l,
+  parcours,
+  maintenant,
+  reference,
+}: {
+  l: Livraison;
+  parcours: Fait[];
+  maintenant: number;
+  /** La référence de l'opération : l'examen d'une contestation relit sa fiche. */
+  reference: string;
+}) {
   // ⚠️ ABSENT D'UNE BASE ANTÉRIEURE À `20261008001000` : un tableau vide, pas une erreur.
   const recherches = l.recherches ?? [];
   return (
@@ -44,7 +58,28 @@ export function OngletLivraison({ l, parcours, maintenant }: { l: Livraison; par
       </Bloc>
 
       {recherches.map((r) => (
-        <RechercheColivraisonBloc key={r.id} r={r} maintenant={maintenant} />
+        <RechercheColivraisonBloc
+          key={r.id}
+          r={r}
+          maintenant={maintenant}
+          contestation={
+            r.annulation_tardive?.recours ? (
+              <ul className="grid gap-2">
+                <CarteRecours
+                  r={r.annulation_tardive.recours}
+                  contre={`Frais d’annulation tardive de ${euros(r.annulation_tardive.frais_cents)}`}
+                  geste={
+                    <ExaminerRecoursFrais
+                      recours={r.annulation_tardive.recours.id}
+                      reference={r.annulation_tardive.recours.reference}
+                      operation={reference}
+                    />
+                  }
+                />
+              </ul>
+            ) : null
+          }
+        />
       ))}
 
       {l.envois.map((s) => (

@@ -58,8 +58,11 @@ export const saisieEuros = (cents: number) => (cents / 100).toFixed(2).replace("
 export type EtatFonds = "verse" | "retenu" | "versable" | "en_attente" | "rien" | "annule" | "a_recouvrer" | "recouvre";
 /** Ce qu'attend un dû « en attente ». */
 export type AttenteFonds = "paiement" | "remise" | "fenetre";
-/** Les cinq causes qui retiennent l'argent, dans l'ordre où l'écran les nomme. */
-export type MotifRetenue = "reclamation" | "opposition" | "incident" | "creance" | "retenue";
+/**
+ * Les six causes qui retiennent l'argent, dans l'ordre où l'écran les nomme — la dernière : des frais
+ * d'annulation tardive contestés, qui ne se recouvrent pas pendant l'examen (migration 20261008007000).
+ */
+export type MotifRetenue = "reclamation" | "opposition" | "incident" | "creance" | "retenue" | "contestation";
 
 export type Retenue = {
   motif: MotifRetenue;

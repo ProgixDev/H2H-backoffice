@@ -7,6 +7,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { AnnulationTardive } from "@/lib/operations/types";
+import type { RecoursLu } from "@/lib/utilisateurs/types";
 import { LIBELLE_ETAT_FONDS } from "@/lib/paiements/types";
 import { AnnulationTardiveBloc } from "./onglets/AnnulationTardive";
 
@@ -16,6 +17,7 @@ const ACHETEUR: AnnulationTardive = {
   role: "acheteur", par: "acheteur_ec", annulee_le: "2026-10-08T14:20:00Z", collecte_le: "2026-10-08T14:50:00Z",
   frais_cents: 428, retenu_cents: 428, du_cents: 0, mise_en_relation_cents: 128,
   compensation_vendeur_cents: 150, compensation_cotransporteur_cents: 150, plateforme_cents: 128,
+  contestable_jusqu_au: null, recours: null, levee_ecrite: false,
 };
 
 const rendu = (a: AnnulationTardive) => renderToStaticMarkup(<AnnulationTardiveBloc a={a} maintenant={MAINTENANT} />);
@@ -59,5 +61,25 @@ describe("l’annulation tardive dans l’onglet Paiements (CGU H2H Logistic § 
     expect(html).toContain("Dus, retenus sur ses prochaines participations");
     expect(html).not.toContain("Retenus sur");
     expect([LIBELLE_ETAT_FONDS.a_recouvrer, LIBELLE_ETAT_FONDS.recouvre]).toEqual(["Frais à retenir", "Frais retenus"]);
+  });
+
+  it("la contestation des frais (20261008007000) : contestable jusqu’à une date, puis son état — levés, ou non", () => {
+    const COTRANSPORTEUR: AnnulationTardive = {
+      ...ACHETEUR, role: "cotransporteur", par: "ct_a", frais_cents: 200, retenu_cents: 0, du_cents: 200,
+      mise_en_relation_cents: 0, compensation_vendeur_cents: 0, compensation_cotransporteur_cents: 0, plateforme_cents: 200,
+      contestable_jusqu_au: "2026-10-09T14:20:00Z",
+    };
+    expect(rendu(COTRANSPORTEUR)).toContain("Contestable jusqu’au");
+    const recours: RecoursLu = {
+      id: "x-1", reference: "REC-000042", statut: "accepte", depose_le: "2026-10-08T15:00:00Z",
+      texte: "Ma voiture est tombée en panne sur la route du hub.", pieces: 1, examine_le: "2026-10-08T16:00:00Z",
+      examine_par: "lea", reponse: "Votre situation a été examinée.", motif: "Facture du garage", dossier: "DOS-000007",
+      examinable: false, raison: null, pieces_ouvrables: true,
+    };
+    const leve = rendu({ ...COTRANSPORTEUR, recours, levee_ecrite: true });
+    expect(leve).toContain("Contestation REC-000042 : accepté — frais levés au grand livre");
+    expect(leve).not.toContain("Contestable jusqu’au");
+    expect(rendu({ ...COTRANSPORTEUR, recours })).toContain("levée en cours d’écriture");
+    expect(rendu({ ...COTRANSPORTEUR, recours: { ...recours, statut: "rejete" } })).toContain("Contestation REC-000042 : rejeté");
   });
 });

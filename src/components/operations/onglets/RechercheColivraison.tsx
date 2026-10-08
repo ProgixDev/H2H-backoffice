@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { StatutPastille, type Ton } from "@/components/bo/StatutPastille";
 import {
   LIBELLE_MOTIF_ANNULATION_RECHERCHE,
@@ -40,7 +41,19 @@ const tonCandidature = (c: CandidatureColivraison): Ton =>
  *
  * 🔴 NI ADRESSE, NI POSITION (R4.15) : des hubs nommés et des heures.
  */
-export function RechercheColivraisonBloc({ r, maintenant }: { r: RechercheColivraison; maintenant: number }) {
+const QUI_A_ANNULE = { acheteur: "l’acheteur", vendeur: "le vendeur", cotransporteur: "le cotransporteur" } as const;
+
+export function RechercheColivraisonBloc({
+  r,
+  maintenant,
+  contestation,
+}: {
+  r: RechercheColivraison;
+  maintenant: number;
+  /** La carte de la contestation des frais, avec son geste d'examen : composée par l'onglet. */
+  contestation?: ReactNode;
+}) {
+  const tardive = r.annulation_tardive;
   return (
     <Bloc
       titre={`Recherche de cotransporteur n° ${r.numero}`}
@@ -101,6 +114,35 @@ export function RechercheColivraisonBloc({ r, maintenant }: { r: RechercheColivr
           ["Marge avant collecte", `${r.marge_minutes} min au moins après la confirmation`],
         ]}
       />
+
+      {/* 🔴 UNE ANNULATION TARDIVE ET SA CONTESTATION (20261008006000, 20261008007000) : ici, où la Logistique
+          les lit et les examine. */}
+      {tardive && (
+        <div className="grid gap-2 rounded-lg border p-3">
+          <span className="flex flex-wrap items-center gap-2">
+            <StatutPastille ton="attention">Annulation tardive</StatutPastille>
+            <span>
+              Annulée par {QUI_A_ANNULE[tardive.role]}
+              {tardive.par ? ` (${tardive.par})` : ""} <Quand iso={tardive.annulee_le} maintenant={maintenant} /> — frais :{" "}
+              <Montant cents={tardive.frais_cents} fort />
+            </span>
+          </span>
+          {tardive.contestable_jusqu_au && !tardive.recours && (
+            <span className="text-legende text-muted-foreground">
+              Contestable jusqu’au <Quand iso={tardive.contestable_jusqu_au} maintenant={maintenant} /> — aucune
+              contestation déposée.
+            </span>
+          )}
+          {tardive.recours?.statut === "accepte" && (
+            <span className="text-legende text-muted-foreground">
+              {tardive.levee_ecrite
+                ? "Frais levés après examen : la levée est écrite au grand livre."
+                : "Frais levés après examen : la levée s’écrit au grand livre dans la minute."}
+            </span>
+          )}
+          {contestation}
+        </div>
+      )}
 
       {r.candidatures.length > 0 && (
         <Tableau entetes={["Cotransporteur", "État", "Proposée", "Réponse", "Collecte", "Remise", "Motif ou raison"]} largeur={960}>

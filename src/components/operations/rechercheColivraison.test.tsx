@@ -91,4 +91,37 @@ describe("la recherche de cotransporteur dans la fiche (§ 5 des CGU H2H Logisti
     expect(confirmee).toContain("Marge tenue : 210 min");
     expect(confirmee).toContain("Cannes Port");
   });
+
+  it("une annulation tardive se dit ici, où la Logistique examine sa contestation (20261008007000)", () => {
+    const tardive = {
+      ...RECHERCHE, statut: "annulee" as const, confirmee_le: "2026-10-08T12:30:00Z", annulee_le: "2026-10-08T15:40:00Z",
+      motif_annulation: "annulee_cotransporteur" as const, candidatures: [],
+      annulation_tardive: {
+        role: "cotransporteur" as const, par: "karim", annulee_le: "2026-10-08T15:40:00Z", frais_cents: 200,
+        contestable_jusqu_au: "2026-10-09T15:40:00Z", recours: null, levee_ecrite: false,
+      },
+    };
+    const sans = renderToStaticMarkup(<RechercheColivraisonBloc r={tardive} maintenant={MAINTENANT} />);
+    expect(sans).toContain("Annulation tardive");
+    expect(sans).toContain("Annulée par le cotransporteur (karim)");
+    expect(sans).toContain("2,00");
+    expect(sans).toContain("aucune contestation déposée");
+    // La carte de la contestation vient de l'onglet, avec son geste : le bloc la place.
+    const recours = {
+      id: "x-1", reference: "REC-000042", statut: "accepte" as const, depose_le: "2026-10-08T16:00:00Z",
+      texte: "Ma voiture est tombée en panne sur la route du hub.", pieces: 0, examine_le: "2026-10-08T17:00:00Z",
+      examine_par: "lea", reponse: "Votre situation a été examinée.", motif: "Facture du garage", dossier: null,
+      examinable: false, raison: null, pieces_ouvrables: false,
+    };
+    const avec = renderToStaticMarkup(
+      <RechercheColivraisonBloc
+        r={{ ...tardive, annulation_tardive: { ...tardive.annulation_tardive, recours, levee_ecrite: true } }}
+        maintenant={MAINTENANT}
+        contestation={<p>carte REC-000042</p>}
+      />,
+    );
+    expect(avec).toContain("carte REC-000042");
+    expect(avec).toContain("Frais levés après examen : la levée est écrite au grand livre.");
+    expect(avec).not.toContain("aucune contestation déposée");
+  });
 });
