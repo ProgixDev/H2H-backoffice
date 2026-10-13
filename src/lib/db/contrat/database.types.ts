@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@29e45ca : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@91ee3e4 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261008011000_la_mise_en_relation_s_essaie_dans_le_monde_de_test.sql
+// Base : 20261013001000_un_code_ne_se_donne_pas_a_l_avance.sql
 
 export type Json =
   | string
@@ -14,7 +14,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
@@ -10662,7 +10662,10 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: {
           code: string
+          etape: Database["public"]["Enums"]["hub_etape"]
           etat: Database["public"]["Enums"]["shipment_state"]
+          motif: string
+          ouvre_le: string
           role: string
           shipment_id: string
           tracking_number: string
