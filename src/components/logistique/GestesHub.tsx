@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useGeste } from "@/lib/db/useGeste";
 import { reactiverHub, retirerHub, validerHub } from "@/lib/logistique/actions";
+import { detailPubliable } from "@/lib/logistique/types";
 
 // Les longueurs que la base exige.
 const DETAIL_MIN = 12;
@@ -28,9 +29,19 @@ const MOTIF_REOUVERTURE_MIN = 5;
  * de douze caractères sont refusés — la personne qui se présente au rendez-vous
  * n'a que ce texte pour trouver le point.
  */
-export function GesteValidationHub({ hub, repere }: { hub: string; repere: string | null }) {
+export function GesteValidationHub({
+  hub,
+  repere,
+  detail: detailActuel = null,
+}: {
+  hub: string;
+  repere: string | null;
+  /** Le détail déjà écrit : repris quand il dit où se présenter, pas quand il attend encore d'être écrit. */
+  detail?: string | null;
+}) {
+  const propose = detailPubliable(detailActuel) ? (detailActuel ?? "").trim() : "";
   const [ouvert, setOuvert] = useState(false);
-  const [detail, setDetail] = useState("");
+  const [detail, setDetail] = useState(propose);
   const [nouveauRepere, setNouveauRepere] = useState(repere ?? "");
   const valider = useGeste(validerHub);
   const detailValide = detail.trim().length >= DETAIL_MIN && !/à compléter|a completer/i.test(detail);
@@ -39,7 +50,7 @@ export function GesteValidationHub({ hub, repere }: { hub: string; repere: strin
     <>
       <Button
         onClick={() => {
-          setDetail("");
+          setDetail(propose);
           setNouveauRepere(repere ?? "");
           setOuvert(true);
         }}
@@ -107,12 +118,15 @@ export function GesteFermetureHub({
   publie,
   trajets,
   rendezVous,
+  propositions,
 }: {
   hub: string;
   /** Le point est-il proposé aujourd'hui ? Sinon, c'est une épingle qu'on écarte. */
   publie: boolean;
   trajets: number;
   rendezVous: number;
+  /** Les propositions en cours qui peuvent encore aboutir à ce point : fermer ne les arrête pas. */
+  propositions: number;
 }) {
   const [ouvert, setOuvert] = useState(false);
   const retirer = useGeste(retirerHub);
@@ -136,7 +150,10 @@ export function GesteFermetureHub({
               {rendezVous > 0
                 ? `${rendezVous > 1 ? `${rendezVous} rendez-vous confirmés y restent` : "Un rendez-vous confirmé y reste"} : fermer le point ne les déplace pas et ne les annule pas. `
                 : ""}
-              Une recherche déjà lancée peut encore y confirmer un rendez-vous. Le motif reste interne.
+              {propositions > 0
+                ? `${propositions > 1 ? `${propositions} propositions en cours peuvent` : "Une proposition en cours peut"} encore y confirmer un rendez-vous : fermer le point ne ${propositions > 1 ? "les" : "l’"}arrête pas. `
+                : ""}
+              Le motif reste interne.
             </>
           ) : (
             "Elle quitte les épingles à valider et ne sera pas proposée aux utilisateurs. Le motif évite qu’on la repose à l’identique."

@@ -53,8 +53,8 @@ export function ListeHubs({ hubs, peutGerer, filtree = false }: Props) {
             </div>
             {peutGerer && (
               <div className="flex shrink-0 flex-wrap gap-2">
-                <GesteFermetureHub hub={h.id} publie={false} trajets={0} rendezVous={0} />
-                <GesteValidationHub hub={h.id} repere={h.repere} />
+                <GesteFermetureHub hub={h.id} publie={false} trajets={0} rendezVous={0} propositions={0} />
+                <GesteValidationHub hub={h.id} repere={h.repere} detail={h.detail_affiche} />
               </div>
             )}
           </div>

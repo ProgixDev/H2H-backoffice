@@ -125,11 +125,14 @@ export function AnnuaireHubs({ hubs, filtree }: { hubs: Hub[]; filtree: boolean 
                   )}
                 </td>
                 <td className="px-3 py-2 text-legende">
-                  {h.trajets === 0 && h.rendez_vous_en_cours === 0 ? (
+                  {h.trajets === 0 && h.rendez_vous_en_cours === 0 && h.propositions_en_cours === 0 ? (
                     <span className="text-muted-foreground">—</span>
                   ) : (
                     <>
                       {h.trajets > 0 && <span className="block">{pluriel(h.trajets, "trajet")}</span>}
+                      {h.propositions_en_cours > 0 && (
+                        <span className="block">{pluriel(h.propositions_en_cours, "proposition")} en cours</span>
+                      )}
                       {h.rendez_vous_en_cours > 0 && (
                         <span className={h.etat === "ferme" ? "block font-semibold text-[#B45309]" : "block"}>
                           {h.rendez_vous_en_cours} rendez-vous à tenir

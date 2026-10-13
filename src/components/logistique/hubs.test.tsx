@@ -19,12 +19,22 @@ vi.mock("next/link", () => ({
 vi.mock("@/components/marque/AnimationH2H", () => ({ AnimationH2H: () => <span data-animation /> }));
 // Les gestes passent par la base : ici, seulement ce que l'écran en montre.
 vi.mock("@/lib/db/useGeste", () => ({ useGeste: () => ({ lancer: vi.fn(), enCours: false }) }));
-vi.mock("@/lib/logistique/actions", () => ({ validerHub: vi.fn(), retirerHub: vi.fn(), reactiverHub: vi.fn() }));
+vi.mock("@/lib/logistique/actions", () => ({
+  validerHub: vi.fn(),
+  retirerHub: vi.fn(),
+  reactiverHub: vi.fn(),
+  poserHub: vi.fn(),
+  corrigerHub: vi.fn(),
+}));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 
 const { AnnuaireHubs, FiltresAnnuaireHubs } = await import("./AnnuaireHubs");
 const { ListeHubs } = await import("./ListeHubs");
 const { FicheHubVue } = await import("./FicheHub");
-const { adresseHubs, cheminHub } = await import("@/lib/logistique/types");
+const { ChampsPoint, GestePoserHub } = await import("./FormulairePoint");
+const { POINT_VIDE, adresseHubs, cheminHub, detailPubliable, lireCoordonnees, nomDuPoint, saisieDe, versPoint } = await import(
+  "@/lib/logistique/types"
+);
 
 const decode = (html: string) => html.replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
 
@@ -50,6 +60,9 @@ const HUB: Hub = {
   trajets: 2,
   rendez_vous_en_cours: 1,
   cree_le: "2026-09-07T09:00:00Z",
+  adresse_du_lieu: null,
+  propositions_en_cours: 0,
+  version: "3f2a",
 };
 const hub = (h: Partial<Hub> = {}): Hub => ({ ...HUB, ...h });
 const annuaire = (hubs: Hub[], filtree = false) => decode(renderToStaticMarkup(<AnnuaireHubs hubs={hubs} filtree={filtree} />));
@@ -165,7 +178,15 @@ const FICHE: FicheHub = {
   signalements: [],
   trajets: [],
   rendez_vous: [],
-  possibles: { valider: non("Cette épingle n'attend pas de validation."), fermer: OUI, rouvrir: non("Ce point n'est pas fermé.") },
+  propositions: [],
+  voisins: [],
+  corrections: [],
+  possibles: {
+    valider: non("Cette épingle n'attend pas de validation."),
+    fermer: OUI,
+    rouvrir: non("Ce point n'est pas fermé."),
+    corriger: OUI,
+  },
 };
 const fiche = (f: Partial<FicheHub> = {}) => decode(renderToStaticMarkup(<FicheHubVue f={{ ...FICHE, ...f }} />));
 
@@ -195,7 +216,7 @@ describe("la fiche d’un point de rendez-vous", () => {
     const ferme = fiche({
       hub: hub({ etat: "ferme", statut: "inactive", ferme_le: "2026-10-13T08:00:00Z", motif_fermeture: "Travaux" }),
       fermetures: [{ motif: "Travaux", le: "2026-10-13T08:00:00Z", par: "Léa Martin", leve_le: null, leve_par: null, motif_levee: null }],
-      possibles: { valider: non("x"), fermer: non("Ce point est déjà fermé."), rouvrir: OUI },
+      possibles: { valider: non("x"), fermer: non("Ce point est déjà fermé."), rouvrir: OUI, corriger: OUI },
     });
     expect(ferme).toContain("Rouvrir le point");
     expect(ferme).not.toContain("Fermer aux nouvelles recherches");
@@ -205,7 +226,7 @@ describe("la fiche d’un point de rendez-vous", () => {
     const epingle = fiche({
       hub: hub({ etat: "a_valider", statut: "inactive", valide_le: null }),
       validation: null,
-      possibles: { valider: OUI, fermer: OUI, rouvrir: non("Ce point n'est pas fermé.") },
+      possibles: { valider: OUI, fermer: OUI, rouvrir: non("Ce point n'est pas fermé."), corriger: OUI },
     });
     expect(epingle).toContain(">Valider<");
     expect(epingle).toContain(">Écarter<");
@@ -213,13 +234,13 @@ describe("la fiche d’un point de rendez-vous", () => {
     const ecartee = fiche({
       hub: hub({ etat: "ecarte", statut: "inactive", valide_le: null, motif_fermeture: "Doublon" }),
       fermetures: [{ motif: "Doublon", le: "2026-10-13T08:00:00Z", par: null, leve_le: null, leve_par: null, motif_levee: null }],
-      possibles: { valider: non("x"), fermer: non("y"), rouvrir: OUI },
+      possibles: { valider: non("x"), fermer: non("y"), rouvrir: OUI, corriger: OUI },
     });
     expect(ecartee).toContain("Remettre à valider");
     expect(ecartee).toContain("Épingle écartée depuis le 13/10/2026");
 
     const raison = "Votre rôle ne permet pas de gérer les points de rendez-vous.";
-    const lecteur = fiche({ possibles: { valider: non(raison), fermer: non(raison), rouvrir: non(raison) } });
+    const lecteur = fiche({ possibles: { valider: non(raison), fermer: non(raison), rouvrir: non(raison), corriger: non(raison) } });
     expect(lecteur).not.toContain("<button");
     expect(lecteur.split(raison).length - 1).toBe(1);
   });
@@ -300,7 +321,7 @@ describe("la fiche d’un point de rendez-vous", () => {
     expect(html.split(">TEST<").length - 1).toBe(3);
     expect(fiche().split(">TEST<").length - 1).toBe(0);
     // Ce que la fermeture ne voit pas encore est dit : une recherche déjà lancée peut y aboutir.
-    expect(html).toContain("Une recherche lancée avant la fermeture peut encore y confirmer un rendez-vous : il apparaîtra ici.");
+    expect(html).toContain("un point ne se corrige pas tant qu’il en reste un");
   });
 
   it("garde l’histoire des fermetures : le motif, qui, et la réouverture", () => {
@@ -315,5 +336,142 @@ describe("la fiche d’un point de rendez-vous", () => {
     expect(html).toContain("Rouvert le 03/10/2026");
     expect(html).toContain("Paul Roux — Travaux terminés");
     expect(fiche()).toContain("Ce point n’a jamais été fermé ni écarté.");
+  });
+});
+
+// ── Poser et corriger un point (hand-to-hand `20261013006000`) ──────────────
+
+describe("poser et corriger un point", () => {
+  it("lit des coordonnées copiées d’une carte — et rien d’autre", () => {
+    expect(lireCoordonnees("43.7046, 7.2619")).toEqual({ latitude: 43.7046, longitude: 7.2619 });
+    expect(lireCoordonnees("  43.7046   7.2619 ")).toEqual({ latitude: 43.7046, longitude: 7.2619 });
+    expect(lireCoordonnees("-21.115;55.536")).toEqual({ latitude: -21.115, longitude: 55.536 });
+    for (const faux of ["", "43.7046", "43,7046, 7,2619", "nord, est", "95, 7.26", "43.70, 190", "43.7046, 7.2619, 12"]) {
+      expect(lireCoordonnees(faux), faux).toBeNull();
+    }
+  });
+
+  it("dit ce qui manque à une saisie, dans l’ordre du formulaire — puis l’envoie telle que la base l’attend", () => {
+    const pleine = { type_lieu: "parking", repere: " La Roubine ", detail: " Parking ouvert, côté entrée ", ville: " Cannes ", region: "", adresse: " ", coordonnees: "43.55, 6.97", rayon_m: "" };
+    expect(versPoint(POINT_VIDE)).toEqual({ manque: "Choisissez le type de lieu." });
+    expect(versPoint({ ...pleine, repere: "X" })).toEqual({ manque: "Écrivez le repère : le nom du lieu, pas une adresse." });
+    expect(versPoint({ ...pleine, detail: "ab" })).toEqual({ manque: "Écrivez le détail affiché : où se présenter." });
+    expect(versPoint({ ...pleine, ville: " " })).toEqual({ manque: "Indiquez la ville." });
+    expect(versPoint({ ...pleine, coordonnees: "ici" })).toHaveProperty("manque");
+    for (const rayon of ["10", "301", "60.5", "large"]) {
+      expect(versPoint({ ...pleine, rayon_m: rayon })).toEqual({ manque: "Le rayon de la zone va de 20 à 300 mètres." });
+    }
+    expect(versPoint(pleine)).toEqual({
+      point: { type_lieu: "parking", repere: "La Roubine", detail: "Parking ouvert, côté entrée", ville: "Cannes", region: null, adresse: null, latitude: 43.55, longitude: 6.97, rayon_m: null },
+    });
+    expect(versPoint({ ...pleine, rayon_m: "80", region: "Sud" })).toMatchObject({ point: { rayon_m: 80, region: "Sud" } });
+  });
+
+  it("calcule le nom comme la base, reprend un point tel qu’il est, et reconnaît un détail qui attend encore", () => {
+    expect(nomDuPoint("parking", " La Roubine ")).toBe("Hub Parking La Roubine");
+    expect(nomDuPoint("rond_point", "Saint-Claude")).toBe("Hub Rond-point Saint-Claude");
+    expect(saisieDe(hub({ adresse_du_lieu: "Avenue Thiers", region: null }))).toEqual({
+      type_lieu: "gare", repere: "Nice-Ville", detail: "Parvis de la gare, côté dépose-minute", ville: "Nice", region: "",
+      adresse: "Avenue Thiers", coordonnees: "43.7046, 7.2619", rayon_m: "60",
+    });
+    // Un point repris sans y toucher repart tel quel : la base y lira « aucune modification ».
+    expect(versPoint(saisieDe(hub()))).toMatchObject({ point: { latitude: 43.7046, longitude: 7.2619, rayon_m: 60, repere: "Nice-Ville" } });
+    expect(detailPubliable("Parvis de la gare, côté dépose-minute")).toBe(true);
+    for (const d of [null, "Trop court", "Détail à compléter sur place", "Sous-texte a completer"]) expect(detailPubliable(d), String(d)).toBe(false);
+  });
+
+  it("le formulaire dit le nom que le point portera, et montre l’épingle AVANT de l’envoyer", () => {
+    const champs = (p: Partial<typeof POINT_VIDE>) =>
+      decode(renderToStaticMarkup(<ChampsPoint id="x" p={{ ...POINT_VIDE, ...p }} surChangement={() => {}} />));
+    const vide = champs({});
+    expect(vide).not.toContain("Le point s’appellera");
+    expect(vide).toContain("jamais une adresse postale, ni le domicile de quelqu’un");
+    expect(vide).toContain("Copiez-les depuis une carte en ligne");
+    for (const lieu of ["Parking", "Gare", "Rond-point", "Aire de covoiturage", "Arrêt"]) expect(vide).toContain(`>${lieu}</option>`);
+    const rempli = champs({ type_lieu: "parking", repere: "La Roubine", coordonnees: "43.55, 6.97" });
+    expect(rempli).toContain("Hub Parking La Roubine");
+    expect(rempli).toContain('href="https://www.google.com/maps?q=43.55,6.97"');
+    expect(rempli).toContain("Regarder cette épingle sur la carte");
+    const faux = champs({ coordonnees: "43,55 ; 6,97" });
+    expect(faux).toContain("Latitude puis longitude, avec un point décimal");
+    expect(faux).not.toContain("google.com/maps");
+    // Le bouton de l'annuaire.
+    expect(decode(renderToStaticMarkup(<GestePoserHub />))).toContain("Poser un point");
+  });
+
+  it("🔴 « Corriger » se propose quand la base le permet — et un point occupé dit pourquoi il ne se corrige pas", () => {
+    expect(fiche()).toContain(">Corriger<");
+    const raison = "Un rendez-vous confirmé reste à tenir à ce point : le corriger le déplacerait sans rien dire.";
+    const occupe = fiche({ possibles: { ...FICHE.possibles, corriger: non(raison) } });
+    expect(occupe).not.toContain(">Corriger<");
+    expect(occupe).toContain("Corriger : </span>" + raison);
+    // Ce qui reste possible le reste.
+    expect(occupe).toContain("Fermer aux nouvelles recherches");
+    // Une épingle à valider se corrige aussi, avant d'être validée.
+    const epingle = fiche({
+      hub: hub({ etat: "a_valider", statut: "inactive", valide_le: null }),
+      validation: null,
+      possibles: { valider: OUI, fermer: OUI, rouvrir: non("x"), corriger: OUI },
+    });
+    expect(epingle).toContain(">Valider<");
+    expect(epingle).toContain(">Corriger<");
+  });
+
+  it("dit les propositions en cours — sur la ligne, sur la fiche — et l’adresse du lieu", () => {
+    const html = fiche({
+      hub: hub({ propositions_en_cours: 2, adresse_du_lieu: "Avenue Thiers" }),
+      propositions: [
+        { candidature: "c-1", ref: "HTH-2026-0000A1", role: "remise", etape: "choix", reponse: "en_attente", est_test: false },
+        { candidature: "c-2", ref: null, role: "collecte", etape: "ouverte", reponse: "proposee", est_test: true },
+      ],
+    });
+    expect(html).toContain("2 propositions en cours");
+    expect(html).toContain("Avenue Thiers");
+    expect(html).toContain('href="/operations/HTH-2026-0000A1?onglet=livraison"');
+    expect(html).toContain("Candidature — choix de l’acheteur attendu");
+    expect(html).toContain("Choix de l’acheteur attendu");
+    expect(html).toContain("Recherche sans commande");
+    expect(html).toContain("Proposition sans réponse");
+    expect(html.split(">TEST<").length - 1).toBe(1);
+    expect(html).toContain("fermer n’arrête que");
+    expect(fiche()).toContain("Aucune recherche en cours ne propose ce point.");
+    expect(fiche()).toContain("0 proposition en cours");
+    // L'annuaire le dit sur la ligne.
+    expect(annuaire([hub({ propositions_en_cours: 1, trajets: 0, rendez_vous_en_cours: 0 })])).toContain("1 proposition en cours");
+    expect(annuaire([hub({ trajets: 0, rendez_vous_en_cours: 0 })])).not.toContain("proposition");
+  });
+
+  it("dit les points voisins — un doublon se voit — et l’histoire des corrections, mot pour mot", () => {
+    const html = fiche({
+      voisins: [
+        { id: "v-1", nom: "Hub Parking Gare Thiers", etat: "ferme", distance_m: 43.6 },
+        { id: "v-2", nom: "Hub Gare Nice Thiers", etat: "a_valider", distance_m: 121.2 },
+      ],
+      corrections: [
+        {
+          le: "2026-10-13T10:00:00Z", par: "Léa Martin", motif: "Relevé sur place : l’accès est côté nord", deplace_de_m: 92.4,
+          avant: { repere: "Rue Porte Mage", type_lieu: "parking", latitude: 43.7, adresse_du_lieu: null },
+          apres: { repere: "Esplanade Charles de Gaulle", type_lieu: "place", latitude: 43.7008, adresse_du_lieu: "Esplanade" },
+        },
+        { le: "2026-10-01T10:00:00Z", par: null, motif: "Faute de frappe", deplace_de_m: null, avant: { region: null }, apres: { region: "Sud" } },
+      ],
+    });
+    expect(html).toContain('href="/h2h-logistic/points/v-1"');
+    expect(html).toContain("Hub Parking Gare Thiers");
+    expect(html).toContain("à 44 m");
+    expect(html).toContain("à 121 m");
+    expect(html).toContain("vérifiez qu’il ne s’agit pas du même lieu, posé deux fois");
+    expect(html).toContain("corrigé le 13/10/2026");
+    expect(html).toContain("Léa Martin");
+    expect(html).toContain("épingle déplacée de 92 m");
+    expect(html).toContain('Repère : </span>Rue Porte Mage → <span class="font-medium">Esplanade Charles de Gaulle</span>');
+    expect(html).toContain('Type de lieu : </span>Parking → <span class="font-medium">Place</span>');
+    expect(html).toContain('Adresse du lieu : </span>— → <span class="font-medium">Esplanade</span>');
+    expect(html).toContain('Région : </span>— → <span class="font-medium">Sud</span>');
+    expect(html).toContain("« Relevé sur place : l’accès est côté nord »");
+    expect(html.split("épingle déplacée").length - 1).toBe(1);
+    expect(html).toContain("aucune de ces corrections n’a déplacé un rendez-vous");
+    expect(fiche()).toContain("Aucun autre point à moins de 150 mètres.");
+    expect(fiche()).toContain("Ce point n’a pas été corrigé depuis le back-office.");
   });
 });

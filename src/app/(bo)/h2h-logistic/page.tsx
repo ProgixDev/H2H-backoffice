@@ -6,6 +6,7 @@ import { LectureEchouee } from "@/components/bo/LectureEchouee";
 import { AnnuaireHubs, FiltresAnnuaireHubs } from "@/components/logistique/AnnuaireHubs";
 import { FiltresListeColivraisons } from "@/components/logistique/FiltresColivraisons";
 import { FiltresListeTrajets } from "@/components/logistique/FiltresTrajets";
+import { GestePoserHub } from "@/components/logistique/FormulairePoint";
 import { ListeCandidatures } from "@/components/logistique/ListeCandidatures";
 import { ListeColivraisons } from "@/components/logistique/ListeColivraisons";
 import { ListeHubs } from "@/components/logistique/ListeHubs";
@@ -75,15 +76,15 @@ function lireFiltres<F extends string>(p: Params, connus: F[], testPermis: boole
  *   co-livraisons, ce qui l'écarte des recherches ouvertes, et la suspension de
  *   ses nouvelles propositions.
  * - Les points de rendez-vous (§ 12.4) : l'annuaire entier — son état, ses
- *   signalements, ce qui y passe —, et la fiche d'un point : le valider, le fermer
- *   aux nouvelles recherches, le rouvrir. Les épingles à regarder en sont un
- *   filtre, avec leurs gestes sur la ligne.
+ *   signalements, ce qui y passe —, poser un point, et la fiche d'un point : le
+ *   valider, le corriger tant que rien n'y est en cours, le fermer aux nouvelles
+ *   recherches, le rouvrir. Les épingles à regarder en sont un filtre, avec leurs
+ *   gestes sur la ligne.
  * - Les candidatures relais, reprises de l'écran mobile du support (P0b).
  *
  * ⚠️ LES RECHERCHES DE COTRANSPORTEURS SE SUIVENT DANS L'ACTIVITÉ EN DIRECT ET
- * LEUR FICHE. CRÉER ET CORRIGER UN POINT, EXAMINER UN SIGNALEMENT ET LES INCIDENTS
- * ARRIVENT AVEC LA SUITE DE LA PHASE 4. Cette page dit ce qu'elle fait, pas
- * davantage.
+ * LEUR FICHE. EXAMINER UN SIGNALEMENT ET LES INCIDENTS ARRIVENT AVEC LA SUITE DE
+ * LA PHASE 4. Cette page dit ce qu'elle fait, pas davantage.
  */
 export default async function PageLogistique({ searchParams }: { searchParams: Promise<Params> }) {
   const moi = await equipierPourRubrique(rubrique);
@@ -162,8 +163,8 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
     <div className="mx-auto grid max-w-6xl gap-6">
       <p className="text-corps text-muted-foreground">
         Suivez les co-livraisons et les trajets, tenez l’annuaire des points de rendez-vous et tranchez les candidatures
-        relais. Les recherches de cotransporteurs se suivent dans l’Activité en direct ; créer et corriger un point,
-        examiner un signalement et les incidents arriveront avec la suite de la phase 4.
+        relais. Les recherches de cotransporteurs se suivent dans l’Activité en direct ; examiner un signalement et les
+        incidents arriveront avec la suite de la phase 4.
       </p>
       <nav className="flex gap-1 border-b" aria-label="Onglets">
         {ONGLETS.map((o) => (
@@ -196,7 +197,15 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
         />
       )}
       {onglet === "points" && (
-        <FiltresAnnuaireHubs f={fh} compteurs={donnees.onglet === "points" ? donnees.compteurs : null} />
+        <>
+          {/* « Créer » : une épingle, jamais un point publié. Ni un lecteur ni l'instance de test n'en posent. */}
+          {peutGerer && !moi.est_test && (
+            <div className="flex justify-end">
+              <GestePoserHub />
+            </div>
+          )}
+          <FiltresAnnuaireHubs f={fh} compteurs={donnees.onglet === "points" ? donnees.compteurs : null} />
+        </>
       )}
       {contenu}
     </div>

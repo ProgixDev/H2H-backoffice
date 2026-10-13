@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@ed509dd : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@7d3a64e : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261013005000_un_point_de_rendez_vous_se_ferme_et_se_rouvre.sql
+// Base : 20261013006000_un_point_de_rendez_vous_se_pose_et_se_corrige.sql
 
 export type Json =
   | string
@@ -8909,7 +8909,40 @@ export type Database = {
         }
         Returns: Json
       }
+      bo_hub_corriger: {
+        Args: {
+          p_adresse: string
+          p_cle: string
+          p_detail: string
+          p_hub_id: string
+          p_latitude: number
+          p_longitude: number
+          p_motif: string
+          p_rayon_m: number
+          p_region: string
+          p_repere: string
+          p_type_lieu: string
+          p_version: string
+          p_ville: string
+        }
+        Returns: Json
+      }
       bo_hub_lire: { Args: { p_hub: string }; Returns: Json }
+      bo_hub_poser: {
+        Args: {
+          p_adresse: string
+          p_cle: string
+          p_detail: string
+          p_latitude: number
+          p_longitude: number
+          p_rayon_m: number
+          p_region: string
+          p_repere: string
+          p_type_lieu: string
+          p_ville: string
+        }
+        Returns: Json
+      }
       bo_hub_reactiver: {
         Args: { p_cle: string; p_hub_id: string; p_motif: string }
         Returns: Json
@@ -12777,6 +12810,9 @@ export type Database = {
         trajets: number | null
         rendez_vous_en_cours: number | null
         cree_le: string | null
+        adresse_du_lieu: string | null
+        propositions_en_cours: number | null
+        version: string | null
       }
       bo_live: {
         id: string | null

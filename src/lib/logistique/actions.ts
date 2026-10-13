@@ -1,7 +1,7 @@
 "use server";
 
 import { geste } from "@/lib/db/geste";
-import { cheminHub, cheminTrajet } from "./types";
+import { cheminHub, cheminTrajet, type PointEnvoye } from "./types";
 
 const CHEMIN = "/h2h-logistic";
 
@@ -39,6 +39,57 @@ export async function retirerHub(p: { hub: string; motif: string; cle: string })
     p_motif: p.motif,
     p_cle: p.cle,
   });
+}
+
+/**
+ * « Créer » (§ 12.4) : poser une épingle. Elle n'est proposée à personne tant que
+ * quelqu'un ne l'a pas validée ; la base rend ses voisins à moins de 150 mètres.
+ */
+export async function poserHub(p: PointEnvoye & { cle: string }) {
+  return geste<{ hub: string; nom: string; etat: string; voisins: { id: string; nom: string; distance_m: number }[] }>(
+    [CHEMIN],
+    "bo_hub_poser",
+    {
+      p_type_lieu: p.type_lieu,
+      p_repere: p.repere,
+      p_detail: p.detail,
+      p_ville: p.ville,
+      p_region: p.region,
+      p_adresse: p.adresse,
+      p_latitude: p.latitude,
+      p_longitude: p.longitude,
+      p_rayon_m: p.rayon_m,
+      p_cle: p.cle,
+    },
+  );
+}
+
+/**
+ * « Corriger » (§ 12.4). La base refuse tant qu'un rendez-vous est confirmé à ce
+ * point ou qu'une proposition en cours peut y aboutir : aucune correction ne
+ * déplace un rendez-vous. Elle garde l'histoire et prévient les cotransporteurs.
+ */
+export async function corrigerHub(p: PointEnvoye & { hub: string; version: string; motif: string; cle: string }) {
+  return geste<{ hub: string; nom: string; etat: string; deplace_de_m: number | null; trajets_prevenus: number }>(
+    [CHEMIN, cheminHub(p.hub)],
+    "bo_hub_corriger",
+    {
+      p_hub_id: p.hub,
+      // ⚠️ La version LUE AVEC LE FORMULAIRE : un formulaire ouvert avant la correction d'un collègue est refusé.
+      p_version: p.version,
+      p_type_lieu: p.type_lieu,
+      p_repere: p.repere,
+      p_detail: p.detail,
+      p_ville: p.ville,
+      p_region: p.region,
+      p_adresse: p.adresse,
+      p_latitude: p.latitude,
+      p_longitude: p.longitude,
+      p_rayon_m: p.rayon_m,
+      p_motif: p.motif,
+      p_cle: p.cle,
+    },
+  );
 }
 
 /** Rouvrir un point fermé ; une épingle écartée revient « à valider ». */

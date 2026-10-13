@@ -1,9 +1,9 @@
 // L'annuaire des points de rendez-vous et les candidatures relais, tels que le
 // back-office les lit (`bo_hubs_lister`, `bo_candidatures_relais_lister`).
 import type { Acteur } from "@/lib/activite/types";
-import type { Detenteur } from "@/lib/operations/types";
+import type { Detenteur, StatutCandidature, StatutRecherche } from "@/lib/operations/types";
 
-// ── L'annuaire des points de rendez-vous (§ 12.4, hand-to-hand `20261013005000`) ──
+// ── L'annuaire des points de rendez-vous (§ 12.4, hand-to-hand `20261013005000`, `20261013006000`) ──
 
 /** Où en est un point : une épingle à regarder, un point proposé, un point fermé, une épingle écartée. */
 export type EtatHub = "a_valider" | "actif" | "ferme" | "ecarte";
@@ -38,6 +38,134 @@ export type Hub = {
   /** Les rendez-vous qui restent à tenir à ce point : ils y restent, fermé ou non. */
   rendez_vous_en_cours: number;
   cree_le: string;
+  /** L'adresse du LIEU — jamais celle d'une personne. */
+  adresse_du_lieu: string | null;
+  /** Les propositions en cours qui peuvent encore aboutir à ce point (hand-to-hand `20261013006000`). */
+  propositions_en_cours: number;
+  /**
+   * La version du point : elle change dès qu'un champ corrigeable change. Le formulaire de correction rend celle
+   * qu'il a lue — la base refuse s'il a été ouvert avant la correction d'un collègue, qu'il déferait sinon.
+   */
+  version: string;
+};
+
+/** Ce qui se pose et se corrige d'un point, tel que les formulaires le saisissent. */
+export type PointSaisi = {
+  type_lieu: string;
+  repere: string;
+  detail: string;
+  ville: string;
+  region: string;
+  adresse: string;
+  /** « latitude, longitude », comme une carte en ligne les donne à copier. */
+  coordonnees: string;
+  /** Vide : le rayon par défaut de la base, ou celui que le point a déjà. */
+  rayon_m: string;
+};
+
+/**
+ * Lit « 43.7046, 7.2619 » : la latitude puis la longitude, séparées par une virgule ou un espace, avec un point
+ * décimal. `null` quand ce n'en est pas — la base refuserait de toute façon un point hors de la carte.
+ */
+export function lireCoordonnees(texte: string): { latitude: number; longitude: number } | null {
+  const m = /^\s*(-?\d{1,3}(?:\.\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/.exec(texte);
+  if (!m) return null;
+  const latitude = Number(m[1]);
+  const longitude = Number(m[2]);
+  if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null;
+  return { latitude, longitude };
+}
+
+/** Ce qu'un formulaire de point envoie : l'épingle déjà lue, le rayon ou rien. */
+export type PointEnvoye = {
+  type_lieu: string;
+  repere: string;
+  detail: string;
+  ville: string;
+  region: string | null;
+  adresse: string | null;
+  latitude: number;
+  longitude: number;
+  rayon_m: number | null;
+};
+
+/**
+ * La saisie prête à partir, ou ce qui lui manque encore.
+ * ⚠️ UN CONFORT, PAS LA RÈGLE : la base refuse elle-même un point mal nommé, et dit pourquoi.
+ */
+export function versPoint(p: PointSaisi): { point: PointEnvoye } | { manque: string } {
+  if (!p.type_lieu) return { manque: "Choisissez le type de lieu." };
+  if (p.repere.trim().length < 2) return { manque: "Écrivez le repère : le nom du lieu, pas une adresse." };
+  if (p.detail.trim().length < 3) return { manque: "Écrivez le détail affiché : où se présenter." };
+  if (!p.ville.trim()) return { manque: "Indiquez la ville." };
+  const c = lireCoordonnees(p.coordonnees);
+  if (!c) return { manque: "Collez les coordonnées du point : latitude, longitude — par exemple 43.7046, 7.2619." };
+  let rayon: number | null = null;
+  if (p.rayon_m.trim()) {
+    rayon = Number(p.rayon_m);
+    if (!Number.isInteger(rayon) || rayon < 20 || rayon > 300) return { manque: "Le rayon de la zone va de 20 à 300 mètres." };
+  }
+  return {
+    point: {
+      type_lieu: p.type_lieu,
+      repere: p.repere.trim(),
+      detail: p.detail.trim(),
+      ville: p.ville.trim(),
+      region: p.region.trim() || null,
+      adresse: p.adresse.trim() || null,
+      latitude: c.latitude,
+      longitude: c.longitude,
+      rayon_m: rayon,
+    },
+  };
+}
+
+export const POINT_VIDE: PointSaisi = {
+  type_lieu: "",
+  repere: "",
+  detail: "",
+  ville: "",
+  region: "",
+  adresse: "",
+  coordonnees: "",
+  rayon_m: "",
+};
+
+/** Un point tel qu'il est, sous la forme que le formulaire de correction reprend. */
+export function saisieDe(h: Hub): PointSaisi {
+  return {
+    type_lieu: h.type_lieu,
+    repere: h.repere ?? "",
+    detail: h.detail_affiche ?? "",
+    ville: h.ville ?? "",
+    region: h.region ?? "",
+    adresse: h.adresse_du_lieu ?? "",
+    coordonnees: `${h.latitude}, ${h.longitude}`,
+    rayon_m: String(h.rayon_m),
+  };
+}
+
+/** Le détail d'un point publié dit où se présenter : la règle de la validation, côté écran. */
+export function detailPubliable(detail: string | null): boolean {
+  const d = (detail ?? "").trim();
+  return d.length >= 12 && !/à compléter|a completer/i.test(d);
+}
+
+/** Le nom que la base calculera : « Hub » + type de lieu + repère (protocole de nommage). */
+export function nomDuPoint(typeLieu: string, repere: string): string {
+  return `Hub ${LIBELLE_LIEU[typeLieu] ?? typeLieu} ${repere.trim()}`.trim();
+}
+
+export const LIBELLE_CHAMP_HUB: Record<string, string> = {
+  type_lieu: "Type de lieu",
+  repere: "Repère",
+  detail_affiche: "Détail affiché",
+  ville: "Ville",
+  region: "Région",
+  adresse_du_lieu: "Adresse du lieu",
+  latitude: "Latitude",
+  longitude: "Longitude",
+  rayon_m: "Rayon de la zone (m)",
 };
 
 /** Les filtres, dans l'ordre de la base (`app.bo_hubs_filtres`). */
@@ -135,7 +263,27 @@ export type FicheHub = {
     moment: MomentColivraison;
     est_test: boolean;
   }[];
-  possibles: { valider: GestePossible; fermer: GestePossible; rouvrir: GestePossible };
+  /** Les propositions en cours qui peuvent encore aboutir à ce point : une ligne par candidature et par rôle. */
+  propositions: {
+    candidature: string;
+    ref: string | null;
+    role: "collecte" | "remise";
+    etape: StatutRecherche;
+    reponse: StatutCandidature;
+    est_test: boolean;
+  }[];
+  /** Les autres points à moins de 150 mètres, le plus proche d'abord : un doublon se voit. */
+  voisins: { id: string; nom: string; etat: EtatHub; distance_m: number }[];
+  /** Les corrections, la plus récente d'abord ; `avant` et `apres` ne portent que ce qui a changé. */
+  corrections: {
+    le: string;
+    par: string | null;
+    motif: string;
+    deplace_de_m: number | null;
+    avant: Record<string, string | number | null> | null;
+    apres: Record<string, string | number | null> | null;
+  }[];
+  possibles: { valider: GestePossible; fermer: GestePossible; rouvrir: GestePossible; corriger: GestePossible };
 };
 
 export type CandidatureRelais = {

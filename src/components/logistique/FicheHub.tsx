@@ -3,17 +3,21 @@ import { ExternalLink } from "lucide-react";
 import { StatutPastille } from "@/components/bo/StatutPastille";
 import { dateHeure } from "@/lib/dates";
 import {
+  LIBELLE_CHAMP_HUB,
   LIBELLE_ETAT_HUB,
   LIBELLE_LIEU,
   LIBELLE_MOMENT,
   LIBELLE_RAISON_SIGNALEMENT_HUB,
   LIBELLE_SITUATION,
+  cheminHub,
   cheminTrajet,
   lienCarte,
   type FicheHub,
 } from "@/lib/logistique/types";
+import { LIBELLE_STATUT_CANDIDATURE, LIBELLE_STATUT_RECHERCHE } from "@/lib/operations/libelles";
 import { cheminFiche } from "@/lib/operations/types";
 import { TON_ETAT_HUB } from "./AnnuaireHubs";
+import { GesteCorrectionHub } from "./FormulairePoint";
 import { GesteFermetureHub, GesteReouvertureHub, GesteValidationHub } from "./GestesHub";
 import { TON_MOMENT } from "./ListeColivraisons";
 import { SANS_PSEUDONYME, TON_SITUATION, pluriel } from "./ListeTrajets";
@@ -42,6 +46,12 @@ function Aucun({ children }: { children: React.ReactNode }) {
 
 const ROLE: Record<"collecte" | "remise", string> = { collecte: "Collecte", remise: "Remise" };
 
+/** Une valeur d'une correction, telle qu'elle se lit : le type de lieu en mots, le vide dit « — ». */
+function valeurCorrigee(champ: string, v: string | number | null | undefined): string {
+  if (v === null || v === undefined || v === "") return "—";
+  return champ === "type_lieu" ? (LIBELLE_LIEU[String(v)] ?? String(v)) : String(v);
+}
+
 /**
  * La fiche d'un point de rendez-vous (§ 12.4) : sa localisation, son état et le
  * motif de son indisponibilité, ses signalements, les missions concernées — les
@@ -56,10 +66,14 @@ const ROLE: Record<"collecte" | "remise", string> = { collecte: "Collecte", remi
 export function FicheHubVue({ f }: { f: FicheHub }) {
   const h = f.hub;
   const enCours = f.fermetures.find((x) => x.leve_le === null) ?? null;
-  const raisons = [...new Set([f.possibles.valider, f.possibles.fermer, f.possibles.rouvrir]
+  const raisons = [...new Set([f.possibles.valider, f.possibles.fermer, f.possibles.rouvrir, f.possibles.corriger]
     .filter((p) => !p.possible && p.raison)
     .map((p) => p.raison as string))];
-  const aucunGeste = !f.possibles.valider.possible && !f.possibles.fermer.possible && !f.possibles.rouvrir.possible;
+  const aucunGeste =
+    !f.possibles.valider.possible &&
+    !f.possibles.fermer.possible &&
+    !f.possibles.rouvrir.possible &&
+    !f.possibles.corriger.possible;
 
   return (
     <div className="grid gap-6">
@@ -72,6 +86,7 @@ export function FicheHubVue({ f }: { f: FicheHub }) {
         <dl className="grid gap-x-6 gap-y-2 text-corps sm:grid-cols-2 lg:grid-cols-4">
           <Champ titre="Localisation">
             {[h.ville, h.region].filter(Boolean).join(" · ") || "—"}
+            {h.adresse_du_lieu ? <span className="block text-legende text-muted-foreground">{h.adresse_du_lieu}</span> : null}
             <a
               href={lienCarte(h.latitude, h.longitude)}
               target="_blank"
@@ -99,6 +114,9 @@ export function FicheHubVue({ f }: { f: FicheHub }) {
           <Champ titre="Ce qui y passe">
             {pluriel(h.trajets, "trajet")}
             <span className="block text-legende text-muted-foreground">{h.rendez_vous_en_cours} rendez-vous à tenir</span>
+            <span className="block text-legende text-muted-foreground">
+              {pluriel(h.propositions_en_cours, "proposition")} en cours
+            </span>
           </Champ>
         </dl>
 
@@ -130,9 +148,16 @@ export function FicheHubVue({ f }: { f: FicheHub }) {
         )}
 
         <div className="flex flex-wrap items-center gap-3 border-t pt-3">
-          {f.possibles.valider.possible && <GesteValidationHub hub={h.id} repere={h.repere} />}
+          {f.possibles.valider.possible && <GesteValidationHub hub={h.id} repere={h.repere} detail={h.detail_affiche} />}
+          {f.possibles.corriger.possible && <GesteCorrectionHub hub={h} />}
           {f.possibles.fermer.possible && (
-            <GesteFermetureHub hub={h.id} publie={h.etat === "actif"} trajets={h.trajets} rendezVous={h.rendez_vous_en_cours} />
+            <GesteFermetureHub
+              hub={h.id}
+              publie={h.etat === "actif"}
+              trajets={h.trajets}
+              rendezVous={h.rendez_vous_en_cours}
+              propositions={h.propositions_en_cours}
+            />
           )}
           {f.possibles.rouvrir.possible && <GesteReouvertureHub hub={h.id} dejaPublie={h.etat === "ferme"} />}
           {aucunGeste && raisons.map((r) => (
@@ -140,6 +165,13 @@ export function FicheHubVue({ f }: { f: FicheHub }) {
               {r}
             </span>
           ))}
+          {/* Un point occupé ne se corrige pas : la raison se dit, à côté de ce qui reste possible. */}
+          {!aucunGeste && !f.possibles.corriger.possible && f.possibles.corriger.raison && (
+            <p className="w-full text-legende text-muted-foreground">
+              <span className="font-semibold text-foreground">Corriger : </span>
+              {f.possibles.corriger.raison}
+            </p>
+          )}
         </div>
       </div>
 
@@ -167,8 +199,35 @@ export function FicheHubVue({ f }: { f: FicheHub }) {
             </ul>
           )}
           <p className="text-legende text-muted-foreground">
-            Fermer ou corriger un point ne déplace aucun de ces rendez-vous. Une recherche lancée avant la fermeture
-            peut encore y confirmer un rendez-vous : il apparaîtra ici.
+            Fermer un point ne déplace aucun de ces rendez-vous, et un point ne se corrige pas tant qu’il en reste un.
+          </p>
+        </Section>
+
+        <Section titre="Propositions en cours">
+          {f.propositions.length === 0 ? (
+            <Aucun>Aucune recherche en cours ne propose ce point.</Aucun>
+          ) : (
+            <ul className="grid gap-1.5 text-corps">
+              {f.propositions.map((p) => (
+                <li key={`${p.candidature}-${p.role}`} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {p.ref ? (
+                    <Link href={cheminFiche(p.ref, "livraison")} className="font-medium tabular-nums text-h2h-primary hover:underline">
+                      {p.ref}
+                    </Link>
+                  ) : (
+                    <span className="font-medium">Recherche sans commande</span>
+                  )}
+                  <span>{ROLE[p.role]}</span>
+                  <span className="text-muted-foreground">{LIBELLE_STATUT_CANDIDATURE[p.reponse] ?? p.reponse}</span>
+                  <span className="text-legende text-muted-foreground">{LIBELLE_STATUT_RECHERCHE[p.etape] ?? p.etape}</span>
+                  {p.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-legende text-muted-foreground">
+            Une proposition en cours peut encore confirmer un rendez-vous à ce point, même fermé : fermer n’arrête que
+            les nouvelles recherches.
           </p>
         </Section>
 
@@ -194,6 +253,29 @@ export function FicheHubVue({ f }: { f: FicheHub }) {
             </ul>
           )}
           {f.trajets.length >= 50 && <p className="text-legende text-muted-foreground">Les 50 premiers sont affichés.</p>}
+        </Section>
+
+        <Section titre="Points voisins">
+          {f.voisins.length === 0 ? (
+            <Aucun>Aucun autre point à moins de 150 mètres.</Aucun>
+          ) : (
+            <>
+              <ul className="grid gap-1.5 text-corps">
+                {f.voisins.map((v) => (
+                  <li key={v.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <Link href={cheminHub(v.id)} className="font-medium text-h2h-primary hover:underline">
+                      {v.nom}
+                    </Link>
+                    <span className="tabular-nums text-muted-foreground">à {Math.round(v.distance_m)} m</span>
+                    <StatutPastille ton={TON_ETAT_HUB[v.etat]}>{LIBELLE_ETAT_HUB[v.etat]}</StatutPastille>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-legende text-muted-foreground">
+                À moins de 150 mètres : vérifiez qu’il ne s’agit pas du même lieu, posé deux fois.
+              </p>
+            </>
+          )}
         </Section>
 
         <Section titre="Signalements" className="lg:col-span-2">
@@ -254,6 +336,41 @@ export function FicheHubVue({ f }: { f: FicheHub }) {
               ))}
             </ul>
           )}
+        </Section>
+
+        <Section titre="Corrections" className="lg:col-span-2">
+          {f.corrections.length === 0 ? (
+            <Aucun>Ce point n’a pas été corrigé depuis le back-office.</Aucun>
+          ) : (
+            <ul className="grid gap-2">
+              {f.corrections.map((c) => (
+                <li key={c.le} className="grid gap-0.5 rounded-lg border p-3 text-corps">
+                  <span className="text-legende tabular-nums text-muted-foreground">
+                    corrigé le {dateHeure(c.le)}
+                    {c.par ? ` · ${c.par}` : ""}
+                    {c.deplace_de_m !== null ? ` · épingle déplacée de ${Math.round(c.deplace_de_m)} m` : ""}
+                  </span>
+                  <ul className="grid gap-0.5">
+                    {Object.keys(c.apres ?? {}).map((k) => (
+                      <li key={k}>
+                        <span className="text-muted-foreground">{LIBELLE_CHAMP_HUB[k] ?? k} : </span>
+                        {valeurCorrigee(k, c.avant?.[k])} → <span className="font-medium">{valeurCorrigee(k, c.apres?.[k])}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <span>
+                    <span className="text-muted-foreground">Motif : </span>« {c.motif} »
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-legende text-muted-foreground">
+            Un point ne se corrige pas tant qu’un rendez-vous y est confirmé ou qu’une proposition en cours peut y
+            aboutir : aucune de ces corrections n’a déplacé un rendez-vous. Un rendez-vous dont l’heure est passée
+            depuis plus de sept jours n’a pas été tenu : il n’empêche plus de corriger.
+            {f.corrections.length >= 50 ? " Les 50 plus récentes sont affichées." : ""}
+          </p>
         </Section>
       </div>
     </div>
