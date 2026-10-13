@@ -121,6 +121,12 @@ describe("la liste des trajets", () => {
     expect(raisonsADire({ situation: "clos", raisons: ["hors_ligne"] })).toEqual([]);
   });
 
+  it("dit quand le déplacement du prochain passage est confirmé — et se tait sinon", () => {
+    expect(liste([trajet({ prochain_passage_confirme_le: "2026-10-13T06:05:00Z" })])).toContain("déplacement confirmé");
+    expect(liste([trajet({ prochain_passage_confirme_le: null })])).not.toContain("déplacement confirmé");
+    expect(liste([trajet()])).not.toContain("déplacement confirmé");
+  });
+
   it("signale ce qui cloche, le monde du test et un passage plein — sans les inventer", () => {
     const html = liste([trajet({ anomalies: ["point_de_remise_inactif", "surreserve"], est_test: true, places_restantes: 0 })]);
     expect(html).toContain("Point de remise inactif");
@@ -234,8 +240,26 @@ describe("la fiche d’un trajet", () => {
     expect(html).not.toContain("Tant que le trajet est écarté");
   });
 
-  it("⚠️ dit que la confirmation du déplacement n’est pas encore enregistrée", () => {
-    expect(fiche()).toContain("Confirmation du déplacement : elle n’est pas encore enregistrée");
+  it("🔴 dit la confirmation du déplacement de chaque passage — et ce qu’un « pas confirmé » ne dit pas encore", () => {
+    const passage = (x: Partial<FicheTrajet["passages"][number]>) =>
+      ({ collecte_le: "2026-10-14T12:30:00Z", fin_le: "2026-10-14T13:30:00Z", places: 3, reserves: 0, libre: true, jour_off: false, ecarte: null, ...x });
+    // ⚠️ La cellule, pas la phrase d'explication de la fiche — qui cite elle aussi « pas confirmé ».
+    const PAS_CONFIRME = '<span class="text-muted-foreground">pas confirmé</span>';
+    const confirme = fiche({ passages: [passage({ confirme_le: "2026-10-13T06:05:00Z" })] });
+    expect(confirme).toContain("confirmé le 13/10/2026 08:05");
+    expect(confirme).not.toContain(PAS_CONFIRME);
+    const muet = fiche({ passages: [passage({ confirme_le: null })] });
+    expect(muet).toContain(PAS_CONFIRME);
+    expect(muet).not.toContain("confirmé le");
+    // Une lecture d'avant la colonne ne dit rien : ce n'est pas une confirmation.
+    expect(fiche({ passages: [passage({})] })).toContain(PAS_CONFIRME);
+    const ferme = fiche({ passages: [passage({ jour_off: true, libre: false, ecarte: "jour_off", confirme_le: null })] });
+    expect(ferme).toContain("fermé par le cotransporteur");
+    expect(ferme).not.toContain(PAS_CONFIRME);
+    // ⚠️ La limite est dite : l'application en magasin ne l'envoie pas encore.
+    expect(fiche()).toContain("Confirmation du déplacement : elle se lit sur chaque passage");
+    expect(fiche()).toContain("ne l’envoie pas encore");
+    expect(fiche()).toContain("un trajet non confirmé reste proposé");
   });
 
   it("🔴 propose le geste que la base permet — sinon sa raison, sans bouton", () => {

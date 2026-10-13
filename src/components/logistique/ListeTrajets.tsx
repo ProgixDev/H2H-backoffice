@@ -124,6 +124,9 @@ export function ListeTrajets({ trajets, filtree, lienCompte }: { trajets: Trajet
                             : "plus de place sur ce passage"}
                         </span>
                       )}
+                      {t.prochain_passage_confirme_le && (
+                        <span className="block text-legende text-muted-foreground">déplacement confirmé</span>
+                      )}
                     </>
                   ) : (
                     <span className="text-muted-foreground">Aucun passage à venir</span>

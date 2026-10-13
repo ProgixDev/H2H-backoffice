@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@5891283 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@c55d6a2 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261013003000_un_trajet_se_lit_et_se_suspend.sql
+// Base : 20261013004000_un_deplacement_se_confirme.sql
 
 export type Json =
   | string
@@ -9955,6 +9955,10 @@ export type Database = {
         Returns: string
       }
       cotransporteur_capacite_trajets: { Args: never; Returns: Json }
+      cotransporteur_confirmer_trajet: {
+        Args: { p_jour?: string; p_trajet: string }
+        Returns: Json
+      }
       cotransporteur_jours_off: { Args: never; Returns: Json }
       cotransporteur_pas_aujourdhui: {
         Args: { p_jour?: string }
@@ -12899,6 +12903,7 @@ export type Database = {
         anomalies: string[] | null
         est_test: boolean | null
         cree_le: string | null
+        prochain_passage_confirme_le: string | null
       }
     }
   }

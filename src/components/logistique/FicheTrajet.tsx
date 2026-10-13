@@ -208,8 +208,9 @@ export function FicheTrajetVue({ f, lienCompte }: {
         )}
 
         <p className="text-legende text-muted-foreground">
-          Confirmation du déplacement : elle n’est pas encore enregistrée. Dans l’application du cotransporteur,
-          « Confirmer le trajet » ne quitte pas le téléphone ; seul « Pas aujourd’hui » se lit ici, sur chaque passage.
+          Confirmation du déplacement : elle se lit sur chaque passage, depuis que « Confirmer le trajet » s’enregistre
+          (13/10/2026). La version de H2H Logistic en magasin ne l’envoie pas encore : un passage « pas confirmé » ne
+          dit donc rien pour l’instant. Rien n’en dépend : un trajet non confirmé reste proposé.
         </p>
 
         <div className="flex flex-wrap items-center gap-3 border-t pt-3">
@@ -255,13 +256,14 @@ export function FicheTrajetVue({ f, lienCompte }: {
             <Aucun>Aucun passage dans les sept prochains jours.</Aucun>
           ) : (
             <div className="overflow-x-auto rounded-lg border">
-              <table className="w-full min-w-[440px] text-corps">
+              <table className="w-full min-w-[560px] text-corps">
                 <thead className="bg-muted/40 text-left text-legende text-muted-foreground">
                   <tr>
                     <th className="px-3 py-1.5 font-medium">Collecte</th>
                     <th className="px-3 py-1.5 font-medium">Dernière remise</th>
                     <th className="px-3 py-1.5 font-medium">Réservations</th>
                     <th className="px-3 py-1.5 font-medium">Disponibilité</th>
+                    <th className="px-3 py-1.5 font-medium">Déplacement</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -274,6 +276,15 @@ export function FicheTrajetVue({ f, lienCompte }: {
                       </td>
                       <td className="px-3 py-1.5">
                         <Disponibilite p={p} />
+                      </td>
+                      <td className="px-3 py-1.5 text-legende tabular-nums">
+                        {p.jour_off ? (
+                          <span className="text-muted-foreground">fermé par le cotransporteur</span>
+                        ) : p.confirme_le ? (
+                          `confirmé le ${dateHeure(p.confirme_le)}`
+                        ) : (
+                          <span className="text-muted-foreground">pas confirmé</span>
+                        )}
                       </td>
                     </tr>
                   ))}

@@ -218,6 +218,8 @@ export type Trajet = {
   suspendu_le: string | null;
   /** Le prochain passage ; `null` pour un trajet clos, ou sans passage à venir. */
   prochain_passage: string | null;
+  /** Le déplacement de ce prochain passage, confirmé par le cotransporteur (hand-to-hand `20261013004000`). */
+  prochain_passage_confirme_le?: string | null;
   places_restantes: number | null;
   /** Les engagements à venir sur ce trajet. */
   reservations: number;
@@ -350,6 +352,8 @@ export type PassageTrajet = {
   reserves: number;
   libre: boolean;
   jour_off: boolean;
+  /** Le déplacement de ce jour-là, confirmé par le cotransporteur dans son application ; `null` sinon. */
+  confirme_le?: string | null;
   ecarte: RaisonPassage | null;
 };
 
