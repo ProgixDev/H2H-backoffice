@@ -4,31 +4,39 @@ import { cn } from "cn";
 import { AccesRefuse, equipierPourRubrique } from "@/components/bo/PageRubrique";
 import { LectureEchouee } from "@/components/bo/LectureEchouee";
 import { FiltresListeColivraisons } from "@/components/logistique/FiltresColivraisons";
+import { FiltresListeTrajets } from "@/components/logistique/FiltresTrajets";
 import { ListeCandidatures } from "@/components/logistique/ListeCandidatures";
 import { ListeColivraisons } from "@/components/logistique/ListeColivraisons";
 import { ListeHubs } from "@/components/logistique/ListeHubs";
+import { ListeTrajets } from "@/components/logistique/ListeTrajets";
 import { peut } from "@/lib/equipe/types";
 import {
   compterColivraisons,
+  compterTrajets,
   listerCandidaturesRelais,
   listerColivraisons,
   listerHubsAValider,
+  listerTrajets,
 } from "@/lib/logistique/lectures";
 import {
   FILTRES_COLIVRAISON,
+  FILTRES_TRAJET,
   type Colivraison,
   type CompteursColivraisons,
+  type CompteursTrajets,
   type FiltreColivraison,
-  type FiltresColivraisons,
+  type FiltreTrajet,
+  type Trajet,
 } from "@/lib/logistique/types";
 import { rubriqueObligatoire } from "@/lib/navigation";
 
 const rubrique = rubriqueObligatoire("/h2h-logistic");
 export const metadata: Metadata = { title: rubrique.titre };
 
-type Onglet = "colivraisons" | "points" | "relais";
+type Onglet = "colivraisons" | "trajets" | "points" | "relais";
 const ONGLETS: { id: Onglet; libelle: string }[] = [
   { id: "colivraisons", libelle: "Co-livraisons" },
+  { id: "trajets", libelle: "Trajets" },
   { id: "points", libelle: "Points de rendez-vous" },
   { id: "relais", libelle: "Candidatures relais" },
 ];
@@ -36,12 +44,12 @@ const ONGLETS: { id: Onglet; libelle: string }[] = [
 type Params = Record<string, string | string[] | undefined>;
 const texte = (v: string | string[] | undefined) => (typeof v === "string" ? v.trim() : "");
 
-/** Les filtres des co-livraisons lus dans l'adresse ; une valeur inconnue est ignorée, pas transmise. */
-function lireFiltres(p: Params, testPermis: boolean): FiltresColivraisons {
+/** Les filtres d'une liste lus dans l'adresse ; une valeur inconnue est ignorée, pas transmise. */
+function lireFiltres<F extends string>(p: Params, connus: F[], testPermis: boolean) {
   const filtre = texte(p.filtre);
   const q = texte(p.q).slice(0, 80);
   return {
-    filtre: (FILTRES_COLIVRAISON as string[]).includes(filtre) ? (filtre as FiltreColivraison) : null,
+    filtre: (connus as string[]).includes(filtre) ? (filtre as F) : null,
     q: q || null,
     test: testPermis && texte(p.test) === "1",
   };
@@ -54,25 +62,31 @@ function lireFiltres(p: Params, testPermis: boolean): FiltresColivraisons {
  *   liste montre —, et pour chacune ses participants, ses rendez-vous, qui
  *   détient le colis, la prochaine action, ses incidents ouverts. La fiche de
  *   l'opération porte le détail : présences, scans, ce qu'un incident retient.
+ * - Les trajets (§ 12.2) : la liste, ses compteurs, et pour chacun son corridor,
+ *   ses points, sa capacité, son prochain passage, et où il en est pour de
+ *   nouvelles propositions. La fiche d'un trajet porte ses passages, ses
+ *   co-livraisons, ce qui l'écarte des recherches ouvertes, et la suspension de
+ *   ses nouvelles propositions.
  * - Les deux procédures reprises de l'écran mobile du support (P0b) : l'annuaire
  *   des points de rendez-vous et les candidatures relais.
  *
  * ⚠️ LES RECHERCHES DE COTRANSPORTEURS SE SUIVENT DANS L'ACTIVITÉ EN DIRECT ET
- * LEUR FICHE. LES TRAJETS, LA GESTION DES POINTS DE RENDEZ-VOUS ET LES INCIDENTS
- * ARRIVENT AVEC LA SUITE DE LA PHASE 4. Cette page dit ce qu'elle fait, pas
- * davantage.
+ * LEUR FICHE. LA GESTION DES POINTS DE RENDEZ-VOUS ET LES INCIDENTS ARRIVENT AVEC
+ * LA SUITE DE LA PHASE 4. Cette page dit ce qu'elle fait, pas davantage.
  */
 export default async function PageLogistique({ searchParams }: { searchParams: Promise<Params> }) {
   const moi = await equipierPourRubrique(rubrique);
   if (!moi) return <AccesRefuse rubrique={rubrique} />;
 
   const p = await searchParams;
-  const onglet: Onglet = p.onglet === "relais" ? "relais" : p.onglet === "points" ? "points" : "colivraisons";
-  const f = lireFiltres(p, !moi.est_test);
+  const onglet: Onglet = ONGLETS.find((o) => o.id === p.onglet)?.id ?? "colivraisons";
+  const f = lireFiltres<FiltreColivraison>(p, FILTRES_COLIVRAISON, !moi.est_test);
+  const ft = lireFiltres<FiltreTrajet>(p, FILTRES_TRAJET, !moi.est_test);
 
   // On LIT dans le try, on construit l'écran après (règle `react-hooks/error-boundaries`).
   let donnees:
     | { onglet: "colivraisons"; colivraisons: Colivraison[]; compteurs: CompteursColivraisons | null }
+    | { onglet: "trajets"; trajets: Trajet[]; compteurs: CompteursTrajets | null }
     | { onglet: "points"; hubs: Awaited<ReturnType<typeof listerHubsAValider>> }
     | { onglet: "relais"; candidatures: Awaited<ReturnType<typeof listerCandidaturesRelais>> }
     | { onglet: "echec" };
@@ -87,6 +101,15 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
         compteurs = null;
       }
       donnees = { onglet, colivraisons, compteurs };
+    } else if (onglet === "trajets") {
+      const trajets = await listerTrajets(ft);
+      let compteurs: CompteursTrajets | null;
+      try {
+        compteurs = await compterTrajets(ft);
+      } catch {
+        compteurs = null;
+      }
+      donnees = { onglet, trajets, compteurs };
     } else if (onglet === "points") {
       donnees = { onglet, hubs: await listerHubsAValider() };
     } else {
@@ -100,6 +123,8 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
   const contenu =
     donnees.onglet === "colivraisons" ? (
       <ListeColivraisons colivraisons={donnees.colivraisons} filtree={Boolean(f.filtre || f.q)} />
+    ) : donnees.onglet === "trajets" ? (
+      <ListeTrajets trajets={donnees.trajets} filtree={Boolean(ft.filtre || ft.q)} lienCompte={peut(moi, "utilisateurs.lire")} />
     ) : donnees.onglet === "points" ? (
       <ListeHubs hubs={donnees.hubs} peutGerer={peutGerer} />
     ) : donnees.onglet === "relais" ? (
@@ -111,9 +136,9 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
   return (
     <div className="mx-auto grid max-w-6xl gap-6">
       <p className="text-corps text-muted-foreground">
-        Suivez les co-livraisons, validez les points de rendez-vous et tranchez les candidatures relais. Les recherches de
-        cotransporteurs se suivent dans l’Activité en direct ; les trajets, la gestion des points de rendez-vous et les
-        incidents arriveront avec la suite de la phase 4.
+        Suivez les co-livraisons et les trajets, validez les points de rendez-vous et tranchez les candidatures relais.
+        Les recherches de cotransporteurs se suivent dans l’Activité en direct ; la gestion des points de rendez-vous et
+        les incidents arriveront avec la suite de la phase 4.
       </p>
       <nav className="flex gap-1 border-b" aria-label="Onglets">
         {ONGLETS.map((o) => (
@@ -135,6 +160,13 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
         <FiltresListeColivraisons
           f={f}
           compteurs={donnees.onglet === "colivraisons" ? donnees.compteurs : null}
+          testVisible={!moi.est_test}
+        />
+      )}
+      {onglet === "trajets" && (
+        <FiltresListeTrajets
+          f={ft}
+          compteurs={donnees.onglet === "trajets" ? donnees.compteurs : null}
           testVisible={!moi.est_test}
         />
       )}

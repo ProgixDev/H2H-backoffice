@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@0fade01 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@5891283 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261013002000_une_colivraison_se_lit.sql
+// Base : 20261013003000_un_trajet_se_lit_et_se_suspend.sql
 
 export type Json =
   | string
@@ -9475,6 +9475,38 @@ export type Database = {
           periode_minutes: number
         }[]
       }
+      bo_trajet_lire: { Args: { p_trajet: string }; Returns: Json }
+      bo_trajet_reprendre: {
+        Args: { p_cle: string; p_motif: string; p_trajet: string }
+        Returns: Json
+      }
+      bo_trajet_suspendre: {
+        Args: {
+          p_cle: string
+          p_message: string
+          p_motif: string
+          p_trajet: string
+        }
+        Returns: Json
+      }
+      bo_trajets_compteurs: {
+        Args: { p_inclure_test?: boolean; p_recherche?: string }
+        Returns: Json
+      }
+      bo_trajets_lister: {
+        Args: {
+          p_filtre?: string
+          p_inclure_test?: boolean
+          p_recherche?: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["bo_trajet"][]
+        SetofOptions: {
+          from: "*"
+          to: "bo_trajet"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       bo_transaction_annuler: {
         Args: {
           p_cle: string
@@ -12839,6 +12871,34 @@ export type Database = {
         arrete_le: string | null
         anomalies: string[] | null
         est_test: boolean | null
+      }
+      bo_trajet: {
+        id: string | null
+        cotransporteur_id: string | null
+        cotransporteur: string | null
+        type: string | null
+        jours: number[] | null
+        depart_le: string | null
+        ville_depart: string | null
+        ville_arrivee: string | null
+        hub_collecte: string | null
+        hubs_remise: string[] | null
+        mode: string | null
+        places: number | null
+        taille_max: string | null
+        poids_max_kg: number | null
+        hors_hub: boolean | null
+        statut: string | null
+        situation: string | null
+        raisons: string[] | null
+        suspendu_le: string | null
+        prochain_passage: string | null
+        places_restantes: number | null
+        reservations: number | null
+        colivraisons_en_cours: number | null
+        anomalies: string[] | null
+        est_test: boolean | null
+        cree_le: string | null
       }
     }
   }

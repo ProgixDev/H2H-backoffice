@@ -5,8 +5,12 @@ import type {
   CandidatureRelais,
   Colivraison,
   CompteursColivraisons,
+  CompteursTrajets,
+  FicheTrajet,
   FiltresColivraisons,
+  FiltresTrajets,
   HubAValider,
+  Trajet,
 } from "./types";
 
 /** Les points de rendez-vous dont l'épingle attend un regard (hors épingles écartées). */
@@ -34,4 +38,26 @@ export async function compterColivraisons(f: FiltresColivraisons): Promise<Compt
     p_recherche: f.q,
     p_inclure_test: f.test,
   });
+}
+
+/** Les trajets (§ 12.2) : une anomalie d'abord, puis les suspendus, puis par prochain passage ; la base en décide. */
+export async function listerTrajets(f: FiltresTrajets): Promise<Trajet[]> {
+  return rpc<Trajet[]>(await supabaseServeur(), "bo_trajets_lister", {
+    p_filtre: f.filtre,
+    p_recherche: f.q,
+    p_inclure_test: f.test,
+  });
+}
+
+/** Un compteur par filtre, avec la même recherche : exactement ce que la liste montre. */
+export async function compterTrajets(f: FiltresTrajets): Promise<CompteursTrajets> {
+  return rpc<CompteursTrajets>(await supabaseServeur(), "bo_trajets_compteurs", {
+    p_recherche: f.q,
+    p_inclure_test: f.test,
+  });
+}
+
+/** La fiche d'un trajet : ses passages, ses co-livraisons, ce qui l'écarte des recherches ouvertes, ses suspensions. */
+export async function lireTrajet(id: string): Promise<FicheTrajet> {
+  return rpc<FicheTrajet>(await supabaseServeur(), "bo_trajet_lire", { p_trajet: id });
 }

@@ -1,6 +1,7 @@
 "use server";
 
 import { geste } from "@/lib/db/geste";
+import { cheminTrajet } from "./types";
 
 const CHEMIN = "/h2h-logistic";
 
@@ -34,6 +35,31 @@ export async function trancherCandidature(p: { candidature: string; approuver: b
   return geste<{ candidature: string; statut: string; point_relais: string | null }>([CHEMIN], "bo_candidature_relais_trancher", {
     p_id: p.candidature,
     p_approuver: p.approuver,
+    p_motif: p.motif,
+    p_cle: p.cle,
+  });
+}
+
+type SuspensionEcrite = { trajet: string; suspension: string; suspendu: boolean };
+
+/**
+ * Suspendre les nouvelles propositions d'un trajet (§ 12.2). Le message part au
+ * cotransporteur ; le motif reste au journal. Rien de ce qui est en cours ne
+ * s'arrête : c'est la base qui le garantit.
+ */
+export async function suspendreTrajet(p: { trajet: string; message: string; motif: string; cle: string }) {
+  return geste<SuspensionEcrite>([CHEMIN, cheminTrajet(p.trajet)], "bo_trajet_suspendre", {
+    p_trajet: p.trajet,
+    p_message: p.message,
+    p_motif: p.motif,
+    p_cle: p.cle,
+  });
+}
+
+/** Rétablir les nouvelles propositions d'un trajet suspendu ; son cotransporteur est prévenu. */
+export async function reprendreTrajet(p: { trajet: string; motif: string; cle: string }) {
+  return geste<SuspensionEcrite>([CHEMIN, cheminTrajet(p.trajet)], "bo_trajet_reprendre", {
+    p_trajet: p.trajet,
     p_motif: p.motif,
     p_cle: p.cle,
   });
