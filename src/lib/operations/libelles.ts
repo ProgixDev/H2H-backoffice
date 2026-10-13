@@ -8,6 +8,7 @@
 import type { Database } from "@/lib/db/contrat/database.types";
 import type {
   ChampSensible,
+  Detenteur,
   MotifAnnulationRecherche,
   RaisonIndisponible,
   SourceFait,
@@ -320,6 +321,37 @@ export const LIBELLE_DECLARANT: Record<E["declarant_role"], string> = {
   buyer: "Acheteur",
   seller: "Vendeur",
   transporter: "Cotransporteur particulier",
+};
+
+// ── La co-livraison sur le terrain (hand-to-hand `20261013002000`) ───────────
+export const LIBELLE_DETENTEUR: Record<Detenteur, string> = {
+  vendeur: "Le vendeur",
+  cotransporteur: "Le cotransporteur particulier",
+  relais: "Le point relais",
+  acheteur: "L’acheteur",
+};
+
+export const LIBELLE_ETAPE_HUB: Record<E["hub_etape"], string> = { recuperation: "Collecte", remise: "Remise" };
+
+export const LIBELLE_PARTIE_HUB: Record<E["hub_partie"], string> = {
+  vendeur: "Vendeur",
+  acheteur: "Acheteur",
+  cotransporteur: "Cotransporteur particulier",
+};
+
+export const LIBELLE_ROLE_SCAN: Record<E["handoff_role"], string> = {
+  seller: "Vendeur",
+  buyer: "Acheteur",
+  transporter: "Cotransporteur particulier",
+  relay: "Point relais",
+  platform: "Par la plateforme",
+};
+
+export const LIBELLE_HORS_HUB: Record<E["hors_hub_statut"], string> = {
+  pending: "En attente de la réponse du cotransporteur",
+  accepted: "Acceptée",
+  rejected: "Refusée",
+  expired: "Sans réponse : le rendez-vous reste au point prévu",
 };
 
 export const LIBELLE_INCIDENT: Record<E["mission_form_status"], string> = {

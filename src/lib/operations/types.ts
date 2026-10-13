@@ -574,9 +574,66 @@ export type RechercheColivraison = {
   refus_colis?: RefusColisLu | null;
 };
 
+/** Qui détient le colis, déduit de son état et de son journal (hand-to-hand `20261013002000`). */
+export type Detenteur = "vendeur" | "cotransporteur" | "relais" | "acheteur";
+
+/**
+ * Une présence déclarée (« Je suis au hub ») : qui, à quelle étape, quand, vue
+ * dans la zone ou non. 🔴 JAMAIS UNE POSITION (R4.15) : la base n'en rend aucune.
+ */
+export type PresenceHub = {
+  etape: E["hub_etape"];
+  partie: E["hub_partie"];
+  pseudo: string | null;
+  rendez_vous: string | null;
+  declaree_le: string;
+  /** La première fois que la personne a été vue dans la zone ; `null` : jamais. */
+  validee_le: string | null;
+  dans_la_zone: boolean;
+  /** Par rapport à l'heure du rendez-vous : négatif, la personne est en avance. */
+  retard_minutes: number | null;
+  tentatives: number;
+};
+
+/** Un geste d'une partie sur le colis : le genre, le résultat, l'état demandé. 🔴 JAMAIS LE CODE PRÉSENTÉ. */
+export type ScanColis = {
+  le: string;
+  nature: E["handoff_kind"];
+  resultat: E["scan_result"];
+  role: E["handoff_role"];
+  acteur: string | null;
+  etat_avant: E["shipment_state"] | null;
+  etat_demande: E["shipment_state"] | null;
+  /** Dit par la base, comme dans la chronologie. */
+  libelle: string;
+  photo: boolean;
+};
+
+/** Une demande de rendez-vous hors point de rendez-vous. 🔴 NI L'ADRESSE, NI LE MOTIF. */
+export type DemandeHorsHub = {
+  etape: E["hub_etape"];
+  statut: E["hors_hub_statut"];
+  demandeur: string | null;
+  demandee_le: string;
+  decidee_le: string | null;
+  expire_le: string;
+  frais_cents: number | null;
+};
+
+/** Ce qu'un incident ou une contestation retient des versements : la cause, jamais un montant. */
+export type RetenueLivraison = {
+  motif: "incident" | "contestation";
+  libelle: string;
+  depuis: string;
+  /** `null` : tous les bénéficiaires de cet achat. */
+  beneficiaire: "vendeur" | "cotransporteur" | null;
+};
+
 export type Livraison = {
   /** Les recherches de cotransporteur du § 5, la plus récente d'abord. */
   recherches?: RechercheColivraison[];
+  /** ⚠️ ABSENT D'UNE BASE ANTÉRIEURE À `20261013002000`, comme les quatre champs ajoutés aux co-livraisons. */
+  retenues?: RetenueLivraison[];
   mode: E["shipping_method"] | null;
   transporteur: E["carrier_key"] | null;
   suivi: string | null;
@@ -634,6 +691,10 @@ export type Livraison = {
     annulation: E["cancellation_reason"] | null;
     refus: number;
     cree_le: string;
+    detenteur?: Detenteur | null;
+    presences?: PresenceHub[];
+    scans?: ScanColis[];
+    hors_hub?: DemandeHorsHub[];
   }[];
   refus: { le: string; motif: string | null; cotransporteur: string | null }[];
 };

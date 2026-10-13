@@ -1,7 +1,13 @@
 import "server-only";
 import { rpc } from "@/lib/db/rpc";
 import { supabaseServeur } from "@/lib/supabase/serveur";
-import type { CandidatureRelais, HubAValider } from "./types";
+import type {
+  CandidatureRelais,
+  Colivraison,
+  CompteursColivraisons,
+  FiltresColivraisons,
+  HubAValider,
+} from "./types";
 
 /** Les points de rendez-vous dont l'épingle attend un regard (hors épingles écartées). */
 export async function listerHubsAValider(): Promise<HubAValider[]> {
@@ -11,4 +17,21 @@ export async function listerHubsAValider(): Promise<HubAValider[]> {
 /** Les candidatures relais en attente, le téléphone masqué. */
 export async function listerCandidaturesRelais(): Promise<CandidatureRelais[]> {
   return rpc<CandidatureRelais[]>(await supabaseServeur(), "bo_candidatures_relais_lister");
+}
+
+/** Les co-livraisons (§ 12.3) : un incident ouvert d'abord, puis par rendez-vous ; la base en décide l'ordre et le monde. */
+export async function listerColivraisons(f: FiltresColivraisons): Promise<Colivraison[]> {
+  return rpc<Colivraison[]>(await supabaseServeur(), "bo_colivraisons_lister", {
+    p_filtre: f.filtre,
+    p_recherche: f.q,
+    p_inclure_test: f.test,
+  });
+}
+
+/** Un compteur par filtre, avec la même recherche : exactement ce que la liste montre. */
+export async function compterColivraisons(f: FiltresColivraisons): Promise<CompteursColivraisons> {
+  return rpc<CompteursColivraisons>(await supabaseServeur(), "bo_colivraisons_compteurs", {
+    p_recherche: f.q,
+    p_inclure_test: f.test,
+  });
 }

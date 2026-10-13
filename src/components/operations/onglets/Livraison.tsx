@@ -2,6 +2,7 @@ import { StatutPastille } from "@/components/bo/StatutPastille";
 import {
   LIBELLE_ANNULATION,
   LIBELLE_ASSURANCE,
+  LIBELLE_DETENTEUR,
   LIBELLE_ETAT_COLIS,
   LIBELLE_MISSION,
   LIBELLE_MODE,
@@ -16,6 +17,7 @@ import { euros } from "@/lib/paiements/types";
 import { ExaminerRecoursFrais } from "../GestesFrais";
 import { RechercheColivraisonBloc } from "./RechercheColivraison";
 import { RefusColisBloc } from "./RefusColis";
+import { HorsHubListe, PresencesTableau, RetenuesBloc, ScansTableau } from "./SuiviColivraison";
 import { ExaminerRefusColis } from "../GestesRefus";
 import { Fragment } from "react";
 
@@ -59,6 +61,9 @@ export function OngletLivraison({
           ]}
         />
       </Bloc>
+
+      {/* Les conséquences financières d'un incident (§ 12.3) : la cause, ici ; les montants, dans l'onglet Paiements. */}
+      <RetenuesBloc retenues={l.retenues ?? []} maintenant={maintenant} />
 
       {recherches.map((r) => (
         <Fragment key={r.id}>
@@ -144,6 +149,7 @@ export function OngletLivraison({
             colonnes={4}
             items={[
               ["Cotransporteur particulier", m.cotransporteur ?? "Pas encore désigné"],
+              ["Colis détenu par", m.detenteur ? LIBELLE_DETENTEUR[m.detenteur] : null],
               ["Format · poids", [m.format, m.poids_kg === null ? null : `${m.poids_kg} kg`].filter(Boolean).join(" · ")],
               ["Suivi", m.suivi ? <Reference key="s" valeur={m.suivi} /> : null],
               ["Tentative", tentative(m.tentative, m.tentatives_max)],
@@ -165,6 +171,20 @@ export function OngletLivraison({
             <StatutPastille ton="neutre" className="justify-self-start">
               Remise hors point de rendez-vous · adresse masquée
             </StatutPastille>
+          )}
+          {/* ⚠️ ABSENTS D'UNE BASE ANTÉRIEURE À `20261013002000` : rien ne s'affiche alors, plutôt qu'un « aucune » qui n'a pas été lu. */}
+          <HorsHubListe demandes={m.hors_hub ?? []} maintenant={maintenant} />
+          {m.presences !== undefined && (
+            <div className="grid gap-2">
+              <h3 className="text-corps font-semibold">Présences déclarées</h3>
+              <PresencesTableau presences={m.presences} maintenant={maintenant} />
+            </div>
+          )}
+          {m.scans !== undefined && (
+            <div className="grid gap-2">
+              <h3 className="text-corps font-semibold">Validations et scans</h3>
+              <ScansTableau scans={m.scans} maintenant={maintenant} />
+            </div>
           )}
         </Bloc>
       ))}

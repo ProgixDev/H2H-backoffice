@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@91ee3e4 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@0fade01 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261013001000_un_code_ne_se_donne_pas_a_l_avance.sql
+// Base : 20261013002000_une_colivraison_se_lit.sql
 
 export type Json =
   | string
@@ -8608,6 +8608,24 @@ export type Database = {
           ville: string
         }[]
       }
+      bo_colivraisons_compteurs: {
+        Args: { p_inclure_test?: boolean; p_recherche?: string }
+        Returns: Json
+      }
+      bo_colivraisons_lister: {
+        Args: {
+          p_filtre?: string
+          p_inclure_test?: boolean
+          p_recherche?: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["bo_colivraison"][]
+        SetofOptions: {
+          from: "*"
+          to: "bo_colivraison"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       bo_demande_de_role_trancher: {
         Args: {
           p_approuver: boolean
@@ -12582,6 +12600,42 @@ export type Database = {
         signalements: number | null
         signalements_ouverts: number | null
         est_test: boolean | null
+      }
+      bo_colivraison: {
+        id: string | null
+        commande: string | null
+        ref: string | null
+        suivi: string | null
+        retour: boolean | null
+        par_recherche: boolean | null
+        statut: string | null
+        etat_colis: string | null
+        moment: string | null
+        etape: string | null
+        etape_libelle: string | null
+        action_attendue: string | null
+        acteur_attendu: string | null
+        echeance: string | null
+        alerte: string | null
+        alerte_libelle: string | null
+        bien_titre: string | null
+        format: string | null
+        vendeur: string | null
+        acheteur: string | null
+        cotransporteur: string | null
+        cotransporteur_designe: boolean | null
+        hub_collecte: string | null
+        ville_collecte: string | null
+        collecte_prevue: string | null
+        collecte_validee_le: string | null
+        hub_remise: string | null
+        ville_remise: string | null
+        remise_prevue: string | null
+        remise_validee_le: string | null
+        detenteur: string | null
+        incidents_ouverts: number | null
+        est_test: boolean | null
+        cree_le: string | null
       }
       bo_dossier: {
         id: string | null
