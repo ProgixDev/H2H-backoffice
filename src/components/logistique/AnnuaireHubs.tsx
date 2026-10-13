@@ -28,7 +28,7 @@ export const TON_ETAT_HUB: Record<EtatHub, Ton> = {
 };
 
 /**
- * Les filtres de l'annuaire : les points signalés, puis l'état de chacun (des
+ * Les filtres de l'annuaire : les points dont un signalement attend, puis l'état de chacun (des
  * pastilles, chacune avec son compteur — le même prédicat que la liste), puis la
  * recherche. ⚠️ PAS DE MONDE DU TEST : chaque point est réel.
  */
@@ -113,13 +113,21 @@ export function AnnuaireHubs({ hubs, filtree }: { hubs: Hub[]; filtree: boolean 
                   {h.motif_fermeture && <span className="block text-legende text-muted-foreground">« {h.motif_fermeture} »</span>}
                 </td>
                 <td className="px-3 py-2">
-                  {h.signalements > 0 ? (
+                  {/* 🔴 CE QUI ATTEND SE VOIT (hand-to-hand 20261013008000) : un point dont tout est examiné ne garde
+                      qu'une mention discrète. */}
+                  {h.signalements_a_examiner > 0 ? (
                     <>
-                      <StatutPastille ton="attention">{pluriel(h.signalements, "signalement")}</StatutPastille>
+                      <StatutPastille ton="attention">{h.signalements_a_examiner} à examiner</StatutPastille>
                       <span className="block text-legende tabular-nums text-muted-foreground">
+                        {h.signalements > h.signalements_a_examiner ? `sur ${pluriel(h.signalements, "signalement")} · ` : ""}
                         le dernier le {dateHeure(h.dernier_signalement_le)}
                       </span>
                     </>
+                  ) : h.signalements > 0 ? (
+                    <span className="text-legende text-muted-foreground">
+                      {pluriel(h.signalements, "signalement")} examiné{h.signalements > 1 ? "s" : ""}
+                      <span className="block tabular-nums">le dernier le {dateHeure(h.dernier_signalement_le)}</span>
+                    </span>
                   ) : (
                     <span className="text-muted-foreground">—</span>
                   )}

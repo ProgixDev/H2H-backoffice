@@ -78,8 +78,8 @@ function lireFiltres<F extends string>(p: Params, connus: F[], testPermis: boole
  * - Les points de rendez-vous (§ 12.4) : l'annuaire entier — son état, ses
  *   signalements, ce qui y passe —, poser un point, et la fiche d'un point : le
  *   valider, le corriger tant que rien n'y est en cours, le fermer aux nouvelles
- *   recherches, le rouvrir. Les épingles à regarder en sont un filtre, avec leurs
- *   gestes sur la ligne.
+ *   recherches, le rouvrir, examiner ses signalements. Les épingles à regarder
+ *   et les signalements à examiner en sont des filtres.
  * - Les candidatures relais, reprises de l'écran mobile du support (P0b).
  *
  * ⚠️ LES RECHERCHES DE COTRANSPORTEURS SE SUIVENT DANS L'ACTIVITÉ EN DIRECT ET
@@ -162,9 +162,9 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
   return (
     <div className="mx-auto grid max-w-6xl gap-6">
       <p className="text-corps text-muted-foreground">
-        Suivez les co-livraisons et les trajets, tenez l’annuaire des points de rendez-vous et tranchez les candidatures
-        relais. Les recherches de cotransporteurs se suivent dans l’Activité en direct ; examiner un signalement et les
-        incidents arriveront avec la suite de la phase 4.
+        Suivez les co-livraisons et les trajets, tenez l’annuaire des points de rendez-vous — leurs signalements
+        s’examinent sur la fiche de chaque point — et tranchez les candidatures relais. Les recherches de
+        cotransporteurs se suivent dans l’Activité en direct ; les incidents arriveront avec la suite de la phase 4.
       </p>
       <nav className="flex gap-1 border-b" aria-label="Onglets">
         {ONGLETS.map((o) => (

@@ -7,7 +7,7 @@
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import type { CompteursHubs, FicheHub, Hub } from "@/lib/logistique/types";
+import type { CompteursHubs, FicheHub, Hub, SignalementHub } from "@/lib/logistique/types";
 
 vi.mock("next/link", () => ({
   default: ({ href, children, ...reste }: { href: string; children: ReactNode }) => (
@@ -25,6 +25,7 @@ vi.mock("@/lib/logistique/actions", () => ({
   reactiverHub: vi.fn(),
   poserHub: vi.fn(),
   corrigerHub: vi.fn(),
+  examinerSignalementsHub: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 
@@ -32,6 +33,7 @@ const { AnnuaireHubs, FiltresAnnuaireHubs } = await import("./AnnuaireHubs");
 const { ListeHubs } = await import("./ListeHubs");
 const { FicheHubVue } = await import("./FicheHub");
 const { ChampsPoint, GestePoserHub } = await import("./FormulairePoint");
+const { basculerChoix, choixDeDepart } = await import("./ExamenSignalementsHub");
 const { POINT_VIDE, adresseHubs, cheminHub, detailPubliable, lireCoordonnees, nomDuPoint, saisieDe, versPoint } = await import(
   "@/lib/logistique/types"
 );
@@ -57,6 +59,7 @@ const HUB: Hub = {
   motif_fermeture: null,
   signalements: 0,
   dernier_signalement_le: null,
+  signalements_a_examiner: 0,
   trajets: 2,
   rendez_vous_en_cours: 1,
   cree_le: "2026-09-07T09:00:00Z",
@@ -95,10 +98,18 @@ describe("l’annuaire des points de rendez-vous", () => {
   it("dit les autres états, les signalements et leur date — sans rien inventer", () => {
     expect(annuaire([hub({ etat: "a_valider", statut: "inactive", valide_le: null })])).toContain("Épingle à valider");
     expect(annuaire([hub({ etat: "ecarte", statut: "inactive", motif_fermeture: "Doublon" })])).toContain("Épingle écartée");
-    const signale = annuaire([hub({ signalements: 3, dernier_signalement_le: "2026-10-12T16:00:00Z" })]);
-    expect(signale).toContain("3 signalements");
+    // 🔴 Ce qui attend se voit ; un point dont tout est examiné ne garde qu'une mention.
+    const signale = annuaire([hub({ signalements: 3, signalements_a_examiner: 2, dernier_signalement_le: "2026-10-12T16:00:00Z" })]);
+    expect(signale).toContain(">2 à examiner<");
+    expect(signale).toContain("sur 3 signalements · ");
     expect(signale).toContain("le dernier le 12/10/2026");
-    expect(annuaire([hub({ signalements: 1, dernier_signalement_le: "2026-10-12T16:00:00Z" })])).toContain("1 signalement<");
+    const seul = annuaire([hub({ signalements: 1, signalements_a_examiner: 1, dernier_signalement_le: "2026-10-12T16:00:00Z" })]);
+    expect(seul).toContain(">1 à examiner<");
+    expect(seul).not.toContain("sur 1 signalement");
+    const examines = annuaire([hub({ signalements: 3, signalements_a_examiner: 0, dernier_signalement_le: "2026-10-12T16:00:00Z" })]);
+    expect(examines).toContain("3 signalements examinés");
+    expect(examines).not.toContain("à examiner");
+    expect(annuaire([hub({ signalements: 1, dernier_signalement_le: "2026-10-12T16:00:00Z" })])).toContain("1 signalement examiné<");
     const vide = annuaire([hub({ trajets: 0, rendez_vous_en_cours: 0, nom: null, region: null, detail_affiche: null })]);
     expect(vide).toContain("Nice-Ville");
     expect(vide).toContain("Gare · Nice<");
@@ -121,7 +132,7 @@ describe("les filtres de l’annuaire", () => {
 
   it("affichent le compteur de chaque filtre et le total — ceux que la base a comptés", () => {
     const html = filtres({ filtre: null, q: null, test: false });
-    for (const attendu of ["Tous", "519", "Signalés", "2", "À valider", "7", "Actifs", "498", "Fermés", "3", "Écartés", "11"]) {
+    for (const attendu of ["Tous", "519", "Signalements à examiner", "2", "À valider", "7", "Actifs", "498", "Fermés", "3", "Écartés", "11"]) {
       expect(html).toContain(attendu);
     }
   });
@@ -181,11 +192,13 @@ const FICHE: FicheHub = {
   propositions: [],
   voisins: [],
   corrections: [],
+  dossiers: [],
   possibles: {
     valider: non("Cette épingle n'attend pas de validation."),
     fermer: OUI,
     rouvrir: non("Ce point n'est pas fermé."),
     corriger: OUI,
+    examiner: OUI,
   },
 };
 const fiche = (f: Partial<FicheHub> = {}) => decode(renderToStaticMarkup(<FicheHubVue f={{ ...FICHE, ...f }} />));
@@ -216,7 +229,7 @@ describe("la fiche d’un point de rendez-vous", () => {
     const ferme = fiche({
       hub: hub({ etat: "ferme", statut: "inactive", ferme_le: "2026-10-13T08:00:00Z", motif_fermeture: "Travaux" }),
       fermetures: [{ motif: "Travaux", le: "2026-10-13T08:00:00Z", par: "Léa Martin", leve_le: null, leve_par: null, motif_levee: null }],
-      possibles: { valider: non("x"), fermer: non("Ce point est déjà fermé."), rouvrir: OUI, corriger: OUI },
+      possibles: { valider: non("x"), fermer: non("Ce point est déjà fermé."), rouvrir: OUI, corriger: OUI, examiner: OUI },
     });
     expect(ferme).toContain("Rouvrir le point");
     expect(ferme).not.toContain("Fermer aux nouvelles recherches");
@@ -226,7 +239,7 @@ describe("la fiche d’un point de rendez-vous", () => {
     const epingle = fiche({
       hub: hub({ etat: "a_valider", statut: "inactive", valide_le: null }),
       validation: null,
-      possibles: { valider: OUI, fermer: OUI, rouvrir: non("Ce point n'est pas fermé."), corriger: OUI },
+      possibles: { valider: OUI, fermer: OUI, rouvrir: non("Ce point n'est pas fermé."), corriger: OUI, examiner: OUI },
     });
     expect(epingle).toContain(">Valider<");
     expect(epingle).toContain(">Écarter<");
@@ -234,13 +247,13 @@ describe("la fiche d’un point de rendez-vous", () => {
     const ecartee = fiche({
       hub: hub({ etat: "ecarte", statut: "inactive", valide_le: null, motif_fermeture: "Doublon" }),
       fermetures: [{ motif: "Doublon", le: "2026-10-13T08:00:00Z", par: null, leve_le: null, leve_par: null, motif_levee: null }],
-      possibles: { valider: non("x"), fermer: non("y"), rouvrir: OUI, corriger: OUI },
+      possibles: { valider: non("x"), fermer: non("y"), rouvrir: OUI, corriger: OUI, examiner: OUI },
     });
     expect(ecartee).toContain("Remettre à valider");
     expect(ecartee).toContain("Épingle écartée depuis le 13/10/2026");
 
     const raison = "Votre rôle ne permet pas de gérer les points de rendez-vous.";
-    const lecteur = fiche({ possibles: { valider: non(raison), fermer: non(raison), rouvrir: non(raison), corriger: non(raison) } });
+    const lecteur = fiche({ possibles: { valider: non(raison), fermer: non(raison), rouvrir: non(raison), corriger: non(raison), examiner: non(raison) } });
     expect(lecteur).not.toContain("<button");
     expect(lecteur.split(raison).length - 1).toBe(1);
   });
@@ -288,8 +301,8 @@ describe("la fiche d’un point de rendez-vous", () => {
   it("🔴 dit les signalements avec les mots de l’application — un pseudonyme, rien d’autre de la personne", () => {
     const html = fiche({
       signalements: [
-        { id: "s-1", raison: "closed", explication: "Le parking est barré depuis lundi", signale_le: "2026-10-12T16:00:00Z", signale_par: "karim", colivraison: "HTH-2026-313B53", pieces: 2, nom_alors: "Hub Gare Nice Thiers", est_test: false },
-        { id: "s-2", raison: "security", explication: null, signale_le: "2026-10-11T16:00:00Z", signale_par: null, colivraison: null, pieces: 0, nom_alors: "Hub Gare Nice-Ville", est_test: false },
+        { id: "s-1", raison: "closed", explication: "Le parking est barré depuis lundi", signale_le: "2026-10-12T16:00:00Z", signale_par: "karim", colivraison: "HTH-2026-313B53", pieces: 2, nom_alors: "Hub Gare Nice Thiers", est_test: false, le_votre: false, examen: null },
+        { id: "s-2", raison: "security", explication: null, signale_le: "2026-10-11T16:00:00Z", signale_par: null, colivraison: null, pieces: 0, nom_alors: "Hub Gare Nice-Ville", est_test: false, le_votre: false, examen: null },
       ],
     });
     expect(html).toContain("Point fermé à l’horaire indiqué");
@@ -302,9 +315,123 @@ describe("la fiche d’un point de rendez-vous", () => {
     expect(html).toContain("Problème de sécurité");
     expect(html).toContain("sans pseudonyme");
     expect(html.split("Le point s’appelait alors").length - 1).toBe(1);
-    // ⚠️ La limite est dite : l'examen n'existe pas encore.
-    expect(html).toContain("leur examen — une décision, une réponse à leur auteur — viendra avec la suite");
+    // Un signalement ne ferme rien de lui-même, son examen non plus : c'est dit.
+    expect(html).toContain("fermer ou corriger le point reste un geste à");
+    expect(html).not.toContain("viendra avec la suite");
     expect(fiche()).toContain("Aucun signalement de ce point.");
+  });
+
+  // ── L'examen des signalements (hand-to-hand 20261013008000) ──
+  const S = (s: Partial<SignalementHub> = {}): SignalementHub => ({
+    id: "s-1", raison: "closed", explication: null, signale_le: "2026-10-12T16:00:00Z", signale_par: "karim",
+    colivraison: null, pieces: 0, nom_alors: null, est_test: false, le_votre: false, examen: null, ...s,
+  });
+
+  it("🔴 dit ce qui attend, son dossier « À traiter », et « Examiner » quand la base le permet — sinon pourquoi", () => {
+    const attend = fiche({
+      hub: hub({ signalements: 2, signalements_a_examiner: 2 }),
+      signalements: [S(), S({ id: "s-2", raison: "security" })],
+      dossiers: [{ id: "d-1", reference: "DOS-000042", est_test: false }],
+    });
+    expect(attend).toContain("2 signalements à examiner");
+    expect(attend).toContain('href="/a-traiter?dossier=d-1"');
+    expect(attend).toContain("DOS-000042");
+    expect(attend).toContain("Examiner les signalements");
+    expect(attend.split(">À examiner<").length - 1).toBe(2);
+    expect(attend).not.toContain("(test)");
+
+    const raison = "Votre rôle ne permet pas de gérer les points de rendez-vous.";
+    const lecteur = fiche({
+      hub: hub({ signalements: 1, signalements_a_examiner: 1 }),
+      signalements: [S()],
+      possibles: { ...FICHE.possibles, examiner: non(raison) },
+    });
+    expect(lecteur).not.toContain("Examiner les signalements");
+    expect(lecteur).toContain(raison);
+
+    // Le dossier du monde de test est étiqueté ; un point a un dossier par monde.
+    const deux = fiche({
+      hub: hub({ signalements: 2, signalements_a_examiner: 2 }),
+      signalements: [S(), S({ id: "s-t", est_test: true })],
+      dossiers: [
+        { id: "d-1", reference: "DOS-000042", est_test: false },
+        { id: "d-2", reference: "DOS-000043", est_test: true },
+      ],
+    });
+    expect(deux).toContain("DOS-000043</a> (test)");
+    expect(deux.split('href="/a-traiter?dossier=').length - 1).toBe(2);
+  });
+
+  it("🔴 un signalement examiné dit son issue, la réponse envoyée, le motif interne, qui et quand — et plus rien n’attend", () => {
+    const html = fiche({
+      hub: hub({ signalements: 2, signalements_a_examiner: 0 }),
+      signalements: [
+        S({ examen: { id: "e-1", issue: "fonde", reponse: "Le parking est bien fermé le soir.", motif: "Constaté sur place", par: "Léa Martin", le: "2026-10-13T09:30:00Z" } }),
+        S({ id: "s-2", examen: { id: "e-2", issue: "non_fonde", reponse: "Le parking avait de la place.", motif: "Trois passages", par: null, le: "2026-10-13T10:00:00Z" } }),
+      ],
+    });
+    expect(html).toContain("Tous les signalements sont examinés.");
+    expect(html).not.toContain("Examiner les signalements");
+    expect(html).not.toContain(">À examiner<");
+    expect(html).toContain(">Fondé<");
+    expect(html).toContain(">Non fondé<");
+    expect(html).toContain("Examiné le 13/10/2026");
+    expect(html).toContain("par Léa Martin");
+    expect(html).toContain("« Le parking est bien fermé le soir. »");
+    expect(html).toContain("Motif interne : Constaté sur place");
+    expect(html).toContain("« Le parking avait de la place. »");
+    // ⚠️ Un signalement peut attendre hors des cinquante affichés : c'est le compte de la base qui parle, pas la liste.
+    const cache = fiche({
+      hub: hub({ signalements: 60, signalements_a_examiner: 1 }),
+      signalements: Array.from({ length: 50 }, (_, i) =>
+        S({ id: `s-${i}`, examen: { id: "e-1", issue: "fonde", reponse: "Réponse commune.", motif: "Série", par: null, le: "2026-10-13T09:30:00Z" } })),
+    });
+    expect(cache).toContain("1 signalement à examiner");
+    expect(cache).toContain("Les 50 premiers sont affichés : ceux qui attendent, puis les plus récents.");
+  });
+
+  it("🔴 le signalement de l’appelant est marqué, et ne se propose pas à son examen — s’il n’attend que lui, la fiche dit pourquoi", () => {
+    // Deux attendent, dont le sien : le geste est là, pour l'autre seulement.
+    const mele = fiche({
+      hub: hub({ signalements: 2, signalements_a_examiner: 2 }),
+      signalements: [S({ id: "s-moi", le_votre: true }), S({ id: "s-autre" })],
+    });
+    expect(mele.split(">Le vôtre<").length - 1).toBe(1);
+    expect(mele).toContain("Examiner les signalements");
+    // Il n'attend que le sien : la base dit que ce n'est pas possible, et pourquoi.
+    const raison = "Ce qui attend est votre propre signalement : un autre membre de l'équipe doit l'examiner.";
+    const seul = fiche({
+      hub: hub({ signalements: 1, signalements_a_examiner: 1 }),
+      signalements: [S({ id: "s-moi", le_votre: true })],
+      possibles: { ...FICHE.possibles, examiner: non(raison) },
+    });
+    expect(seul).toContain(">Le vôtre<");
+    expect(seul).not.toContain("Examiner les signalements");
+    expect(seul).toContain(raison);
+    // ⚠️ Même si la base disait le geste possible, l'écran ne propose pas d'examiner une liste vide.
+    const incoherent = fiche({
+      hub: hub({ signalements: 1, signalements_a_examiner: 1 }),
+      signalements: [S({ id: "s-moi", le_votre: true })],
+    });
+    expect(incoherent).not.toContain("Examiner les signalements");
+    expect(fiche({ signalements: [S()] })).not.toContain(">Le vôtre<");
+  });
+
+  it("🔴 un examen ne mêle pas les comptes réels et les comptes de test — le choix de départ, puis chaque case", () => {
+    const reel1 = S({ id: "r1" });
+    const reel2 = S({ id: "r2" });
+    const test1 = S({ id: "t1", est_test: true });
+    // Au départ : tout ce qui attend dans le monde réel ; à défaut, celui du test.
+    expect(choixDeDepart([reel1, test1, reel2])).toEqual(["r1", "r2"]);
+    expect(choixDeDepart([test1])).toEqual(["t1"]);
+    expect(choixDeDepart([])).toEqual([]);
+    // Cocher, décocher dans un même monde.
+    expect(basculerChoix(["r1"], [reel1, reel2, test1], "r2")).toEqual(["r1", "r2"]);
+    expect(basculerChoix(["r1", "r2"], [reel1, reel2, test1], "r1")).toEqual(["r2"]);
+    // Celui de l'autre monde remplace la sélection : la base refuserait le mélange.
+    expect(basculerChoix(["r1", "r2"], [reel1, reel2, test1], "t1")).toEqual(["t1"]);
+    expect(basculerChoix(["t1"], [reel1, reel2, test1], "r2")).toEqual(["r2"]);
+    expect(basculerChoix([], [reel1, test1], "t1")).toEqual(["t1"]);
   });
 
   it("⚠️ étiquette ce qui est du monde de test — un trajet, un rendez-vous, un signalement — et rien d’autre", () => {
@@ -315,7 +442,7 @@ describe("la fiche d’un point de rendez-vous", () => {
       ],
       rendez_vous: [{ mission: "m-1", ref: "HTH-2026-0000T1", role: "collecte", quand: null, moment: "a_collecter", est_test: true }],
       signalements: [
-        { id: "s-1", raison: "closed", explication: null, signale_le: "2026-10-12T16:00:00Z", signale_par: "essai_porteur", colivraison: null, pieces: 0, nom_alors: null, est_test: true },
+        { id: "s-1", raison: "closed", explication: null, signale_le: "2026-10-12T16:00:00Z", signale_par: "essai_porteur", colivraison: null, pieces: 0, nom_alors: null, est_test: true, le_votre: false, examen: null },
       ],
     });
     expect(html.split(">TEST<").length - 1).toBe(3);
@@ -411,7 +538,7 @@ describe("poser et corriger un point", () => {
     const epingle = fiche({
       hub: hub({ etat: "a_valider", statut: "inactive", valide_le: null }),
       validation: null,
-      possibles: { valider: OUI, fermer: OUI, rouvrir: non("x"), corriger: OUI },
+      possibles: { valider: OUI, fermer: OUI, rouvrir: non("x"), corriger: OUI, examiner: OUI },
     });
     expect(epingle).toContain(">Valider<");
     expect(epingle).toContain(">Corriger<");

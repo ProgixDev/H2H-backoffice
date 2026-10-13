@@ -39,6 +39,7 @@ import { cheminLive } from "@/lib/lives/types";
 import { cheminFiche } from "@/lib/operations/types";
 import { cheminCompte } from "@/lib/utilisateurs/types";
 import { RemboursementOption } from "@/components/visibilite/RemboursementOption";
+import { ficheDesSignalements } from "./liens";
 import { TON_CATEGORIE, TON_PRIORITE } from "./tons";
 
 /** Les dossiers qui portent une opération : ceux-là s'ouvrent sur sa fiche complète. */
@@ -121,6 +122,8 @@ export function FicheDossier({
   const d = lecture.data?.dossier;
   const ouvert = d?.statut === "ouvert";
   const agir = peutTraiter && ouvert;
+  // La fiche où des signalements s'examinent : celle de ce qu'ils visent.
+  const signalements = d ? ficheDesSignalements(d) : null;
 
   async function faire(p: Promise<unknown>, vider?: () => void) {
     const r = (await p) as { ok?: boolean } | null;
@@ -252,26 +255,10 @@ export function FicheDossier({
                   </Link>
                 )}
                 {/* Des signalements s'examinent sur la fiche de ce qu'ils visent : l'annonce, la recherche, le compte,
-                    le live (20261002007000). */}
-                {d.source === "signalement" && d.objet_id && (
-                  <Link
-                    href={
-                      d.objet_table === "products" || d.objet_table === "je_cherche_demandes"
-                        ? cheminAnnonce(d.objet_id)
-                        : d.objet_table === "live_sessions"
-                          ? cheminLive(d.objet_id)
-                          : cheminCompte(d.objet_id)
-                    }
-                    className="text-legende font-semibold text-h2h-primary"
-                  >
-                    Examiner les signalements sur la fiche{" "}
-                    {d.objet_table === "products"
-                      ? "de l’annonce"
-                      : d.objet_table === "je_cherche_demandes"
-                        ? "de la recherche"
-                        : d.objet_table === "live_sessions"
-                          ? "du live"
-                          : "du compte"}
+                    le live (20261002007000), le point de rendez-vous (20261013008000). */}
+                {d.source === "signalement" && signalements && (
+                  <Link href={signalements.href} className="text-legende font-semibold text-h2h-primary">
+                    Examiner les signalements sur la fiche {signalements.fiche}
                   </Link>
                 )}
               </Bloc>

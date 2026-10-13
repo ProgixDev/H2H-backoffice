@@ -114,6 +114,15 @@ describe("la liste des trajets", () => {
     expect(indisponible).toContain("Son compte est restreint pour la co-livraison, ou suspendu");
     expect(indisponible).toContain("Il attend une décision dans une autre recherche (§ 5.2.6)");
 
+    // 🔴 Plus aucune remise possible (hand-to-hand 20261013007000) : l'équipe lisait « proposé aux recherches » sur un
+    // trajet qui ne recevait plus rien. La base le nomme, selon la mise en relation qui propose le trajet.
+    const sansRemise = liste([trajet({ situation: "indisponible", raisons: ["sans_point_de_remise_ouvert"] })]);
+    expect(sansRemise).toContain("Indisponible");
+    expect(sansRemise).toContain("Aucun de ses points de remise n’est ouvert");
+    const premier = liste([trajet({ situation: "indisponible", raisons: ["premier_point_de_remise_inactif"] })]);
+    expect(premier).toContain("Son premier point de remise est fermé : l’ancien parcours pose la remise à ce point");
+    expect(`${sansRemise}${premier}`).not.toContain("Proposé aux recherches");
+
     const clos = liste([trajet({ situation: "clos", raisons: ["trajet_inactif", "hors_ligne"], prochain_passage: null, places_restantes: null, reservations: 0, colivraisons_en_cours: 0 })]);
     expect(clos).toContain("Clos");
     expect(clos).toContain("Aucun passage à venir");

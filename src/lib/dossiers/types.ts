@@ -75,7 +75,16 @@ export type Dossier = {
    * modération, celle qui attend sa vérification avant publication, celle qu'on a signalée. Nul avec un
    * `objet_id` : un compte (un recours contre une sanction, des signalements).
    */
-  objet_table: "orders" | "courtage_listings" | "live_sessions" | "taches" | "products" | "je_cherche_demandes" | null;
+  objet_table:
+    | "orders"
+    | "courtage_listings"
+    | "live_sessions"
+    | "taches"
+    | "products"
+    | "je_cherche_demandes"
+    // Un point de rendez-vous signalé (hand-to-hand `20261013008000`) : son dossier est à la Logistique.
+    | "hubs"
+    | null;
   objet_id: string | null;
   objet_ref: string | null;
   etape_libelle: string | null;
@@ -111,7 +120,7 @@ export const CLOTURE_AUTOMATIQUE: Record<Exclude<Dossier["source"], "manuel" | "
   incident:
     "Ce dossier se clôt tout seul quand l’équipe examine la contestation du refus du colis, dans l’onglet Livraison de la fiche de l’opération : refus maintenu, ou dit injustifié.",
   signalement:
-    "Ce dossier se clôt tout seul quand plus aucun signalement n’attend : ils s’examinent sur la fiche de ce qu’ils visent — l’annonce, la recherche ou le compte. Un nouveau signalement le rouvre.",
+    "Ce dossier se clôt tout seul quand plus aucun signalement n’attend : ils s’examinent sur la fiche de ce qu’ils visent — l’annonce, la recherche, le live, le compte ou le point de rendez-vous. Un nouveau signalement le rouvre.",
 };
 
 export type CompteurDossier = { code: string; libelle: string; description: string; nombre: number };

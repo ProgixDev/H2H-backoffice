@@ -1,7 +1,7 @@
 "use server";
 
 import { geste } from "@/lib/db/geste";
-import { cheminHub, cheminTrajet, type PointEnvoye } from "./types";
+import { cheminHub, cheminTrajet, type ExamenHubEcrit, type IssueSignalementHub, type PointEnvoye } from "./types";
 
 const CHEMIN = "/h2h-logistic";
 
@@ -99,6 +99,34 @@ export async function reactiverHub(p: { hub: string; motif: string; cle: string 
     "bo_hub_reactiver",
     { p_hub_id: p.hub, p_motif: p.motif, p_cle: p.cle },
   );
+}
+
+/**
+ * « Examiner un signalement » (§ 12.4) : fondés, ou non fondés. Chaque personne
+ * qui a signalé reçoit la réponse dans l'application du cotransporteur — jamais
+ * le motif, qui reste au journal. Le dossier « À traiter » du point se clôt quand
+ * plus rien n'attend.
+ *
+ * ⚠️ LA BASE DÉCIDE ENCORE : le rôle (`hubs.gerer`), jamais par la personne qui a
+ * signalé, une seule fois, un monde à la fois. Fermer ou corriger le point reste
+ * un autre geste : un examen ne touche pas à l'annuaire.
+ */
+export async function examinerSignalementsHub(p: {
+  hub: string;
+  signalements: string[];
+  issue: IssueSignalementHub;
+  reponse: string;
+  motif: string;
+  cle: string;
+}) {
+  return geste<ExamenHubEcrit>([CHEMIN, cheminHub(p.hub), "/a-traiter"], "bo_hub_signalements_examiner", {
+    p_hub_id: p.hub,
+    p_signalements: p.signalements,
+    p_issue: p.issue,
+    p_reponse: p.reponse,
+    p_motif: p.motif,
+    p_cle: p.cle,
+  });
 }
 
 /**

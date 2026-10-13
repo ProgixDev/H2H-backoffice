@@ -5,6 +5,7 @@ import { dateHeure } from "@/lib/dates";
 import {
   LIBELLE_CHAMP_HUB,
   LIBELLE_ETAT_HUB,
+  LIBELLE_ISSUE_HUB,
   LIBELLE_LIEU,
   LIBELLE_MOMENT,
   LIBELLE_RAISON_SIGNALEMENT_HUB,
@@ -17,6 +18,7 @@ import {
 import { LIBELLE_STATUT_CANDIDATURE, LIBELLE_STATUT_RECHERCHE } from "@/lib/operations/libelles";
 import { cheminFiche } from "@/lib/operations/types";
 import { TON_ETAT_HUB } from "./AnnuaireHubs";
+import { GesteExamenSignalementsHub } from "./ExamenSignalementsHub";
 import { GesteCorrectionHub } from "./FormulairePoint";
 import { GesteFermetureHub, GesteReouvertureHub, GesteValidationHub } from "./GestesHub";
 import { TON_MOMENT } from "./ListeColivraisons";
@@ -54,10 +56,11 @@ function valeurCorrigee(champ: string, v: string | number | null | undefined): s
 
 /**
  * La fiche d'un point de rendez-vous (§ 12.4) : sa localisation, son état et le
- * motif de son indisponibilité, ses signalements, les missions concernées — les
- * rendez-vous qui restent à y tenir et les trajets qui y passent —, l'histoire de
- * ses fermetures ; et « Valider », « Fermer aux nouvelles recherches » ou
- * « Rouvrir » quand la base le permet, sinon pourquoi.
+ * motif de son indisponibilité, ses signalements et leur examen, les missions
+ * concernées — les rendez-vous qui restent à y tenir et les trajets qui y
+ * passent —, l'histoire de ses fermetures ; et « Valider », « Fermer aux nouvelles
+ * recherches », « Rouvrir » ou « Examiner les signalements » quand la base le
+ * permet, sinon pourquoi.
  *
  * ⚠️ L'ÉCRAN MONTRE CE QUE LA BASE PERMET (`possibles`), et la base décide encore.
  * ⚠️ UN POINT EST UN LIEU PUBLIC : ses coordonnées se lisent. Une personne n'y est
@@ -66,6 +69,9 @@ function valeurCorrigee(champ: string, v: string | number | null | undefined): s
 export function FicheHubVue({ f }: { f: FicheHub }) {
   const h = f.hub;
   const enCours = f.fermetures.find((x) => x.leve_le === null) ?? null;
+  // Ceux qui attendent l'équipe, tels que la fiche les montre : c'est parmi eux que l'examen choisit — sauf celui que
+  // l'appelant a fait lui-même, que la base refuserait.
+  const aExaminer = f.signalements.filter((s) => s.examen === null && !s.le_votre);
   const raisons = [...new Set([f.possibles.valider, f.possibles.fermer, f.possibles.rouvrir, f.possibles.corriger]
     .filter((p) => !p.possible && p.raison)
     .map((p) => p.raison as string))];
@@ -282,34 +288,78 @@ export function FicheHubVue({ f }: { f: FicheHub }) {
           {f.signalements.length === 0 ? (
             <Aucun>Aucun signalement de ce point.</Aucun>
           ) : (
-            <ul className="grid gap-2">
-              {f.signalements.map((s) => (
-                <li key={s.id} className="grid gap-0.5 rounded-lg border p-3 text-corps">
-                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <StatutPastille ton="attention">{LIBELLE_RAISON_SIGNALEMENT_HUB[s.raison] ?? s.raison}</StatutPastille>
-                    {s.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
-                    <span className="text-legende tabular-nums text-muted-foreground">
-                      le {dateHeure(s.signale_le)} · {s.signale_par ?? SANS_PSEUDONYME}
-                      {s.pieces > 0 ? ` · ${pluriel(s.pieces, "pièce")} jointe${s.pieces > 1 ? "s" : ""}` : ""}
-                    </span>
-                    {s.colivraison && (
-                      <Link href={cheminFiche(s.colivraison, "livraison")} className="text-legende font-medium tabular-nums text-h2h-primary hover:underline">
-                        {s.colivraison}
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-corps">
+                  {h.signalements_a_examiner > 0
+                    ? `${pluriel(h.signalements_a_examiner, "signalement")} à examiner`
+                    : "Tous les signalements sont examinés."}
+                  {f.dossiers.map((d) => (
+                    <span key={d.id}>
+                      {" · "}
+                      <Link href={`/a-traiter?dossier=${d.id}`} className="font-semibold tabular-nums text-h2h-primary hover:underline">
+                        {d.reference}
                       </Link>
+                      {d.est_test ? " (test)" : ""}
+                    </span>
+                  ))}
+                </p>
+                {/* ⚠️ L'ÉCRAN MONTRE CE QUE LA BASE PERMET : le geste, ou la raison de ne pas pouvoir — son rôle, ou
+                    parce qu'il n'attend que son propre signalement. */}
+                {h.signalements_a_examiner > 0 &&
+                  (!f.possibles.examiner.possible ? (
+                    <span className="text-legende text-muted-foreground">{f.possibles.examiner.raison}</span>
+                  ) : aExaminer.length > 0 ? (
+                    <GesteExamenSignalementsHub hub={h.id} ouverts={aExaminer} />
+                  ) : null)}
+              </div>
+              <ul className="grid gap-2">
+                {f.signalements.map((s) => (
+                  <li key={s.id} className="grid gap-0.5 rounded-lg border p-3 text-corps">
+                    <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <StatutPastille ton="attention">{LIBELLE_RAISON_SIGNALEMENT_HUB[s.raison] ?? s.raison}</StatutPastille>
+                      {s.examen ? (
+                        <StatutPastille ton="muet">{LIBELLE_ISSUE_HUB[s.examen.issue]}</StatutPastille>
+                      ) : (
+                        <StatutPastille ton="actif">À examiner</StatutPastille>
+                      )}
+                      {s.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
+                      {s.le_votre && <StatutPastille ton="neutre">Le vôtre</StatutPastille>}
+                      <span className="text-legende tabular-nums text-muted-foreground">
+                        le {dateHeure(s.signale_le)} · {s.signale_par ?? SANS_PSEUDONYME}
+                        {s.pieces > 0 ? ` · ${pluriel(s.pieces, "pièce")} jointe${s.pieces > 1 ? "s" : ""}` : ""}
+                      </span>
+                      {s.colivraison && (
+                        <Link href={cheminFiche(s.colivraison, "livraison")} className="text-legende font-medium tabular-nums text-h2h-primary hover:underline">
+                          {s.colivraison}
+                        </Link>
+                      )}
+                    </span>
+                    {s.explication && <span>« {s.explication} »</span>}
+                    {s.nom_alors && s.nom_alors !== h.nom && (
+                      <span className="text-legende text-muted-foreground">Le point s’appelait alors « {s.nom_alors} ».</span>
                     )}
-                  </span>
-                  {s.explication && <span>« {s.explication} »</span>}
-                  {s.nom_alors && s.nom_alors !== h.nom && (
-                    <span className="text-legende text-muted-foreground">Le point s’appelait alors « {s.nom_alors} ».</span>
-                  )}
-                </li>
-              ))}
-            </ul>
+                    {s.examen && (
+                      <div className="mt-1 grid gap-0.5 border-t pt-2 text-legende">
+                        <span className="text-muted-foreground">
+                          Examiné le {dateHeure(s.examen.le)}
+                          {s.examen.par ? ` par ${s.examen.par}` : ""}
+                        </span>
+                        <span>
+                          <span className="text-muted-foreground">Réponse envoyée : </span>« {s.examen.reponse} »
+                        </span>
+                        <span className="text-muted-foreground">Motif interne : {s.examen.motif}</span>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
           <p className="text-legende text-muted-foreground">
-            Les signalements se lisent ici ; leur examen — une décision, une réponse à leur auteur — viendra avec la suite
-            de la rubrique. Un signalement ne ferme rien de lui-même.
-            {f.signalements.length >= 50 ? " Les 50 plus récents sont affichés." : ""}
+            Un signalement ne ferme rien de lui-même, et son examen non plus : fermer ou corriger le point reste un geste à
+            part. La personne qui a signalé reçoit la réponse de l’équipe dans l’application du cotransporteur.
+            {f.signalements.length >= 50 ? " Les 50 premiers sont affichés : ceux qui attendent, puis les plus récents." : ""}
           </p>
         </Section>
 

@@ -143,7 +143,8 @@ export function GesteFermetureHub({
           publie ? (
             <>
               Il ne sera plus proposé : ni comme point de collecte (un trajet qui y part ne recevra plus de proposition),
-              ni à la remise, ni à la publication d’un trajet.{" "}
+              ni à la remise (un trajet qui n’a plus d’autre point de remise ouvert — ou dont c’est le premier, dans
+              l’ancien parcours — n’en recevra plus non plus), ni à la publication d’un trajet.{" "}
               {trajets > 0
                 ? `${trajets > 1 ? `Les cotransporteurs de ${trajets} trajets` : "Le cotransporteur d’un trajet"} qui y ${trajets > 1 ? "passent seront prévenus" : "passe sera prévenu"}. `
                 : ""}

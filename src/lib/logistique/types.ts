@@ -27,8 +27,11 @@ export type Hub = {
   /** La fermeture en cours, et son motif — interne : l'annuaire public ne le porte pas. */
   ferme_le: string | null;
   motif_fermeture: string | null;
+  /** Tous ses signalements, examinés ou non. */
   signalements: number;
   dernier_signalement_le: string | null;
+  /** Ceux qui attendent encore l'équipe (hand-to-hand `20261013008000`) : c'est eux que « Signalements à examiner » compte. */
+  signalements_a_examiner: number;
   /**
    * Les trajets qui ne sont pas clos et qui passent par ce point.
    * ⚠️ LE POINT EST RÉEL, CE QUI Y PASSE A SON MONDE : un équipier de test ne compte et ne lit que le monde du
@@ -174,7 +177,7 @@ export type FiltreHub = "signales" | "a_valider" | "actifs" | "fermes" | "ecarte
 export const FILTRES_HUB: FiltreHub[] = ["signales", "a_valider", "actifs", "fermes", "ecartes"];
 
 export const LIBELLE_FILTRE_HUB: Record<FiltreHub, string> = {
-  signales: "Signalés",
+  signales: "Signalements à examiner",
   a_valider: "À valider",
   actifs: "Actifs",
   fermes: "Fermés",
@@ -228,7 +231,43 @@ export type SignalementHub = {
   nom_alors: string | null;
   /** Son auteur est un compte du monde de test. */
   est_test: boolean;
+  /**
+   * Le compte personnel de l'appelant l'a fait : la base refuse qu'il l'examine (`BO_CONFLIT`), la fiche le marque
+   * et ne le propose pas à l'examen.
+   */
+  le_votre: boolean;
+  /** Son examen (hand-to-hand `20261013008000`) ; nul : il attend l'équipe. */
+  examen: ExamenSignalementHub | null;
 };
+
+export type IssueSignalementHub = "fonde" | "non_fonde";
+
+/**
+ * L'examen d'un signalement de point : ce que l'équipe a constaté, la réponse que la personne a reçue dans
+ * l'application du cotransporteur, et le motif gardé. Il ne change plus.
+ *
+ * ⚠️ CE N'EST PAS L'EXAMEN D'UN SIGNALEMENT DE CONTENU : un point n'est le contenu de personne. Ni « manquement aux
+ * règles », ni recours ; c'est la Logistique qui examine.
+ */
+export type ExamenSignalementHub = {
+  id: string;
+  issue: IssueSignalementHub;
+  reponse: string;
+  motif: string;
+  par: string | null;
+  le: string;
+};
+
+export const LIBELLE_ISSUE_HUB: Record<IssueSignalementHub, string> = { fonde: "Fondé", non_fonde: "Non fondé" };
+
+/** La phrase que l'avis écrit avant la réponse de l'équipe, selon l'issue (les mots de la base). */
+export const PHRASE_EXAMEN_HUB: Record<IssueSignalementHub, string> = {
+  fonde: "L’équipe HandtoHand a examiné votre signalement : elle a constaté le problème signalé.",
+  non_fonde: "L’équipe HandtoHand a examiné votre signalement : elle n’a pas constaté le problème signalé.",
+};
+
+/** Ce qu'un examen laisse : ce qui attend encore sur ce point, dans le monde des personnes qui ont signalé. */
+export type ExamenHubEcrit = { examen: string; hub: string; issue: IssueSignalementHub; signalements: number; restants: number };
 
 export type FermetureHub = {
   motif: string;
@@ -283,7 +322,19 @@ export type FicheHub = {
     avant: Record<string, string | number | null> | null;
     apres: Record<string, string | number | null> | null;
   }[];
-  possibles: { valider: GestePossible; fermer: GestePossible; rouvrir: GestePossible; corriger: GestePossible };
+  /**
+   * Les dossiers « À traiter » ouverts pour les signalements de ce point : un par monde — celui des comptes réels,
+   * celui des comptes de test —, dans le monde que l'appelant lit.
+   */
+  dossiers: { id: string; reference: string; est_test: boolean }[];
+  possibles: {
+    valider: GestePossible;
+    fermer: GestePossible;
+    rouvrir: GestePossible;
+    corriger: GestePossible;
+    /** Examiner ses signalements : le rôle seulement — un équipier de test examine ceux des comptes de test. */
+    examiner: GestePossible;
+  };
 };
 
 export type CandidatureRelais = {
@@ -435,12 +486,16 @@ export function adresseColivraisons(f: FiltresColivraisons): string {
 /** Où en est un trajet pour de nouvelles propositions : cinq situations qui s'excluent. */
 export type SituationTrajet = "propose" | "suspendu" | "en_pause" | "indisponible" | "clos";
 
-/** Ce qui écarte un trajet d'une recherche : les huit premières tiennent au trajet ou à son cotransporteur. */
+/** Ce qui écarte un trajet d'une recherche : les dix premières tiennent au trajet ou à son cotransporteur. */
 export type RaisonTrajet =
   | "trajet_suspendu"
   | "trajet_inactif"
   | "sans_point_de_collecte"
   | "point_de_collecte_inactif"
+  // Plus aucune remise n'y est possible (hand-to-hand `20261013007000`) : aucun de ses points de remise n'est
+  // proposé (§ 5), ou son premier point de remise est fermé (l'ancien parcours pose la remise là).
+  | "sans_point_de_remise_ouvert"
+  | "premier_point_de_remise_inactif"
   | "hors_ligne"
   | "compte_restreint"
   | "role_inactif"
@@ -526,6 +581,8 @@ export const LIBELLE_RAISON_TRAJET: Record<RaisonTrajet, string> = {
   trajet_inactif: "Le trajet n’est pas actif",
   sans_point_de_collecte: "Le trajet n’a pas de point de collecte",
   point_de_collecte_inactif: "Son point de collecte est fermé",
+  sans_point_de_remise_ouvert: "Aucun de ses points de remise n’est ouvert",
+  premier_point_de_remise_inactif: "Son premier point de remise est fermé : l’ancien parcours pose la remise à ce point",
   hors_ligne: "Le cotransporteur s’est mis hors ligne",
   compte_restreint: "Son compte est restreint pour la co-livraison, ou suspendu",
   role_inactif: "Son rôle de cotransporteur n’est pas actif",
@@ -561,7 +618,7 @@ export const EXPLICATION_ANOMALIE_TRAJET: Record<AnomalieTrajet, string> = {
   sans_point_de_remise:
     "Aucun de ses arrêts de remise n’a de point de rendez-vous : aucun de ses passages ne peut être proposé.",
   point_de_remise_inactif:
-    "Un de ses points de remise est fermé : il n’est plus proposé à la remise sur ce trajet. S’il n’en reste aucun, aucun passage n’est proposé.",
+    "Un de ses points de remise est fermé : il n’est plus proposé à la remise sur ce trajet. Quand cela arrête le trajet — il ne lui reste aucun point de remise ouvert, ou c’est son premier dans l’ancien parcours —, sa situation le dit : « Indisponible ».",
   surreserve: "Un de ses passages à venir porte plus d’engagements que de places.",
 };
 

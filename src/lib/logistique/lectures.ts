@@ -17,9 +17,10 @@ import type {
 } from "./types";
 
 /**
- * L'annuaire des points de rendez-vous (§ 12.4) : les points signalés d'abord,
- * puis les épingles à valider, puis par ville ; la base en décide l'ordre. Les
- * épingles à regarder en sont un filtre (`a_valider`) — plus une lecture à part.
+ * L'annuaire des points de rendez-vous (§ 12.4) : les points dont un signalement
+ * attend l'équipe d'abord, puis les épingles à valider, puis par ville ; la base
+ * en décide l'ordre. Les épingles à regarder en sont un filtre (`a_valider`), les
+ * signalements à examiner aussi (`signales`) — plus une lecture à part.
  */
 export async function listerHubs(f: Pick<FiltresHubs, "filtre" | "q">): Promise<Hub[]> {
   return rpc<Hub[]>(await supabaseServeur(), "bo_hubs_lister", { p_filtre: f.filtre, p_recherche: f.q });

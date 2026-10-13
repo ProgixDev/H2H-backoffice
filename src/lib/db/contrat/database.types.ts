@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@7d3a64e : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@d7781ef : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261013006000_un_point_de_rendez_vous_se_pose_et_se_corrige.sql
+// Base : 20261013008000_un_signalement_de_point_s_examine.sql
 
 export type Json =
   | string
@@ -1936,6 +1936,7 @@ export type Database = {
       hub_reports: {
         Row: {
           created_at: string
+          examen_id: string | null
           explanation: string | null
           hub_id: string | null
           hub_snapshot: Json
@@ -1947,6 +1948,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          examen_id?: string | null
           explanation?: string | null
           hub_id?: string | null
           hub_snapshot: Json
@@ -1958,6 +1960,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          examen_id?: string | null
           explanation?: string | null
           hub_id?: string | null
           hub_snapshot?: Json
@@ -8951,6 +8954,17 @@ export type Database = {
         Args: { p_cle: string; p_hub_id: string; p_motif: string }
         Returns: Json
       }
+      bo_hub_signalements_examiner: {
+        Args: {
+          p_cle: string
+          p_hub_id: string
+          p_issue: string
+          p_motif: string
+          p_reponse: string
+          p_signalements: string[]
+        }
+        Returns: Json
+      }
       bo_hub_valider: {
         Args: {
           p_cle: string
@@ -11561,6 +11575,7 @@ export type Database = {
         }
         Returns: {
           created_at: string
+          examen_id: string | null
           explanation: string | null
           hub_id: string | null
           hub_snapshot: Json
@@ -12813,6 +12828,7 @@ export type Database = {
         adresse_du_lieu: string | null
         propositions_en_cours: number | null
         version: string | null
+        signalements_a_examiner: number | null
       }
       bo_live: {
         id: string | null
