@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@c55d6a2 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@ed509dd : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261013004000_un_deplacement_se_confirme.sql
+// Base : 20261013005000_un_point_de_rendez_vous_se_ferme_et_se_rouvre.sql
 
 export type Json =
   | string
@@ -8909,6 +8909,11 @@ export type Database = {
         }
         Returns: Json
       }
+      bo_hub_lire: { Args: { p_hub: string }; Returns: Json }
+      bo_hub_reactiver: {
+        Args: { p_cle: string; p_hub_id: string; p_motif: string }
+        Returns: Json
+      }
       bo_hub_retirer: {
         Args: { p_cle: string; p_hub_id: string; p_motif: string }
         Returns: Json
@@ -8922,21 +8927,16 @@ export type Database = {
         }
         Returns: Json
       }
-      bo_hubs_a_valider: {
-        Args: never
-        Returns: {
-          cree_le: string
-          detail_affiche: string
-          id: string
-          latitude: number
-          longitude: number
-          nom: string
-          region: string
-          repere: string
-          statut: string
-          type_lieu: string
-          ville: string
-        }[]
+      bo_hubs_compteurs: { Args: { p_recherche?: string }; Returns: Json }
+      bo_hubs_lister: {
+        Args: { p_filtre?: string; p_recherche?: string }
+        Returns: Database["public"]["CompositeTypes"]["bo_hub"][]
+        SetofOptions: {
+          from: "*"
+          to: "bo_hub"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       bo_journal_lister: {
         Args: { p_avant?: number; p_filtres?: Json; p_limite?: number }
@@ -12755,6 +12755,28 @@ export type Database = {
         anomalies: Json | null
         moderation: string | null
         est_test: boolean | null
+      }
+      bo_hub: {
+        id: string | null
+        nom: string | null
+        type_lieu: string | null
+        repere: string | null
+        detail_affiche: string | null
+        ville: string | null
+        region: string | null
+        latitude: number | null
+        longitude: number | null
+        rayon_m: number | null
+        statut: string | null
+        etat: string | null
+        valide_le: string | null
+        ferme_le: string | null
+        motif_fermeture: string | null
+        signalements: number | null
+        dernier_signalement_le: string | null
+        trajets: number | null
+        rendez_vous_en_cours: number | null
+        cree_le: string | null
       }
       bo_live: {
         id: string | null

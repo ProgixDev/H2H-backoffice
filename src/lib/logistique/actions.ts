@@ -1,7 +1,7 @@
 "use server";
 
 import { geste } from "@/lib/db/geste";
-import { cheminTrajet } from "./types";
+import { cheminHub, cheminTrajet } from "./types";
 
 const CHEMIN = "/h2h-logistic";
 
@@ -10,7 +10,7 @@ const CHEMIN = "/h2h-logistic";
  * refuse un détail vide, trop court, ou qui porte encore « à compléter ».
  */
 export async function validerHub(p: { hub: string; detail: string; repere: string | null; cle: string }) {
-  return geste<{ hub: string; statut: string }>([CHEMIN], "bo_hub_valider", {
+  return geste<{ hub: string; statut: string }>([CHEMIN, cheminHub(p.hub)], "bo_hub_valider", {
     p_hub_id: p.hub,
     p_detail_affiche: p.detail,
     p_landmark: p.repere,
@@ -18,13 +18,36 @@ export async function validerHub(p: { hub: string; detail: string; repere: strin
   });
 }
 
-/** Retirer un point en service, ou écarter une épingle en attente — avec son motif, désormais gardé. */
+/** Ce que fermer un point laisse : les cotransporteurs prévenus, les rendez-vous qui y restent. */
+export type FermetureEcrite = {
+  hub: string;
+  statut: string;
+  etat: string;
+  trajets_prevenus: number;
+  rendez_vous_en_cours: number;
+};
+
+/**
+ * Fermer un point pour les nouvelles recherches (§ 12.4), ou écarter une épingle
+ * en attente — avec son motif, gardé. La base n'y propose plus rien, prévient les
+ * cotransporteurs dont un trajet y passe, et laisse les rendez-vous confirmés où
+ * ils sont.
+ */
 export async function retirerHub(p: { hub: string; motif: string; cle: string }) {
-  return geste<{ hub: string; statut: string }>([CHEMIN], "bo_hub_retirer", {
+  return geste<FermetureEcrite>([CHEMIN, cheminHub(p.hub)], "bo_hub_retirer", {
     p_hub_id: p.hub,
     p_motif: p.motif,
     p_cle: p.cle,
   });
+}
+
+/** Rouvrir un point fermé ; une épingle écartée revient « à valider ». */
+export async function reactiverHub(p: { hub: string; motif: string; cle: string }) {
+  return geste<{ hub: string; statut: string; etat: string; trajets_prevenus: number }>(
+    [CHEMIN, cheminHub(p.hub)],
+    "bo_hub_reactiver",
+    { p_hub_id: p.hub, p_motif: p.motif, p_cle: p.cle },
+  );
 }
 
 /**

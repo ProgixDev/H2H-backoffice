@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cn } from "cn";
 import { AccesRefuse, equipierPourRubrique } from "@/components/bo/PageRubrique";
 import { LectureEchouee } from "@/components/bo/LectureEchouee";
+import { AnnuaireHubs, FiltresAnnuaireHubs } from "@/components/logistique/AnnuaireHubs";
 import { FiltresListeColivraisons } from "@/components/logistique/FiltresColivraisons";
 import { FiltresListeTrajets } from "@/components/logistique/FiltresTrajets";
 import { ListeCandidatures } from "@/components/logistique/ListeCandidatures";
@@ -12,20 +13,26 @@ import { ListeTrajets } from "@/components/logistique/ListeTrajets";
 import { peut } from "@/lib/equipe/types";
 import {
   compterColivraisons,
+  compterHubs,
   compterTrajets,
   listerCandidaturesRelais,
   listerColivraisons,
-  listerHubsAValider,
+  listerHubs,
   listerTrajets,
 } from "@/lib/logistique/lectures";
 import {
   FILTRES_COLIVRAISON,
+  FILTRES_HUB,
   FILTRES_TRAJET,
   type Colivraison,
   type CompteursColivraisons,
+  type CompteursHubs,
   type CompteursTrajets,
   type FiltreColivraison,
+  type FiltreHub,
   type FiltreTrajet,
+  type FiltresHubs,
+  type Hub,
   type Trajet,
 } from "@/lib/logistique/types";
 import { rubriqueObligatoire } from "@/lib/navigation";
@@ -67,12 +74,16 @@ function lireFiltres<F extends string>(p: Params, connus: F[], testPermis: boole
  *   nouvelles propositions. La fiche d'un trajet porte ses passages, ses
  *   co-livraisons, ce qui l'écarte des recherches ouvertes, et la suspension de
  *   ses nouvelles propositions.
- * - Les deux procédures reprises de l'écran mobile du support (P0b) : l'annuaire
- *   des points de rendez-vous et les candidatures relais.
+ * - Les points de rendez-vous (§ 12.4) : l'annuaire entier — son état, ses
+ *   signalements, ce qui y passe —, et la fiche d'un point : le valider, le fermer
+ *   aux nouvelles recherches, le rouvrir. Les épingles à regarder en sont un
+ *   filtre, avec leurs gestes sur la ligne.
+ * - Les candidatures relais, reprises de l'écran mobile du support (P0b).
  *
  * ⚠️ LES RECHERCHES DE COTRANSPORTEURS SE SUIVENT DANS L'ACTIVITÉ EN DIRECT ET
- * LEUR FICHE. LA GESTION DES POINTS DE RENDEZ-VOUS ET LES INCIDENTS ARRIVENT AVEC
- * LA SUITE DE LA PHASE 4. Cette page dit ce qu'elle fait, pas davantage.
+ * LEUR FICHE. CRÉER ET CORRIGER UN POINT, EXAMINER UN SIGNALEMENT ET LES INCIDENTS
+ * ARRIVENT AVEC LA SUITE DE LA PHASE 4. Cette page dit ce qu'elle fait, pas
+ * davantage.
  */
 export default async function PageLogistique({ searchParams }: { searchParams: Promise<Params> }) {
   const moi = await equipierPourRubrique(rubrique);
@@ -82,12 +93,14 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
   const onglet: Onglet = ONGLETS.find((o) => o.id === p.onglet)?.id ?? "colivraisons";
   const f = lireFiltres<FiltreColivraison>(p, FILTRES_COLIVRAISON, !moi.est_test);
   const ft = lireFiltres<FiltreTrajet>(p, FILTRES_TRAJET, !moi.est_test);
+  // ⚠️ L'ANNUAIRE N'A PAS DE MONDE DU TEST : chaque point est réel.
+  const fh: FiltresHubs = { ...lireFiltres<FiltreHub>(p, FILTRES_HUB, false), test: false };
 
   // On LIT dans le try, on construit l'écran après (règle `react-hooks/error-boundaries`).
   let donnees:
     | { onglet: "colivraisons"; colivraisons: Colivraison[]; compteurs: CompteursColivraisons | null }
     | { onglet: "trajets"; trajets: Trajet[]; compteurs: CompteursTrajets | null }
-    | { onglet: "points"; hubs: Awaited<ReturnType<typeof listerHubsAValider>> }
+    | { onglet: "points"; hubs: Hub[]; compteurs: CompteursHubs | null }
     | { onglet: "relais"; candidatures: Awaited<ReturnType<typeof listerCandidaturesRelais>> }
     | { onglet: "echec" };
   try {
@@ -111,7 +124,14 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
       }
       donnees = { onglet, trajets, compteurs };
     } else if (onglet === "points") {
-      donnees = { onglet, hubs: await listerHubsAValider() };
+      const hubs = await listerHubs(fh);
+      let compteurs: CompteursHubs | null;
+      try {
+        compteurs = await compterHubs(fh);
+      } catch {
+        compteurs = null;
+      }
+      donnees = { onglet, hubs, compteurs };
     } else {
       donnees = { onglet, candidatures: await listerCandidaturesRelais() };
     }
@@ -126,7 +146,12 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
     ) : donnees.onglet === "trajets" ? (
       <ListeTrajets trajets={donnees.trajets} filtree={Boolean(ft.filtre || ft.q)} lienCompte={peut(moi, "utilisateurs.lire")} />
     ) : donnees.onglet === "points" ? (
-      <ListeHubs hubs={donnees.hubs} peutGerer={peutGerer} />
+      // Les épingles à regarder gardent leurs gestes sur la ligne ; le reste de l'annuaire s'ouvre par sa fiche.
+      fh.filtre === "a_valider" ? (
+        <ListeHubs hubs={donnees.hubs} peutGerer={peutGerer && !moi.est_test} filtree={Boolean(fh.q)} />
+      ) : (
+        <AnnuaireHubs hubs={donnees.hubs} filtree={Boolean(fh.filtre || fh.q)} />
+      )
     ) : donnees.onglet === "relais" ? (
       <ListeCandidatures candidatures={donnees.candidatures} peutGerer={peutGerer} />
     ) : (
@@ -136,9 +161,9 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
   return (
     <div className="mx-auto grid max-w-6xl gap-6">
       <p className="text-corps text-muted-foreground">
-        Suivez les co-livraisons et les trajets, validez les points de rendez-vous et tranchez les candidatures relais.
-        Les recherches de cotransporteurs se suivent dans l’Activité en direct ; la gestion des points de rendez-vous et
-        les incidents arriveront avec la suite de la phase 4.
+        Suivez les co-livraisons et les trajets, tenez l’annuaire des points de rendez-vous et tranchez les candidatures
+        relais. Les recherches de cotransporteurs se suivent dans l’Activité en direct ; créer et corriger un point,
+        examiner un signalement et les incidents arriveront avec la suite de la phase 4.
       </p>
       <nav className="flex gap-1 border-b" aria-label="Onglets">
         {ONGLETS.map((o) => (
@@ -169,6 +194,9 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
           compteurs={donnees.onglet === "trajets" ? donnees.compteurs : null}
           testVisible={!moi.est_test}
         />
+      )}
+      {onglet === "points" && (
+        <FiltresAnnuaireHubs f={fh} compteurs={donnees.onglet === "points" ? donnees.compteurs : null} />
       )}
       {contenu}
     </div>

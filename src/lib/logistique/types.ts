@@ -1,9 +1,15 @@
 // L'annuaire des points de rendez-vous et les candidatures relais, tels que le
-// back-office les lit (`bo_hubs_a_valider`, `bo_candidatures_relais_lister`).
+// back-office les lit (`bo_hubs_lister`, `bo_candidatures_relais_lister`).
 import type { Acteur } from "@/lib/activite/types";
 import type { Detenteur } from "@/lib/operations/types";
 
-export type HubAValider = {
+// ── L'annuaire des points de rendez-vous (§ 12.4, hand-to-hand `20261013005000`) ──
+
+/** Où en est un point : une épingle à regarder, un point proposé, un point fermé, une épingle écartée. */
+export type EtatHub = "a_valider" | "actif" | "ferme" | "ecarte";
+
+/** Une ligne de l'annuaire, telle que `bo_hubs_lister` la rend. */
+export type Hub = {
   id: string;
   nom: string | null;
   repere: string | null;
@@ -13,8 +19,123 @@ export type HubAValider = {
   region: string | null;
   latitude: number;
   longitude: number;
+  /** Le rayon de la zone de rendez-vous, en mètres. */
+  rayon_m: number;
   statut: string;
+  etat: EtatHub;
+  valide_le: string | null;
+  /** La fermeture en cours, et son motif — interne : l'annuaire public ne le porte pas. */
+  ferme_le: string | null;
+  motif_fermeture: string | null;
+  signalements: number;
+  dernier_signalement_le: string | null;
+  /**
+   * Les trajets qui ne sont pas clos et qui passent par ce point.
+   * ⚠️ LE POINT EST RÉEL, CE QUI Y PASSE A SON MONDE : un équipier de test ne compte et ne lit que le monde du
+   * test ; un équipier réel compte les deux, et la fiche étiquette ce qui est du test.
+   */
+  trajets: number;
+  /** Les rendez-vous qui restent à tenir à ce point : ils y restent, fermé ou non. */
+  rendez_vous_en_cours: number;
   cree_le: string;
+};
+
+/** Les filtres, dans l'ordre de la base (`app.bo_hubs_filtres`). */
+export type FiltreHub = "signales" | "a_valider" | "actifs" | "fermes" | "ecartes";
+
+export const FILTRES_HUB: FiltreHub[] = ["signales", "a_valider", "actifs", "fermes", "ecartes"];
+
+export const LIBELLE_FILTRE_HUB: Record<FiltreHub, string> = {
+  signales: "Signalés",
+  a_valider: "À valider",
+  actifs: "Actifs",
+  fermes: "Fermés",
+  ecartes: "Écartés",
+};
+
+export const LIBELLE_ETAT_HUB: Record<EtatHub, string> = {
+  a_valider: "Épingle à valider",
+  actif: "Actif",
+  ferme: "Fermé",
+  ecarte: "Épingle écartée",
+};
+
+/** Un compteur par filtre et le total, avec la même recherche que la liste. */
+export type CompteursHubs = Record<FiltreHub | "tous", number>;
+
+/** ⚠️ L'ANNUAIRE N'A PAS DE MONDE DU TEST : `test` reste faux, il ne sert qu'à partager les filtres des autres listes. */
+export type FiltresHubs = { filtre: FiltreHub | null; q: string | null; test: false };
+
+/** L'adresse de l'annuaire filtré : les filtres restent dans l'adresse (R4.10). */
+export function adresseHubs(f: Pick<FiltresHubs, "filtre" | "q">): string {
+  const p = new URLSearchParams({ onglet: "points" });
+  if (f.filtre) p.set("filtre", f.filtre);
+  if (f.q) p.set("q", f.q);
+  return `/h2h-logistic?${p.toString()}`;
+}
+
+export const cheminHub = (id: string) => `/h2h-logistic/points/${encodeURIComponent(id)}`;
+
+// Les valeurs de `hub_report_reason`, avec les mots de l'application du cotransporteur.
+export const LIBELLE_RAISON_SIGNALEMENT_HUB: Record<string, string> = {
+  closed: "Point fermé à l’horaire indiqué",
+  wrong_address: "Adresse incorrecte ou introuvable",
+  saturated: "Point saturé, pas de place",
+  security: "Problème de sécurité",
+  partner_uncooperative: "Partenaire peu coopératif",
+  other: "Autre",
+};
+
+export type SignalementHub = {
+  id: string;
+  raison: string;
+  explication: string | null;
+  signale_le: string;
+  /** Le pseudonyme de son auteur — rien d'autre de la personne. */
+  signale_par: string | null;
+  /** La référence de la co-livraison qui l'a amené là, quand il y en a une. */
+  colivraison: string | null;
+  pieces: number;
+  /** Le nom du point au moment du signalement. */
+  nom_alors: string | null;
+  /** Son auteur est un compte du monde de test. */
+  est_test: boolean;
+};
+
+export type FermetureHub = {
+  motif: string;
+  le: string;
+  par: string | null;
+  leve_le: string | null;
+  leve_par: string | null;
+  motif_levee: string | null;
+};
+
+export type FicheHub = {
+  hub: Hub;
+  validation: { le: string; par: string | null } | null;
+  /** Les fermetures, la plus récente d'abord ; celle sans `leve_le` est en cours. */
+  fermetures: FermetureHub[];
+  signalements: SignalementHub[];
+  trajets: {
+    id: string;
+    role: "collecte" | "remise";
+    ville_depart: string;
+    ville_arrivee: string;
+    cotransporteur: string | null;
+    situation: SituationTrajet;
+    prochain_passage: string | null;
+    est_test: boolean;
+  }[];
+  rendez_vous: {
+    mission: string;
+    ref: string | null;
+    role: "collecte" | "remise";
+    quand: string | null;
+    moment: MomentColivraison;
+    est_test: boolean;
+  }[];
+  possibles: { valider: GestePossible; fermer: GestePossible; rouvrir: GestePossible };
 };
 
 export type CandidatureRelais = {
@@ -166,11 +287,12 @@ export function adresseColivraisons(f: FiltresColivraisons): string {
 /** Où en est un trajet pour de nouvelles propositions : cinq situations qui s'excluent. */
 export type SituationTrajet = "propose" | "suspendu" | "en_pause" | "indisponible" | "clos";
 
-/** Ce qui écarte un trajet d'une recherche : les sept premières tiennent au trajet ou à son cotransporteur. */
+/** Ce qui écarte un trajet d'une recherche : les huit premières tiennent au trajet ou à son cotransporteur. */
 export type RaisonTrajet =
   | "trajet_suspendu"
   | "trajet_inactif"
   | "sans_point_de_collecte"
+  | "point_de_collecte_inactif"
   | "hors_ligne"
   | "compte_restreint"
   | "role_inactif"
@@ -255,6 +377,7 @@ export const LIBELLE_RAISON_TRAJET: Record<RaisonTrajet, string> = {
   trajet_suspendu: "L’équipe a suspendu ses nouvelles propositions",
   trajet_inactif: "Le trajet n’est pas actif",
   sans_point_de_collecte: "Le trajet n’a pas de point de collecte",
+  point_de_collecte_inactif: "Son point de collecte est fermé",
   hors_ligne: "Le cotransporteur s’est mis hors ligne",
   compte_restreint: "Son compte est restreint pour la co-livraison, ou suspendu",
   role_inactif: "Son rôle de cotransporteur n’est pas actif",
@@ -286,11 +409,11 @@ export const EXPLICATION_ANOMALIE_TRAJET: Record<AnomalieTrajet, string> = {
   sans_point_de_collecte:
     "Le trajet n’a plus de point de collecte : la mise en relation ne le propose à aucune recherche.",
   point_de_collecte_inactif:
-    "Son point de collecte n’est plus actif, et le trajet reste proposé : la mise en relation ne lit pas encore l’état d’un point.",
+    "Son point de collecte est fermé : le trajet n’est plus proposé tant que le point n’est pas rouvert. Son cotransporteur en a été prévenu.",
   sans_point_de_remise:
     "Aucun de ses arrêts de remise n’a de point de rendez-vous : aucun de ses passages ne peut être proposé.",
   point_de_remise_inactif:
-    "Un de ses points de remise n’est plus actif, et reste proposé aux acheteurs : la mise en relation ne lit pas encore l’état d’un point.",
+    "Un de ses points de remise est fermé : il n’est plus proposé à la remise sur ce trajet. S’il n’en reste aucun, aucun passage n’est proposé.",
   surreserve: "Un de ses passages à venir porte plus d’engagements que de places.",
 };
 

@@ -301,7 +301,7 @@ describe("la fiche d’un trajet", () => {
   it("explique chaque anomalie que la base nomme", () => {
     const html = fiche({ trajet: trajet({ anomalies: ["point_de_remise_inactif", "surreserve"] }) });
     expect(html).toContain("Point de remise inactif");
-    expect(html).toContain("la mise en relation ne lit pas encore l’état d’un point");
+    expect(html).toContain("Un de ses points de remise est fermé : il n’est plus proposé à la remise sur ce trajet.");
     expect(html).toContain("Un de ses passages à venir porte plus d’engagements que de places.");
   });
 

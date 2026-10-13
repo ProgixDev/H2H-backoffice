@@ -1,0 +1,261 @@
+import Link from "next/link";
+import { ExternalLink } from "lucide-react";
+import { StatutPastille } from "@/components/bo/StatutPastille";
+import { dateHeure } from "@/lib/dates";
+import {
+  LIBELLE_ETAT_HUB,
+  LIBELLE_LIEU,
+  LIBELLE_MOMENT,
+  LIBELLE_RAISON_SIGNALEMENT_HUB,
+  LIBELLE_SITUATION,
+  cheminTrajet,
+  lienCarte,
+  type FicheHub,
+} from "@/lib/logistique/types";
+import { cheminFiche } from "@/lib/operations/types";
+import { TON_ETAT_HUB } from "./AnnuaireHubs";
+import { GesteFermetureHub, GesteReouvertureHub, GesteValidationHub } from "./GestesHub";
+import { TON_MOMENT } from "./ListeColivraisons";
+import { SANS_PSEUDONYME, TON_SITUATION, pluriel } from "./ListeTrajets";
+
+function Section({ titre, children, className }: { titre: string; children: React.ReactNode; className?: string }) {
+  return (
+    <section className={`grid content-start gap-2 rounded-xl border p-4 ${className ?? ""}`}>
+      <h3 className="text-h3 font-semibold">{titre}</h3>
+      {children}
+    </section>
+  );
+}
+
+function Champ({ titre, children }: { titre: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-legende text-muted-foreground">{titre}</dt>
+      <dd>{children}</dd>
+    </div>
+  );
+}
+
+function Aucun({ children }: { children: React.ReactNode }) {
+  return <p className="text-corps text-muted-foreground">{children}</p>;
+}
+
+const ROLE: Record<"collecte" | "remise", string> = { collecte: "Collecte", remise: "Remise" };
+
+/**
+ * La fiche d'un point de rendez-vous (§ 12.4) : sa localisation, son état et le
+ * motif de son indisponibilité, ses signalements, les missions concernées — les
+ * rendez-vous qui restent à y tenir et les trajets qui y passent —, l'histoire de
+ * ses fermetures ; et « Valider », « Fermer aux nouvelles recherches » ou
+ * « Rouvrir » quand la base le permet, sinon pourquoi.
+ *
+ * ⚠️ L'ÉCRAN MONTRE CE QUE LA BASE PERMET (`possibles`), et la base décide encore.
+ * ⚠️ UN POINT EST UN LIEU PUBLIC : ses coordonnées se lisent. Une personne n'y est
+ * jamais située — un signalement dit le pseudonyme de son auteur, rien d'autre.
+ */
+export function FicheHubVue({ f }: { f: FicheHub }) {
+  const h = f.hub;
+  const enCours = f.fermetures.find((x) => x.leve_le === null) ?? null;
+  const raisons = [...new Set([f.possibles.valider, f.possibles.fermer, f.possibles.rouvrir]
+    .filter((p) => !p.possible && p.raison)
+    .map((p) => p.raison as string))];
+  const aucunGeste = !f.possibles.valider.possible && !f.possibles.fermer.possible && !f.possibles.rouvrir.possible;
+
+  return (
+    <div className="grid gap-6">
+      <div className="grid gap-3 rounded-xl border p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-h3 font-semibold">{h.nom ?? h.repere ?? "Point sans nom"}</h2>
+          <StatutPastille ton={TON_ETAT_HUB[h.etat]}>{LIBELLE_ETAT_HUB[h.etat]}</StatutPastille>
+          <StatutPastille ton="neutre">{LIBELLE_LIEU[h.type_lieu] ?? h.type_lieu}</StatutPastille>
+        </div>
+        <dl className="grid gap-x-6 gap-y-2 text-corps sm:grid-cols-2 lg:grid-cols-4">
+          <Champ titre="Localisation">
+            {[h.ville, h.region].filter(Boolean).join(" · ") || "—"}
+            <a
+              href={lienCarte(h.latitude, h.longitude)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-fit items-center gap-1 text-legende text-h2h-primary hover:underline"
+            >
+              Voir le point sur la carte <ExternalLink className="size-3" />
+            </a>
+            <span className="block text-legende tabular-nums text-muted-foreground">zone de rendez-vous : {h.rayon_m} m</span>
+          </Champ>
+          <Champ titre="Où se présenter">
+            « {h.detail_affiche ?? "—"} »
+            <span className="block text-legende text-muted-foreground">Repère : {h.repere ?? "—"}</span>
+          </Champ>
+          <Champ titre="Validation de l’épingle">
+            {f.validation ? (
+              <>
+                <span className="tabular-nums">le {dateHeure(f.validation.le)}</span>
+                <span className="block text-legende text-muted-foreground">{f.validation.par ?? "à la mise en place de l’annuaire"}</span>
+              </>
+            ) : (
+              "Jamais validée : personne n’a encore regardé cette épingle"
+            )}
+          </Champ>
+          <Champ titre="Ce qui y passe">
+            {pluriel(h.trajets, "trajet")}
+            <span className="block text-legende text-muted-foreground">{h.rendez_vous_en_cours} rendez-vous à tenir</span>
+          </Champ>
+        </dl>
+
+        {enCours && (
+          <div className="grid gap-0.5 rounded-lg border border-h2h-error/30 bg-h2h-error/5 p-3 text-corps">
+            <span className="font-semibold text-h2h-error">
+              {h.etat === "ecarte" ? "Épingle écartée" : "Point fermé aux nouvelles recherches"} depuis le {dateHeure(enCours.le)}
+            </span>
+            <span>
+              <span className="text-muted-foreground">Motif (interne) : </span>« {enCours.motif} »
+              {enCours.par ? <span className="text-muted-foreground"> — {enCours.par}</span> : null}
+            </span>
+          </div>
+        )}
+        {h.etat === "ferme" && !enCours && (
+          <p className="text-corps text-muted-foreground">Ce point est fermé, sans motif enregistré.</p>
+        )}
+        {h.etat === "ferme" && h.rendez_vous_en_cours > 0 && (
+          <div className="rounded-lg border border-[#B45309]/30 bg-[#B45309]/5 p-3 text-corps">
+            <span className="font-semibold text-[#B45309]">
+              {h.rendez_vous_en_cours > 1
+                ? `${h.rendez_vous_en_cours} rendez-vous confirmés restent à tenir à ce point fermé.`
+                : "Un rendez-vous confirmé reste à tenir à ce point fermé."}
+            </span>{" "}
+            Fermer le point ne les déplace pas et ne les annule pas : les conditions d’une co-livraison confirmée ne
+            changent pas. Si le lieu ne peut plus servir, ses participants doivent en être prévenus — ouvrez chaque
+            co-livraison ci-dessous.
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3 border-t pt-3">
+          {f.possibles.valider.possible && <GesteValidationHub hub={h.id} repere={h.repere} />}
+          {f.possibles.fermer.possible && (
+            <GesteFermetureHub hub={h.id} publie={h.etat === "actif"} trajets={h.trajets} rendezVous={h.rendez_vous_en_cours} />
+          )}
+          {f.possibles.rouvrir.possible && <GesteReouvertureHub hub={h.id} dejaPublie={h.etat === "ferme"} />}
+          {aucunGeste && raisons.map((r) => (
+            <span key={r} className="text-legende text-muted-foreground">
+              {r}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Section titre="Rendez-vous à tenir à ce point">
+          {f.rendez_vous.length === 0 ? (
+            <Aucun>Aucun rendez-vous confirmé n’attend à ce point.</Aucun>
+          ) : (
+            <ul className="grid gap-1.5 text-corps">
+              {f.rendez_vous.map((r) => (
+                <li key={`${r.mission}-${r.role}`} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {r.ref ? (
+                    <Link href={cheminFiche(r.ref, "livraison")} className="font-medium tabular-nums text-h2h-primary hover:underline">
+                      {r.ref}
+                    </Link>
+                  ) : (
+                    <span className="font-medium">Co-livraison sans commande</span>
+                  )}
+                  <span>{ROLE[r.role]}</span>
+                  <span className="tabular-nums text-muted-foreground">{r.quand ? `le ${dateHeure(r.quand)}` : "heure non fixée"}</span>
+                  <StatutPastille ton={TON_MOMENT[r.moment]}>{LIBELLE_MOMENT[r.moment]}</StatutPastille>
+                  {r.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-legende text-muted-foreground">
+            Fermer ou corriger un point ne déplace aucun de ces rendez-vous. Une recherche lancée avant la fermeture
+            peut encore y confirmer un rendez-vous : il apparaîtra ici.
+          </p>
+        </Section>
+
+        <Section titre="Trajets qui y passent">
+          {f.trajets.length === 0 ? (
+            <Aucun>Aucun trajet en cours ne passe par ce point.</Aucun>
+          ) : (
+            <ul className="grid gap-1.5 text-corps">
+              {f.trajets.map((t) => (
+                <li key={t.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <Link href={cheminTrajet(t.id)} className="font-medium text-h2h-primary hover:underline">
+                    {t.ville_depart} → {t.ville_arrivee}
+                  </Link>
+                  <span>{ROLE[t.role]}</span>
+                  <span className="text-muted-foreground">{t.cotransporteur ?? SANS_PSEUDONYME}</span>
+                  <StatutPastille ton={TON_SITUATION[t.situation]}>{LIBELLE_SITUATION[t.situation]}</StatutPastille>
+                  {t.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
+                  <span className="text-legende tabular-nums text-muted-foreground">
+                    {t.prochain_passage ? `prochain passage le ${dateHeure(t.prochain_passage)}` : "aucun passage à venir"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {f.trajets.length >= 50 && <p className="text-legende text-muted-foreground">Les 50 premiers sont affichés.</p>}
+        </Section>
+
+        <Section titre="Signalements" className="lg:col-span-2">
+          {f.signalements.length === 0 ? (
+            <Aucun>Aucun signalement de ce point.</Aucun>
+          ) : (
+            <ul className="grid gap-2">
+              {f.signalements.map((s) => (
+                <li key={s.id} className="grid gap-0.5 rounded-lg border p-3 text-corps">
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <StatutPastille ton="attention">{LIBELLE_RAISON_SIGNALEMENT_HUB[s.raison] ?? s.raison}</StatutPastille>
+                    {s.est_test && <StatutPastille ton="attention">TEST</StatutPastille>}
+                    <span className="text-legende tabular-nums text-muted-foreground">
+                      le {dateHeure(s.signale_le)} · {s.signale_par ?? SANS_PSEUDONYME}
+                      {s.pieces > 0 ? ` · ${pluriel(s.pieces, "pièce")} jointe${s.pieces > 1 ? "s" : ""}` : ""}
+                    </span>
+                    {s.colivraison && (
+                      <Link href={cheminFiche(s.colivraison, "livraison")} className="text-legende font-medium tabular-nums text-h2h-primary hover:underline">
+                        {s.colivraison}
+                      </Link>
+                    )}
+                  </span>
+                  {s.explication && <span>« {s.explication} »</span>}
+                  {s.nom_alors && s.nom_alors !== h.nom && (
+                    <span className="text-legende text-muted-foreground">Le point s’appelait alors « {s.nom_alors} ».</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-legende text-muted-foreground">
+            Les signalements se lisent ici ; leur examen — une décision, une réponse à leur auteur — viendra avec la suite
+            de la rubrique. Un signalement ne ferme rien de lui-même.
+            {f.signalements.length >= 50 ? " Les 50 plus récents sont affichés." : ""}
+          </p>
+        </Section>
+
+        <Section titre="Fermetures" className="lg:col-span-2">
+          {f.fermetures.length === 0 ? (
+            <Aucun>Ce point n’a jamais été fermé ni écarté.</Aucun>
+          ) : (
+            <ul className="grid gap-2">
+              {f.fermetures.map((x) => (
+                <li key={x.le} className="grid gap-0.5 rounded-lg border p-3 text-corps">
+                  <span className="text-legende tabular-nums text-muted-foreground">
+                    fermé le {dateHeure(x.le)}
+                    {x.par ? ` · ${x.par}` : ""}
+                  </span>
+                  <span>
+                    <span className="text-muted-foreground">Motif : </span>« {x.motif} »
+                  </span>
+                  <span className="text-legende text-muted-foreground">
+                    {x.leve_le
+                      ? `Rouvert le ${dateHeure(x.leve_le)}${x.leve_par ? ` · ${x.leve_par}` : ""} — ${x.motif_levee ?? "sans motif"}`
+                      : "Toujours en cours"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+      </div>
+    </div>
+  );
+}

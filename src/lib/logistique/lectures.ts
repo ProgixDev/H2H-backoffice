@@ -5,17 +5,34 @@ import type {
   CandidatureRelais,
   Colivraison,
   CompteursColivraisons,
+  CompteursHubs,
   CompteursTrajets,
+  FicheHub,
   FicheTrajet,
   FiltresColivraisons,
+  FiltresHubs,
   FiltresTrajets,
-  HubAValider,
+  Hub,
   Trajet,
 } from "./types";
 
-/** Les points de rendez-vous dont l'épingle attend un regard (hors épingles écartées). */
-export async function listerHubsAValider(): Promise<HubAValider[]> {
-  return rpc<HubAValider[]>(await supabaseServeur(), "bo_hubs_a_valider");
+/**
+ * L'annuaire des points de rendez-vous (§ 12.4) : les points signalés d'abord,
+ * puis les épingles à valider, puis par ville ; la base en décide l'ordre. Les
+ * épingles à regarder en sont un filtre (`a_valider`) — plus une lecture à part.
+ */
+export async function listerHubs(f: Pick<FiltresHubs, "filtre" | "q">): Promise<Hub[]> {
+  return rpc<Hub[]>(await supabaseServeur(), "bo_hubs_lister", { p_filtre: f.filtre, p_recherche: f.q });
+}
+
+/** Un compteur par filtre, avec la même recherche : exactement ce que la liste montre. */
+export async function compterHubs(f: Pick<FiltresHubs, "q">): Promise<CompteursHubs> {
+  return rpc<CompteursHubs>(await supabaseServeur(), "bo_hubs_compteurs", { p_recherche: f.q });
+}
+
+/** La fiche d'un point : son état, le motif de sa fermeture, ses signalements, les trajets et les rendez-vous qui y passent. */
+export async function lireHub(id: string): Promise<FicheHub> {
+  return rpc<FicheHub>(await supabaseServeur(), "bo_hub_lire", { p_hub: id });
 }
 
 /** Les candidatures relais en attente, le téléphone masqué. */
