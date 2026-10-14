@@ -1,7 +1,17 @@
 "use server";
 
 import { geste } from "@/lib/db/geste";
-import { cheminHub, cheminTrajet, type ExamenHubEcrit, type IssueSignalementHub, type PointEnvoye } from "./types";
+import { cheminFiche } from "@/lib/operations/types";
+import {
+  cheminHub,
+  cheminIncident,
+  cheminTrajet,
+  type ExamenHubEcrit,
+  type IssueIncident,
+  type IssueSignalementHub,
+  type PointEnvoye,
+  type RoleIncident,
+} from "./types";
 
 const CHEMIN = "/h2h-logistic";
 
@@ -156,6 +166,60 @@ export async function suspendreTrajet(p: { trajet: string; message: string; moti
     p_motif: p.motif,
     p_cle: p.cle,
   });
+}
+
+/**
+ * « Préparer une décision » (§ 12.5) : l'incident est retenu, écarté, ou classé
+ * sans suite ; un blocage retenu dit à qui il est imputé. La réponse est celle
+ * que les trois participants recevront ; le motif reste au journal.
+ *
+ * ⚠️ RIEN N'EST DÉCIDÉ ICI : la base n'écrit qu'une demande, qui attend la
+ * seconde clé d'un autre membre de la Logistique ou de la Direction
+ * (`deciderValidation`). Elle refuse une partie à la co-livraison, un incident
+ * qui n'attend pas l'équipe, une seconde demande pendant que la première attend.
+ */
+export async function preparerDecisionIncident(p: {
+  incident: string;
+  issue: IssueIncident;
+  responsables: RoleIncident[];
+  reponse: string;
+  motif: string;
+  cle: string;
+}) {
+  return geste<{ validation: string; statut: string; expire_le: string; incident: string }>(
+    [CHEMIN, cheminIncident(p.incident), "/a-traiter"],
+    "bo_incident_decision_preparer",
+    {
+      p_incident: p.incident,
+      p_issue: p.issue,
+      p_responsables: p.responsables,
+      p_reponse: p.reponse,
+      p_motif: p.motif,
+      p_cle: p.cle,
+    },
+  );
+}
+
+/**
+ * « Clôturer le traitement interne » (§ 12.5) d'une déclaration transmise à
+ * l'équipe qui n'est pas un incident : une annulation déposée par formulaire, la
+ * contestation d'une décision. Son auteur reçoit la réponse ; elle ne retient
+ * plus les versements. Une clé : la base refuse un incident — il se décide à
+ * deux —, et une partie à la co-livraison.
+ */
+export async function cloreDeclaration(p: {
+  declaration: string;
+  /** La référence de l'opération, pour relire sa fiche. */
+  operation: string;
+  reponse: string;
+  motif: string;
+  cle: string;
+}) {
+  return geste<{ declaration: string; commande: string; statut: string }>(
+    [cheminFiche(p.operation), CHEMIN, "/a-traiter"],
+    "bo_declaration_clore",
+    { p_declaration: p.declaration, p_reponse: p.reponse, p_motif: p.motif, p_cle: p.cle },
+  );
 }
 
 /** Rétablir les nouvelles propositions d'un trajet suspendu ; son cotransporteur est prévenu. */

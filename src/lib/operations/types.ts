@@ -901,6 +901,11 @@ export type Incident = {
   numero: number | null;
   /** `incident` : un des six dossiers du § 12.5, qui a sa fiche dans la rubrique H2H Logistic. */
   genre: "incident" | "contestation" | "annulation" | "commun";
+  /**
+   * « Clôturer le traitement interne » (§ 12.5, hand-to-hand `20261014002000`) d'une déclaration transmise à
+   * l'équipe qui n'est pas un incident : l'appelant le peut, ou la base dit pourquoi non. `null` : rien à clôturer.
+   */
+  cloture: { possible: boolean; raison: string | null } | null;
 };
 
 export type Litiges = { reclamations: Reclamation[]; incidents: Incident[]; oppositions: number };

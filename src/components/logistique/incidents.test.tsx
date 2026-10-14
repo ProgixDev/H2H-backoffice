@@ -1,8 +1,11 @@
-// LES INCIDENTS DE CO-LIVRAISON (§ 12.5) — rendus tels que le serveur les envoie (hand-to-hand `20261014001000`).
+// LES INCIDENTS DE CO-LIVRAISON (§ 12.5) — rendus tels que le serveur les envoie (hand-to-hand `20261014001000` et
+// `20261014002000`).
 //
-// La base décide de tout : où en est un incident, qui il attend, ce qu'il retient, ses délais, et si l'appelant peut
-// ouvrir ses pièces (`incidentsLusEtAnnonces.test.ts` dans hand-to-hand). On vérifie ici que l'écran le dit tel
-// quel : la liste, ses filtres et leurs compteurs, la fiche — et qu'elle ne promet aucun geste qui n'existe pas.
+// La base décide de tout : où en est un incident, qui il attend, ce qu'il retient, ses délais, si l'appelant peut
+// ouvrir ses pièces, préparer une décision — et à qui un blocage s'impute —, ou donner la seconde clé
+// (`incidentsLusEtAnnonces.test.ts` et `incidentsDecides.test.ts` dans hand-to-hand). On vérifie ici que l'écran le
+// dit tel quel : la liste, ses filtres et leurs compteurs, la fiche — et qu'elle ne montre que les gestes que la base
+// dit possibles.
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
@@ -19,11 +22,18 @@ vi.mock("next/link", () => ({
 vi.mock("@/components/marque/AnimationH2H", () => ({ AnimationH2H: () => <span data-animation /> }));
 vi.mock("@/lib/operations/sensibles", () => ({ ouvrirPiece: vi.fn(), revelerDonnee: vi.fn() }));
 vi.mock("@/lib/db/useConsultation", () => ({ useConsultation: () => ({ consulter: vi.fn(), enCours: false }) }));
+// Les gestes passent par la base : ici, seulement ce que l'écran en montre.
+vi.mock("@/lib/db/useGeste", () => ({ useGeste: () => ({ lancer: vi.fn(), enCours: false }) }));
+vi.mock("@/lib/logistique/actions", () => ({ preparerDecisionIncident: vi.fn(), cloreDeclaration: vi.fn() }));
+vi.mock("@/lib/equipe/actions", () => ({ deciderValidation: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 
 const { ListeIncidents } = await import("./ListeIncidents");
 const { FiltresListeIncidents } = await import("./FiltresIncidents");
 const { FicheIncidentVue, actionAttendue, dureeDite, executionDite } = await import("./FicheIncident");
+const { clotureValide, decisionValide, imputationDemandee, responsablesEnvoyes } = await import("./GestesIncident");
 const { OngletLitiges } = await import("@/components/operations/onglets/Litiges");
+const { ListeValidations } = await import("@/components/equipe/ListeValidations");
 const { adresseIncidents, cheminIncident } = await import("@/lib/logistique/types");
 
 /** Les espaces insécables d'un montant (« 4,00 € ») se lisent comme des espaces. */
@@ -131,10 +141,25 @@ const fiche = (f: Partial<FicheIncident> = {}, i: Partial<Incident> = {}): Fiche
   dossiers: [],
   autres: [],
   refus_colis: null,
+  decision: null,
+  validation: null,
+  possibles: { decider: { possible: false, raison: "Cet incident n’attend pas de décision de l’équipe.", imputables: [] } },
   pieces_ouvrables: true,
-  partie: false,
   ...f,
 });
+
+const DECIDABLE = { decider: { possible: true, raison: null, imputables: [] as ("acheteur" | "vendeur" | "cotransporteur")[] } };
+const REPONSE = "Les présences déclarées montrent que le vendeur était au point de collecte.";
+const VALIDATION = {
+  id: "c1250000-0000-4000-a000-0000000000a9", issue: "ecartee" as const, responsables: [], reponse: REPONSE,
+  motif: "Présence validée dans la zone", demandeur: "Lina B.", demande_le: "2026-10-14T11:00:00Z",
+  expire_le: "2026-10-16T11:00:00Z", la_votre: false, peut_valider: true,
+};
+const DECISION = {
+  id: "c1250000-0000-4000-a000-0000000000aa", issue: "retenue" as const, responsables: ["acheteur" as const, "cotransporteur" as const],
+  reponse: "Aucun des deux n’était au point de remise à l’heure dite.", motif: "Aucune présence validée",
+  prepare_par: "Lina B.", valide_par: "Marc D.", le: "2026-10-14T12:30:00Z",
+};
 
 const CONTESTATION = {
   id: "c1250000-0000-4000-a000-0000000000e8", formulaire: "contest_seller_absent", numero: 8,
@@ -281,8 +306,10 @@ describe("la fiche d’un incident", () => {
     expect(html).toContain("retient tous les versements de la commande");
     // Les pièces s'ouvrent : un bouton par pièce.
     expect(html.match(/Voir<\/button>/g)?.length).toBe(1);
-    // 🔴 AUCUN GESTE DE DÉCISION N'EST PROPOSÉ : il n'existe pas encore.
-    expect(html).not.toMatch(/<button[^>]*>(Décider|Trancher|Clôturer|Notifier)/);
+    // 🔴 AUCUN GESTE N'EST PROPOSÉ TANT QUE LA BASE NE LE DIT PAS POSSIBLE : son délai court. L'écran dit pourquoi.
+    expect(html).toContain("La décision de l’équipe");
+    expect(html).toContain("Cet incident n’attend pas de décision de l’équipe.");
+    expect(html).not.toMatch(/<button[^>]*>(?:<svg[^>]*>.*?<\/svg>)?\s*(Préparer une décision|Valider la décision|Refuser|Clôturer)/);
   });
 
   it("un blocage : son délai de déclaration, tenu ou non — et l’équipe, sans geste promis", () => {
@@ -313,8 +340,9 @@ describe("la fiche d’un incident", () => {
     expect(html).toContain("Le protocole ne prévoit aucun règlement type pour ce formulaire.");
     expect(html).toContain("Il ne retient aucun versement.");
     expect(html).toContain("Aucune présence déclarée à ce rendez-vous");
-    // L'équipe est attendue, et l'écran dit où instruire — sans bouton de décision.
-    expect(html).toContain("La décision d’un incident arrive avec la suite du back-office");
+    // L'équipe est attendue, et l'écran dit où instruire ; la base ne dit pas la décision possible : pas de bouton.
+    expect(html).toContain("L’équipe analyse l’incident, puis prépare une décision — qu’un autre membre de l’équipe valide.");
+    expect(html).not.toContain("Préparer une décision</button>");
     expect(html).toContain(`href="/a-traiter?dossier=${DOSSIER}"`);
     expect(html).toContain("Dossier DOS-000061");
     // Les autres déclarations : un incident ouvre sa fiche, une annulation non.
@@ -333,7 +361,7 @@ describe("la fiche d’un incident", () => {
     expect(html).toContain("J’étais sur place");
     expect(html).toContain("À l’entrée du parking.");
     expect(html.match(/Voir<\/button>/g)?.length).toBe(3); // une pièce de la déclaration, deux de la contestation
-    expect(html).toContain("L’équipe examine la contestation.");
+    expect(html).toContain("L’équipe examine la contestation, puis prépare une décision — qu’un autre membre de l’équipe valide.");
 
     const tenu = rendu(fiche({ delais: { ...fiche().delais, declaration_minutes: 10, declaration_jusqu_au: "2026-10-14T08:20:00Z", declaree_dans_le_delai: true } }));
     expect(tenu).toContain("Déclaré dans ce délai");
@@ -343,10 +371,100 @@ describe("la fiche d’un incident", () => {
     const lecteur = rendu(fiche({ pieces_ouvrables: false }));
     expect(lecteur).not.toContain("Voir</button>");
     expect(lecteur).toContain("Votre rôle ne permet pas d’ouvrir les pièces des utilisateurs.");
-    const partie = rendu(fiche({ pieces_ouvrables: false, partie: true }));
-    expect(partie).not.toContain("Voir</button>");
-    expect(partie).toContain("Votre compte personnel est partie à cette co-livraison");
-    expect(partie).not.toContain("Votre rôle ne permet pas");
+  });
+
+  it("🔴 une décision se prépare quand la base le dit possible — et seulement alors", () => {
+    const html = rendu(fiche({ possibles: DECIDABLE }, { ...BLOCAGE }));
+    expect(html).toContain("Aucune décision n’est préparée.");
+    expect(html).toContain("un autre membre de la Logistique ou de la Direction la valide");
+    expect(html.match(/Préparer une décision<\/button>/g)?.length).toBe(1);
+    // Le rôle ne le permet pas : la raison de la base, pas de bouton.
+    const lecteur = rendu(fiche({
+      possibles: { decider: { possible: false, raison: "Votre rôle ne permet pas de décider d’un incident.", imputables: ["acheteur", "cotransporteur"] } },
+    }, { ...BLOCAGE }));
+    expect(lecteur).toContain("Votre rôle ne permet pas de décider d’un incident.");
+    expect(lecteur).not.toContain("Préparer une décision</button>");
+  });
+
+  it("🔴 une décision préparée attend sa seconde clé : ce que relit celui qui valide, et qui peut la donner", () => {
+    const enValidation = { situation: "en_validation" as const, situation_libelle: "Décision à valider", attend: "equipe" as const, echeance: null };
+    const f = fiche({ validation: VALIDATION, possibles: { decider: { possible: false, raison: "Une décision attend déjà sa validation.", imputables: [] } } }, enValidation);
+    const html = rendu(f);
+    expect(html).toContain("Décision à valider");
+    expect(html).toContain("Préparée, à valider");
+    expect(html).toContain("Non retenue");
+    expect(html).toContain("Lina B.");
+    expect(html).toContain("À valider avant le");
+    expect(html).toContain("16/10/2026");
+    expect(html).toContain("Réponse qui sera envoyée aux trois participants, à la validation");
+    expect(html).toContain(REPONSE);
+    expect(html).toContain("Présence validée dans la zone");
+    expect(html).toMatch(/Refuser<\/button>/);
+    expect(html).toMatch(/Valider la décision<\/button>/);
+    expect(html).not.toContain("Préparer une décision</button>");
+    expect(actionAttendue(f)).toBe("Une décision est préparée : un autre membre de la Logistique ou de la Direction la valide, ou la refuse.");
+    // Celui qui l'a préparée ne la valide pas ; un rôle qui ne valide pas non plus. La base le dit, l'écran le suit.
+    const mienne = rendu(fiche({ validation: { ...VALIDATION, la_votre: true, peut_valider: false } }, enValidation));
+    expect(mienne).toContain("Vous avez préparé cette décision : un autre membre de la Logistique ou de la Direction la valide.");
+    expect(mienne).not.toMatch(/Valider la décision<\/button>/);
+    const lecteur = rendu(fiche({ validation: { ...VALIDATION, peut_valider: false } }, enValidation));
+    expect(lecteur).toContain("Votre rôle ne permet pas de valider cette décision");
+    expect(lecteur).not.toMatch(/Valider la décision<\/button>|Refuser<\/button>/);
+    // Un blocage : à qui il serait imputé.
+    const impute = rendu(fiche({ validation: { ...VALIDATION, issue: "retenue", responsables: ["cotransporteur"] } }, { ...BLOCAGE, ...enValidation }));
+    expect(impute).toContain("Retenue");
+    expect(impute).toContain("Cotransporteur particulier");
+  });
+
+  it("🔴 la décision rendue : son issue, à qui elle est imputée, ses deux clés, la réponse reçue — et aucun argent", () => {
+    const f = fiche({
+      decision: DECISION, retenues: [], execution: { issue: "retenue", reglements: 0, frais: null },
+      possibles: { decider: { possible: false, raison: "Cet incident a reçu sa décision.", imputables: ["acheteur", "cotransporteur"] } },
+    }, { ...BLOCAGE, situation: "clos", situation_libelle: "Clos", attend: null, issue: "retenue", retient_les_fonds: false, dossier: null, dossier_id: null });
+    const html = rendu(f);
+    expect(html).toContain("La décision de l’équipe");
+    expect(html).toContain("Retenue");
+    expect(html).toContain("Acheteur · Cotransporteur particulier");
+    expect(html).toContain("Lina B.");
+    expect(html).toContain("Marc D.");
+    expect(html).toContain("Réponse envoyée aux trois participants");
+    expect(html).toContain("Aucun des deux n’était au point de remise à l’heure dite.");
+    expect(html).toContain("Aucune présence validée");
+    expect(html).toContain("Une décision ne se réécrit pas.");
+    expect(html).not.toMatch(/<button[^>]*>(?:<svg[^>]*>.*?<\/svg>)?\s*(Préparer une décision|Valider la décision|Refuser)/);
+    expect(actionAttendue(f)).toBe("Aucune : la décision de l’équipe est rendue, et notifiée aux trois participants.");
+    // 🔴 UNE DÉCISION N'EXÉCUTE RIEN : l'écran ne laisse pas croire à un remboursement ou à des frais.
+    expect(executionDite(f)).toBe(
+      "Issue enregistrée : décision de l’équipe — déclaration retenue. Cette décision n’a exécuté ni remboursement, ni frais, ni versement.",
+    );
+    // Une absence ne s'impute à personne d'autre que celui qu'elle vise.
+    expect(rendu(fiche({ decision: { ...DECISION, issue: "classee", responsables: [] } }))).toContain("Classée sans suite");
+  });
+
+  it("la saisie d’une décision : un blocage retenu s’impute à quelqu’un, et lui seul — la base refuse le reste", () => {
+    const blocage = ["acheteur", "cotransporteur"] as const;
+    const s = { issue: "retenue" as const, responsables: [] as ("acheteur" | "vendeur" | "cotransporteur")[], reponse: REPONSE, motif: "Motif" };
+    // À qui l'incident peut s'imputer vient de la base : vide, rien ne se demande.
+    expect([imputationDemandee("retenue", [...blocage]), imputationDemandee("classee", [...blocage]), imputationDemandee("retenue", []), imputationDemandee(null, [...blocage])])
+      .toEqual([true, false, false, false]);
+    expect(decisionValide(s, [...blocage])).toBe(false);
+    expect(decisionValide({ ...s, responsables: ["acheteur"] }, [...blocage])).toBe(true);
+    expect(decisionValide(s, [])).toBe(true);
+    expect(decisionValide({ ...s, issue: "classee" }, [...blocage])).toBe(true);
+    expect(decisionValide({ ...s, issue: null }, [])).toBe(false);
+    // Les longueurs que la base exige : dix à deux mille caractères de réponse, cinq de motif.
+    expect(decisionValide({ ...s, reponse: "Trop bref" }, [])).toBe(false);
+    expect(decisionValide({ ...s, reponse: "  Dix signes  " }, [])).toBe(true);
+    expect(decisionValide({ ...s, reponse: "x".repeat(2001) }, [])).toBe(false);
+    expect(decisionValide({ ...s, reponse: "x".repeat(2000) }, [])).toBe(true);
+    expect(decisionValide({ ...s, motif: "bref" }, [])).toBe(false);
+    // 🔴 CE QUI PART À LA BASE : aucun responsable hors d'un blocage retenu, même si une case est restée cochée ; et
+    // jamais quelqu'un que la base ne nomme pas.
+    expect(responsablesEnvoyes({ issue: "retenue", responsables: ["cotransporteur", "acheteur"] }, [...blocage])).toEqual(["acheteur", "cotransporteur"]);
+    expect(responsablesEnvoyes({ issue: "classee", responsables: ["acheteur"] }, [...blocage])).toEqual([]);
+    expect(responsablesEnvoyes({ issue: "retenue", responsables: ["acheteur"] }, [])).toEqual([]);
+    expect(responsablesEnvoyes({ issue: "retenue", responsables: ["vendeur"] }, [...blocage])).toEqual([]);
+    expect([clotureValide(REPONSE, "Motif"), clotureValide("Trop bref", "Motif"), clotureValide(REPONSE, "bref")]).toEqual([true, false, false]);
   });
 
   it("le refus du colis d’une co-livraison du § 5 renvoie à l’onglet Livraison, où il s’examine", () => {
@@ -364,14 +482,20 @@ describe("la fiche d’un incident", () => {
     expect(html).toContain("Examiner la contestation dans l’onglet Livraison");
     expect(html).toContain("Les frais d’un refus du colis se lisent avec son examen");
     expect(actionAttendue(f)).toBe("L’équipe examine la contestation : dans l’onglet Livraison de la commande.");
-    expect(html).not.toContain("arrive avec la suite du back-office");
+    // Il ne se décide pas ici : la base le dit, et l'écran ne propose rien.
+    const ici = rendu({ ...f, possibles: { decider: { possible: false, raison: "Ce refus du colis s’examine dans l’onglet Livraison de sa commande.", imputables: [] } } });
+    expect(ici).toContain("Ce refus du colis s’examine dans l’onglet Livraison de sa commande.");
+    expect(ici).not.toContain("Préparer une décision</button>");
   });
 
   it("ce qui est attendu se dit d’après la situation — et un incident clos n’attend rien", () => {
     expect(actionAttendue(fiche({}, { situation: "en_cloture", attend: "plateforme" })))
       .toBe("La plateforme clôt la déclaration : le délai de contestation est passé sans contestation.");
     expect(actionAttendue(fiche({}, { situation: "clos", attend: null }))).toBe("Aucune : l’incident est clos.");
-    expect(actionAttendue(fiche({}, { situation: "a_examiner", attend: "equipe" }))).toContain("L’équipe analyse l’incident.");
+    expect(actionAttendue(fiche({}, { situation: "a_examiner", attend: "equipe" })))
+      .toBe("L’équipe analyse l’incident, puis prépare une décision — qu’un autre membre de l’équipe valide.");
+    expect(actionAttendue(fiche({}, { situation: "conteste", attend: "equipe" })))
+      .toBe("L’équipe examine la contestation, puis prépare une décision — qu’un autre membre de l’équipe valide.");
   });
 
   it("ce qui a été exécuté ne se confond jamais avec ce que le protocole prévoit", () => {
@@ -395,7 +519,7 @@ describe("l’onglet « Litiges » d’une commande mène à la fiche d’un inc
     declarant: "karim", hub: "Parking Quai des États-Unis", rendez_vous: "2026-10-14T08:00:00Z", declare_le: "2026-10-14T08:40:00Z",
     statut: "pending", motif: null, commentaire: null, reponses: null, exactitude_confirmee: true,
     contestation_avant: "2026-10-15T08:40:00Z", conteste: null, issue: null, pieces: 0, motif_litige: null,
-    motif_litige_libelle: null, numero: 7, genre: "incident", ...d,
+    motif_litige_libelle: null, numero: 7, genre: "incident", cloture: null, ...d,
   });
   const litiges = (incidents: Declaration[]): Litiges => ({ reclamations: [], incidents, oppositions: 0 }) as Litiges;
 
@@ -414,5 +538,55 @@ describe("l’onglet « Litiges » d’une commande mène à la fiche d’un inc
     expect(html).toContain(`href="${cheminIncident(ID)}"`);
     expect(html.match(/Ouvrir la fiche de l’incident/g)?.length).toBe(1);
     expect(html).toContain("Formulaire 8 · Contestation · Contestation — vendeur absent");
+    // Ni l'un ni l'autre ne se clôture ici.
+    expect(html).not.toContain("Clôturer le traitement");
+  });
+
+  it("🔴 une déclaration transmise qui n’est pas un incident se clôture ici — quand la base le dit possible", () => {
+    const annulation = (d: Partial<Declaration>) => declaration({
+      id: "c1250000-0000-4000-a000-0000000000d9", formulaire: "cancel_seller", formulaire_libelle: "Annulation — vendeur",
+      declarant_role: "seller", statut: "support_review", contestation_avant: null, numero: 9, genre: "annulation", ...d,
+    });
+    const rendre = (d: Declaration, operation?: string) => decode(renderToStaticMarkup(
+      <OngletLitiges maintenant={new Date("2026-10-14T12:00:00Z").getTime()} l={litiges([d])} operation={operation} />,
+    ));
+    const possible = rendre(annulation({ cloture: { possible: true, raison: null } }), "HTH-2026-000321");
+    expect(possible).toContain("Formulaire 9 · Annulation — vendeur");
+    expect(possible.match(/Clôturer le traitement<\/button>/g)?.length).toBe(1);
+    expect(possible).not.toContain("Ouvrir la fiche de l’incident");
+    // Le rôle ne le permet pas : la raison de la base, pas de bouton.
+    const refuse = rendre(annulation({ cloture: { possible: false, raison: "Votre rôle ne permet pas de clôturer une déclaration." } }), "HTH-2026-000321");
+    expect(refuse).toContain("Cette déclaration attend que l’équipe en clôture le traitement. Votre rôle ne permet pas de clôturer une déclaration.");
+    expect(refuse).not.toContain("Clôturer le traitement</button>");
+    // Close : son issue se lit, plus rien ne se clôture.
+    const close = rendre(annulation({ statut: "closed", issue: "traitee", cloture: null }), "HTH-2026-000321");
+    expect(close).toContain("traitée par l’équipe");
+    expect(close).not.toContain("Clôturer le traitement");
+    // La décision d'un incident se lit aussi dans l'onglet.
+    expect(rendre(declaration({ statut: "closed", issue: "ecartee" }), "HTH-2026-000321")).toContain("décision de l’équipe — déclaration non retenue");
+  });
+});
+
+describe("la seconde clé d’une décision d’incident, dans la liste des demandes", () => {
+  it("dit l’issue, à qui un blocage est imputé, la réponse qui partira — et mène à la fiche de l’incident", () => {
+    const v = {
+      id: "c1250000-0000-4000-a000-0000000000a9", action: "incidents.decider", libelle: "Décider d’un incident de co-livraison",
+      cible: "Formulaire 6 — Remise bloquée — commande HTH-2026-000321", cible_id: ID,
+      parametres: { issue: "retenue", responsables: ["acheteur", "cotransporteur"], reponse: REPONSE, numero: 6, nom: "Remise bloquée" },
+      motif: "Aucune présence validée", demandeur: "p1", demandeur_email: "lina@handtohand.pro",
+      demande_le: "2026-10-14T11:00:00Z", expire_le: "2026-10-16T11:00:00Z", est_test: false, peut_decider: true,
+    };
+    const html = decode(renderToStaticMarkup(<ListeValidations validations={[v]} />));
+    expect(html).toContain("Décider d’un incident de co-livraison");
+    expect(html).toContain("Retenue");
+    expect(html).toContain("Formulaire 6 — Remise bloquée — commande HTH-2026-000321");
+    expect(html).toContain("Imputée à : Acheteur · Cotransporteur particulier");
+    expect(html).toContain(`Réponse qui sera envoyée aux trois participants : « ${REPONSE} »`);
+    expect(html).toContain(`href="${cheminIncident(ID)}"`);
+    expect(html).toContain("Lire la fiche de l’incident avant de valider");
+    expect(html).toMatch(/Valider<\/button>/);
+    // Une autre demande n'en montre rien.
+    const autre = decode(renderToStaticMarkup(<ListeValidations validations={[{ ...v, action: "equipe.role", parametres: { role: "support" } }]} />));
+    expect(autre).not.toContain("Réponse qui sera envoyée");
   });
 });

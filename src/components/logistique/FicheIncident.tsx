@@ -6,16 +6,21 @@ import { BoutonPiece, CadreConsultations } from "@/components/operations/sensibl
 import { dateHeure } from "@/lib/dates";
 import {
   LIBELLE_ATTENTE_INCIDENT,
+  LIBELLE_ISSUE_DECLARATION,
+  LIBELLE_ISSUE_INCIDENT,
   LIBELLE_PARTIE_PROTOCOLE,
   LIBELLE_ROLE_INCIDENT,
   cheminIncident,
+  type DecisionIncident,
   type FicheIncident,
   type Incident,
   type RoleIncident,
+  type ValidationIncident,
 } from "@/lib/logistique/types";
 import { LIBELLE_DETENTEUR, LIBELLE_ETAT_COLIS, LIBELLE_MISSION, LIBELLE_PARTIE_HUB } from "@/lib/operations/libelles";
 import { cheminFiche } from "@/lib/operations/types";
 import { euros } from "@/lib/paiements/types";
+import { GestePreparerDecision, GesteSecondeCle } from "./GestesIncident";
 import { TON_SITUATION_INCIDENT, personneDite, piecesDites } from "./ListeIncidents";
 
 function Question({ titre, children }: { titre: string; children: React.ReactNode }) {
@@ -42,9 +47,9 @@ export function dureeDite(minutes: number): string {
  * Ce qui est attendu, et de qui (R1.7) — dit d'après ce que la base rend, sans
  * rien promettre que le back-office ne sache faire.
  *
- * ⚠️ LA DÉCISION D'UN INCIDENT N'EXISTE PAS ENCORE ICI, hors le refus du colis
- * d'une co-livraison du § 5, qui s'examine dans l'onglet Livraison de sa
- * commande. L'écran le dit : un bouton absent ne doit pas se lire « rien à faire ».
+ * ⚠️ UN INCIDENT SE DÉCIDE À DEUX CLÉS, depuis cette fiche : l'un prépare, un
+ * autre valide. Le refus du colis d'une co-livraison du § 5, lui, s'examine dans
+ * l'onglet Livraison de sa commande.
  */
 export function actionAttendue(f: FicheIncident): string {
   const i = f.incident;
@@ -55,15 +60,19 @@ export function actionAttendue(f: FicheIncident): string {
     case "conteste":
       return refusExaminable
         ? "L’équipe examine la contestation : dans l’onglet Livraison de la commande."
-        : "L’équipe examine la contestation. La décision d’un incident arrive avec la suite du back-office : d’ici là, instruisez-le depuis son dossier « À traiter ».";
+        : "L’équipe examine la contestation, puis prépare une décision — qu’un autre membre de l’équipe valide.";
     case "a_examiner":
-      return "L’équipe analyse l’incident. La décision d’un incident arrive avec la suite du back-office : d’ici là, instruisez-le depuis son dossier « À traiter ».";
+      return "L’équipe analyse l’incident, puis prépare une décision — qu’un autre membre de l’équipe valide.";
+    case "en_validation":
+      return "Une décision est préparée : un autre membre de la Logistique ou de la Direction la valide, ou la refuse.";
     case "en_cloture":
       return refusExaminable
         ? "La plateforme annule la co-livraison, dans la minute."
         : "La plateforme clôt la déclaration : le délai de contestation est passé sans contestation.";
     default:
-      return "Aucune : l’incident est clos.";
+      return f.decision
+        ? "Aucune : la décision de l’équipe est rendue, et notifiée aux trois participants."
+        : "Aucune : l’incident est clos.";
   }
 }
 
@@ -74,16 +83,15 @@ export function executionDite(f: FicheIncident): string {
     const qui = LIBELLE_ROLE_INCIDENT[e.frais.role as RoleIncident] ?? e.frais.role;
     return `Des frais de ${euros(e.frais.frais_cents)} ont été appliqués — ${qui} —, le ${dateHeure(e.frais.le)}.`;
   }
-  if (e.issue) return `Issue enregistrée : ${ISSUE[e.issue] ?? e.issue}.`;
+  // ⚠️ UNE DÉCISION DE L'ÉQUIPE N'EXÉCUTE RIEN : elle dit qui avait raison, et l'écran ne laisse pas croire davantage.
+  if (e.issue && e.issue in LIBELLE_ISSUE_INCIDENT) {
+    return `Issue enregistrée : ${LIBELLE_ISSUE_DECLARATION[e.issue]}. Cette décision n’a exécuté ni remboursement, ni frais, ni versement.`;
+  }
+  if (e.issue) return `Issue enregistrée : ${LIBELLE_ISSUE_DECLARATION[e.issue] ?? e.issue}.`;
   if (e.reglements > 0) return `${e.reglements} règlement${e.reglements > 1 ? "s" : ""} enregistré${e.reglements > 1 ? "s" : ""}.`;
   return "Rien n’a été exécuté : ni remboursement, ni frais, ni versement ne vient de cet incident.";
 }
 
-const ISSUE: Record<string, string> = {
-  refus_effectif: "refus effectif — co-livraison annulée, frais du vendeur",
-  refus_injustifie: "refus non retenu — co-livraison annulée, frais du cotransporteur",
-  sans_objet: "sans objet — le colis a été pris en charge malgré le refus",
-};
 
 const NATURE: Record<string, string> = {
   refund: "Remboursement",
@@ -123,6 +131,78 @@ function Participants({ i }: { i: Incident }) {
   );
 }
 
+const imputeA = (roles: RoleIncident[]) =>
+  roles.length === 0 ? "Personne" : roles.map((r) => LIBELLE_ROLE_INCIDENT[r]).join(" · ");
+
+/** La décision rendue : son issue, à qui elle est imputée, ses deux clés, et la réponse que les participants ont reçue. */
+function DecisionRendue({ d }: { d: DecisionIncident }) {
+  return (
+    <>
+      <Champs
+        colonnes={4}
+        items={[
+          ["Décision", LIBELLE_ISSUE_INCIDENT[d.issue] ?? d.issue],
+          ["Imputée à", imputeA(d.responsables)],
+          ["Préparée par", d.prepare_par ?? "—"],
+          ["Validée par", d.valide_par ?? "—"],
+          ["Rendue le", <span key="l" className="tabular-nums">{dateHeure(d.le)}</span>],
+        ]}
+      />
+      <blockquote className="border-l-2 pl-3 text-corps whitespace-pre-line">
+        <span className="block text-legende text-muted-foreground">Réponse envoyée aux trois participants</span>
+        {d.reponse}
+      </blockquote>
+      <p className="text-corps">
+        <span className="text-legende text-muted-foreground">Motif interne — </span>
+        {d.motif}
+      </p>
+      <p className="text-legende text-muted-foreground">
+        Une décision ne se réécrit pas. Elle n’a déplacé aucun argent : ce qui a été exécuté se lit plus bas.
+      </p>
+    </>
+  );
+}
+
+/** La décision préparée, qui attend sa seconde clé : ce que la seconde personne relit avant de valider. */
+function DecisionPreparee({ v }: { v: ValidationIncident }) {
+  return (
+    <>
+      <Champs
+        colonnes={4}
+        items={[
+          ["Décision proposée", LIBELLE_ISSUE_INCIDENT[v.issue] ?? v.issue],
+          ["Imputée à", imputeA(v.responsables)],
+          ["Préparée par", v.demandeur ?? "—"],
+          ["Préparée le", <span key="d" className="tabular-nums">{dateHeure(v.demande_le)}</span>],
+          ["À valider avant le", <span key="e" className="tabular-nums">{dateHeure(v.expire_le)}</span>],
+        ]}
+      />
+      <blockquote className="border-l-2 pl-3 text-corps whitespace-pre-line">
+        <span className="block text-legende text-muted-foreground">
+          Réponse qui sera envoyée aux trois participants, à la validation
+        </span>
+        {v.reponse}
+      </blockquote>
+      <p className="text-corps">
+        <span className="text-legende text-muted-foreground">Motif interne — </span>
+        {v.motif}
+      </p>
+      {v.peut_valider ? (
+        <GesteSecondeCle validation={v.id} />
+      ) : (
+        <p className="text-legende text-muted-foreground">
+          {v.la_votre
+            ? "Vous avez préparé cette décision : un autre membre de la Logistique ou de la Direction la valide."
+            : "Votre rôle ne permet pas de valider cette décision : la Logistique ou la Direction la valide."}
+        </p>
+      )}
+      <p className="text-legende text-muted-foreground">
+        Passé cette échéance sans validation, la demande ne compte plus : l’incident attend de nouveau sa décision.
+      </p>
+    </>
+  );
+}
+
 /**
  * La fiche d'un incident (§ 12.5) : les quatre questions ; la déclaration et ses
  * pièces ; les tolérances, prolongations, délais de déclaration et de
@@ -131,8 +211,9 @@ function Participants({ i }: { i: Incident }) {
  * qui a été exécuté ; ce que l'incident retient des versements ; ses dossiers
  * « À traiter » ; les autres déclarations de la co-livraison.
  *
- * ⚠️ L'ÉCRAN NE FAIT QUE LIRE : la base dit où en est l'incident, qui il attend,
- * et si l'appelant peut ouvrir les pièces.
+ * ⚠️ LA BASE DÉCIDE : où en est l'incident, qui il attend, si l'appelant peut en
+ * ouvrir les pièces, préparer une décision — et à qui un blocage s'impute —, ou
+ * donner la seconde clé. L'écran ne montre que les gestes qu'elle dit possibles.
  * 🔴 NI POSITION, NI CHEMIN D'UNE PIÈCE (R4.15).
  */
 export function FicheIncidentVue({ f }: { f: FicheIncident }) {
@@ -198,12 +279,34 @@ export function FicheIncidentVue({ f }: { f: FicheIncident }) {
               )}
             </Question>
           </div>
-          {f.partie && (
-            <p className="text-legende text-muted-foreground">
-              Votre compte personnel est partie à cette co-livraison : vous lisez la fiche, vous n’en ouvrez pas les pièces.
-            </p>
-          )}
         </div>
+
+        <Bloc
+          titre="La décision de l’équipe"
+          aside={
+            f.decision ? (
+              <StatutPastille ton="neutre">{LIBELLE_ISSUE_INCIDENT[f.decision.issue] ?? f.decision.issue}</StatutPastille>
+            ) : f.validation ? (
+              <StatutPastille ton="attention">Préparée, à valider</StatutPastille>
+            ) : undefined
+          }
+        >
+          {f.decision ? (
+            <DecisionRendue d={f.decision} />
+          ) : f.validation ? (
+            <DecisionPreparee v={f.validation} />
+          ) : f.possibles.decider.possible ? (
+            <>
+              <p className="text-corps">
+                Aucune décision n’est préparée. Elle se prend à deux : vous la préparez, un autre membre de la Logistique
+                ou de la Direction la valide.
+              </p>
+              <GestePreparerDecision incident={i.id} libelle={i.libelle} imputables={f.possibles.decider.imputables} />
+            </>
+          ) : (
+            <Aucun>{f.possibles.decider.raison ?? "Aucune décision ne se prépare sur cet incident."}</Aucun>
+          )}
+        </Bloc>
 
         <Bloc titre="La déclaration">
           <Champs
@@ -225,7 +328,7 @@ export function FicheIncidentVue({ f }: { f: FicheIncident }) {
               <Paires objet={f.declaration.reponses} />
             </div>
           )}
-          {i.pieces > 0 && !f.pieces_ouvrables && !f.partie && (
+          {i.pieces > 0 && !f.pieces_ouvrables && (
             <p className="text-legende text-muted-foreground">
               Votre rôle ne permet pas d’ouvrir les pièces des utilisateurs.
             </p>

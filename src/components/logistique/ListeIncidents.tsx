@@ -15,6 +15,8 @@ import { cheminFiche } from "@/lib/operations/types";
 export const TON_SITUATION_INCIDENT: Record<SituationIncident, Ton> = {
   conteste: "attention",
   a_examiner: "attention",
+  // Une décision préparée attend encore l'équipe : sa seconde clé.
+  en_validation: "attention",
   contestable: "actif",
   en_cloture: "neutre",
   clos: "muet",

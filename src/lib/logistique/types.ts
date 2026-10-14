@@ -744,15 +744,18 @@ export type FicheTrajet = {
   possibles: { suspendre: GestePossible; reprendre: GestePossible };
 };
 
-// ── Les incidents (§ 12.5, hand-to-hand `20261014001000`) ─────────────────────
+// ── Les incidents (§ 12.5, hand-to-hand `20261014001000` et `20261014002000`) ──
 //
 // Un dossier par déclaration des formulaires 2, 4, 6, 7, 11 et 13, tel que
 // `bo_incidents_lister` le rend. Sa contestation lui est rattachée : elle n'a
 // pas sa ligne. La base dit où il en est, qui il attend, ce qu'il retient.
 // 🔴 NI POSITION, NI CHEMIN D'UNE PIÈCE : la base n'en rend aucun.
 
-/** Où en est un incident : cinq situations qui s'excluent. */
-export type SituationIncident = "contestable" | "conteste" | "a_examiner" | "en_cloture" | "clos";
+/**
+ * Où en est un incident : six situations qui s'excluent. `en_validation` : une
+ * décision est préparée, elle attend la seconde clé d'un autre membre de l'équipe.
+ */
+export type SituationIncident = "contestable" | "conteste" | "a_examiner" | "en_validation" | "en_cloture" | "clos";
 
 /** Qui il attend : la personne visée (son délai court), l'équipe, la plateforme (une clôture). `null` : clos. */
 export type AttenteIncident = "partie" | "equipe" | "plateforme";
@@ -881,6 +884,72 @@ export type PresenceIncident = {
   tentatives: number;
 };
 
+/** L'issue d'une décision de l'équipe : ce que la déclaration affirme est établi, ne l'est pas, ou ne se tranche pas. */
+export type IssueIncident = "retenue" | "ecartee" | "classee";
+
+export const ISSUES_INCIDENT: IssueIncident[] = ["retenue", "ecartee", "classee"];
+
+export const LIBELLE_ISSUE_INCIDENT: Record<IssueIncident, string> = {
+  retenue: "Retenue",
+  ecartee: "Non retenue",
+  classee: "Classée sans suite",
+};
+
+/**
+ * L'issue d'une déclaration close, quelle que soit sa voie : la décision de
+ * l'équipe (§ 12.5), la clôture d'une déclaration transmise, l'examen d'un refus
+ * du colis du § 5.
+ */
+export const LIBELLE_ISSUE_DECLARATION: Record<string, string> = {
+  retenue: "décision de l’équipe — déclaration retenue",
+  ecartee: "décision de l’équipe — déclaration non retenue",
+  classee: "décision de l’équipe — classée sans suite",
+  traitee: "traitée par l’équipe",
+  refus_effectif: "refus effectif — co-livraison annulée, frais du vendeur",
+  refus_injustifie: "refus non retenu — co-livraison annulée, frais du cotransporteur",
+  sans_objet: "sans objet — le colis a été pris en charge malgré le refus",
+};
+
+/** Ce que l'avis d'une décision dit de la déclaration, après la réponse de l'équipe (la base l'écrit). */
+export const PHRASE_ISSUE_INCIDENT: Record<IssueIncident, string> = {
+  retenue: "est retenue",
+  ecartee: "n’est pas retenue",
+  classee: "est classée sans suite",
+};
+
+/** La décision rendue sur un incident : deux clés, et la réponse que les trois participants ont reçue. */
+export type DecisionIncident = {
+  id: string;
+  issue: IssueIncident;
+  /** À qui un blocage retenu est imputé ; vide pour toute autre décision. */
+  responsables: RoleIncident[];
+  reponse: string;
+  motif: string;
+  prepare_par: string | null;
+  valide_par: string | null;
+  le: string;
+};
+
+/** Une décision préparée, qui attend sa seconde clé. */
+export type ValidationIncident = {
+  /** La demande : c'est elle que la seconde clé valide ou refuse. */
+  id: string;
+  issue: IssueIncident;
+  responsables: RoleIncident[];
+  reponse: string;
+  motif: string;
+  demandeur: string | null;
+  demande_le: string;
+  expire_le: string;
+  /** L'appelant l'a préparée : il ne la valide pas. */
+  la_votre: boolean;
+  /** La base dit si l'appelant peut donner la seconde clé : un rôle qui valide, et pas celui qui a préparé. */
+  peut_valider: boolean;
+};
+
+/** Ce que l'appelant peut : préparer une décision, ou pourquoi non ; et à qui l'incident, retenu, peut s'imputer. */
+export type DecisionPossible = { possible: boolean; raison: string | null; imputables: RoleIncident[] };
+
 export type ContestationIncident = {
   id: string;
   formulaire: string;
@@ -979,7 +1048,14 @@ export type FicheIncident = {
   }[];
   /** Le refus du colis d'une co-livraison du § 5 : la lecture de l'onglet Livraison, où il s'examine. */
   refus_colis: RefusColisLu | null;
-  /** L'appelant peut ouvrir les pièces : ses permissions, et il n'est pas partie à la co-livraison. */
+  /** La décision de l'équipe, une fois validée ; `null` : aucune. */
+  decision: DecisionIncident | null;
+  /** La décision préparée qui attend sa seconde clé ; `null` : aucune. */
+  validation: ValidationIncident | null;
+  possibles: { decider: DecisionPossible };
+  /**
+   * L'appelant peut ouvrir les pièces : ses permissions.
+   * 🔴 QUI PREND PART À LA CO-LIVRAISON NE LIT PAS CETTE FICHE : la base la lui refuse (`BO_CONFLIT`).
+   */
   pieces_ouvrables: boolean;
-  partie: boolean;
 };

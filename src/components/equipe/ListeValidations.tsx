@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Check, X } from "lucide-react";
 import { AnimationH2H } from "@/components/marque/AnimationH2H";
 import { DialogueMotif } from "@/components/bo/DialogueMotif";
@@ -10,6 +11,13 @@ import { enHeureDeParis } from "@/lib/dates";
 import { deciderValidation } from "@/lib/equipe/actions";
 import { LIBELLE_ROLE, type Role, type Validation } from "@/lib/equipe/types";
 import { useGeste } from "@/lib/db/useGeste";
+import {
+  LIBELLE_ISSUE_INCIDENT,
+  LIBELLE_ROLE_INCIDENT,
+  cheminIncident,
+  type IssueIncident,
+  type RoleIncident,
+} from "@/lib/logistique/types";
 import { euros } from "@/lib/paiements/types";
 import { Ecarts } from "@/components/parametres/Ecarts";
 import type { Ecart } from "@/lib/parametres/types";
@@ -17,7 +25,9 @@ import type { Ecart } from "@/lib/parametres/types";
 const quand = (iso: string) => enHeureDeParis(iso, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 function detail(v: Validation): string {
-  const p = v.parametres as { role?: Role; roles?: Role[]; montant_cents?: number };
+  const p = v.parametres as { role?: Role; roles?: Role[]; montant_cents?: number; issue?: IssueIncident };
+  // La décision d'un incident : son issue.
+  if (v.action === "incidents.decider" && p.issue) return LIBELLE_ISSUE_INCIDENT[p.issue] ?? p.issue;
   if (p.role) return LIBELLE_ROLE[p.role];
   if (p.roles) return p.roles.map((r) => LIBELLE_ROLE[r]).join(" · ");
   // Un remboursement (ordre financier) : son montant.
@@ -71,6 +81,29 @@ function ReglageDemande({ v }: { v: Validation }) {
 }
 
 /**
+ * La décision d'un incident de co-livraison (`incidents.decider`) : ce que la seconde personne
+ * relit — à qui un blocage est imputé, la réponse que les trois participants recevront — et la
+ * fiche de l'incident, où se lisent les preuves.
+ */
+export function DecisionIncidentDemandee({ v }: { v: Validation }) {
+  const p = v.parametres as { issue?: IssueIncident; responsables?: RoleIncident[]; reponse?: string };
+  if (v.action !== "incidents.decider" || !p.issue) return null;
+  return (
+    <div className="grid gap-0.5 text-legende">
+      {p.responsables && p.responsables.length > 0 && (
+        <span>Imputée à : {p.responsables.map((r) => LIBELLE_ROLE_INCIDENT[r] ?? r).join(" · ")}</span>
+      )}
+      <span className="whitespace-pre-line">Réponse qui sera envoyée aux trois participants : « {p.reponse} »</span>
+      {v.cible_id && (
+        <Link href={cheminIncident(v.cible_id)} className="w-fit font-semibold text-h2h-primary hover:underline">
+          Lire la fiche de l’incident avant de valider
+        </Link>
+      )}
+    </div>
+  );
+}
+
+/**
  * Les demandes qui attendent une seconde clé.
  *
  * ⚠️ LE DEMANDEUR VOIT SA DEMANDE, IL NE LA TRANCHE PAS. `peut_decider` vient
@@ -105,6 +138,7 @@ export function ListeValidations({ validations }: { validations: Validation[] })
               {v.cible && <span className="text-corps">{v.cible}</span>}
               <VersionDemandee v={v} />
               <ReglageDemande v={v} />
+              <DecisionIncidentDemandee v={v} />
               <span className="text-legende text-muted-foreground">
                 Demandé par {v.demandeur_email ?? "—"} le {quand(v.demande_le)} · « {v.motif} »
               </span>

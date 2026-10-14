@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@7fd39cf : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@7392ae5 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261014001000_un_incident_se_lit_et_s_annonce.sql
+// Base : 20261014002000_un_incident_se_decide_et_se_clot.sql
 
 export type Json =
   | string
@@ -8629,6 +8629,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      bo_declaration_clore: {
+        Args: {
+          p_cle: string
+          p_declaration: string
+          p_motif: string
+          p_reponse: string
+        }
+        Returns: Json
+      }
       bo_demande_de_role_trancher: {
         Args: {
           p_approuver: boolean
@@ -8984,6 +8993,17 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      bo_incident_decision_preparer: {
+        Args: {
+          p_cle: string
+          p_incident: string
+          p_issue: string
+          p_motif: string
+          p_reponse: string
+          p_responsables: string[]
+        }
+        Returns: Json
       }
       bo_incident_lire: { Args: { p_incident: string }; Returns: Json }
       bo_incidents_compteurs: {

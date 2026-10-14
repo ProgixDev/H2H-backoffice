@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { Echeance } from "@/components/activite/Echeance";
 import { StatutPastille } from "@/components/bo/StatutPastille";
+import { GesteCloreDeclaration } from "@/components/logistique/GestesIncident";
 import { jour } from "@/lib/dates";
-import { cheminIncident } from "@/lib/logistique/types";
+import { LIBELLE_ISSUE_DECLARATION, cheminIncident } from "@/lib/logistique/types";
 import {
   LIBELLE_DECISION,
   LIBELLE_DECLARANT,
@@ -32,10 +33,26 @@ import { Aucun, Bloc, Champs, Montant, ouiNon, Paires, Quand } from "../commun";
  * Litiges : la réclamation et ce que chaque partie y a apporté, son motif, ses
  * décisions — la première, la contestation éventuelle, la suivante —, les
  * enquêtes transporteur — et, sur le même écran, les incidents de co-livraison
- * du même achat (R15.4). En lecture : on instruit et on tranche depuis
- * « Litiges et signalements ».
+ * du même achat (R15.4). Un litige s'instruit et se tranche depuis « Litiges et
+ * signalements » ; un incident, depuis sa fiche.
+ *
+ * ⚠️ UN SEUL GESTE ICI : « Clôturer le traitement » d'une déclaration transmise
+ * à l'équipe qui n'est pas un incident — une annulation déposée par formulaire,
+ * la contestation d'une décision (§ 12.5). La base dit pour chacune si l'appelant
+ * le peut (`cloture`), et pourquoi non.
  */
-export function OngletLitiges({ l, maintenant }: { l: Litiges; maintenant: number }) {
+export function OngletLitiges({
+  l,
+  maintenant,
+  operation,
+  surGeste,
+}: {
+  l: Litiges;
+  maintenant: number;
+  /** La référence de l'opération : sa fiche est relue après un geste. */
+  operation?: string;
+  surGeste?: () => void;
+}) {
   if (l.reclamations.length === 0 && l.incidents.length === 0 && l.oppositions === 0) {
     return <Aucun>Aucun litige, aucun incident, aucune opposition sur cet achat.</Aucun>;
   }
@@ -48,7 +65,7 @@ export function OngletLitiges({ l, maintenant }: { l: Litiges; maintenant: numbe
         <Bloc titre="Incidents de co-livraison">
           <ul className="grid gap-3">
             {l.incidents.map((d) => (
-              <UnIncident key={d.id} d={d} maintenant={maintenant} />
+              <UnIncident key={d.id} d={d} maintenant={maintenant} operation={operation} surGeste={surGeste} />
             ))}
           </ul>
         </Bloc>
@@ -256,7 +273,17 @@ function UneReclamation({ r, maintenant }: { r: Reclamation; maintenant: number 
   );
 }
 
-function UnIncident({ d, maintenant }: { d: Incident; maintenant: number }) {
+function UnIncident({
+  d,
+  maintenant,
+  operation,
+  surGeste,
+}: {
+  d: Incident;
+  maintenant: number;
+  operation?: string;
+  surGeste?: () => void;
+}) {
   return (
     <li className="grid gap-2 rounded-lg border p-3">
       <span className="flex flex-wrap items-center gap-2">
@@ -280,7 +307,7 @@ function UnIncident({ d, maintenant }: { d: Incident; maintenant: number }) {
           ["Contestation possible jusqu’au", d.contestation_avant ? <Echeance key="c" iso={d.contestation_avant} maintenant={maintenant} /> : null],
           ["Exactitude confirmée", ouiNon(d.exactitude_confirmee)],
           ["Pièces jointes", d.pieces ? String(d.pieces) : null],
-          ["Issue", d.issue],
+          ["Issue", d.issue ? (LIBELLE_ISSUE_DECLARATION[d.issue] ?? d.issue) : null],
         ]}
       />
       {d.motif && <p className="text-corps">{d.motif}</p>}
@@ -297,6 +324,16 @@ function UnIncident({ d, maintenant }: { d: Incident; maintenant: number }) {
           Ouvrir la fiche de l’incident
         </Link>
       )}
+      {/* Une déclaration transmise qui n'est pas un incident se clôture ici — ou la base dit pourquoi non. */}
+      {d.cloture &&
+        (d.cloture.possible && operation ? (
+          <GesteCloreDeclaration declaration={d.id} operation={operation} libelle={d.formulaire_libelle} surGeste={surGeste} />
+        ) : (
+          <p className="text-legende text-muted-foreground">
+            Cette déclaration attend que l’équipe en clôture le traitement.
+            {d.cloture.raison ? ` ${d.cloture.raison}` : ""}
+          </p>
+        ))}
     </li>
   );
 }

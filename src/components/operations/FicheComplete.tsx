@@ -211,7 +211,7 @@ export function FicheComplete({
               </TabsContent>
               <TabsContent value="litiges" className="pt-2">
                 {f.litiges ? (
-                  <OngletLitiges l={f.litiges} maintenant={maintenant} />
+                  <OngletLitiges l={f.litiges} maintenant={maintenant} operation={o.ref} surGeste={relire} />
                 ) : (
                   <Reserve quoi="aux litiges" permission="litiges.lire" />
                 )}
