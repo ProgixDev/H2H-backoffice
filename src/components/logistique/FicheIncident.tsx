@@ -14,6 +14,7 @@ import {
   type DecisionIncident,
   type FicheIncident,
   type Incident,
+  type IssueIncident,
   type RoleIncident,
   type ValidationIncident,
 } from "@/lib/logistique/types";
@@ -79,12 +80,25 @@ export function actionAttendue(f: FicheIncident): string {
 /** Ce qui a été exécuté, en une phrase — jamais ce que le protocole prévoit. */
 export function executionDite(f: FicheIncident): string {
   const e = f.execution;
+  // 🔴 LA SUITE D'UNE ABSENCE DU VENDEUR (hand-to-hand `20261014003000`) : ce que la plateforme a fait, et quand.
+  if (e.suite?.effet === "sans_objet") {
+    return `Sans objet, le ${dateHeure(e.suite.le)} : le colis a été pris en charge, ou la co-livraison annulée autrement — rien n’a bougé.`;
+  }
+  if (e.suite?.effet === "sans_frais") {
+    return `La plateforme a annulé la co-livraison et l’achat, sans frais, le ${dateHeure(e.suite.le)} : l’acheteur et le vendeur sont remboursés.`;
+  }
   if (e.frais) {
     const qui = LIBELLE_ROLE_INCIDENT[e.frais.role as RoleIncident] ?? e.frais.role;
-    return `Des frais de ${euros(e.frais.frais_cents)} ont été appliqués — ${qui} —, le ${dateHeure(e.frais.le)}.`;
+    return e.suite?.effet === "frais_vendeur"
+      ? `La plateforme a annulé la co-livraison et l’achat, et appliqué ${euros(e.frais.frais_cents)} de frais — ${qui} —, le ${dateHeure(e.frais.le)}.`
+      : `Des frais de ${euros(e.frais.frais_cents)} ont été appliqués — ${qui} —, le ${dateHeure(e.frais.le)}.`;
   }
-  // ⚠️ UNE DÉCISION DE L'ÉQUIPE N'EXÉCUTE RIEN : elle dit qui avait raison, et l'écran ne laisse pas croire davantage.
   if (e.issue && e.issue in LIBELLE_ISSUE_INCIDENT) {
+    // Une décision qui déclenche quelque chose : la plateforme l'exécute, dans la minute.
+    if (f.possibles.decider.effets) {
+      return `Issue enregistrée : ${LIBELLE_ISSUE_DECLARATION[e.issue]}. La plateforme l’exécute dans la minute : ${f.possibles.decider.effets[e.issue as IssueIncident] ?? ""}`.trim();
+    }
+    // ⚠️ SINON, UNE DÉCISION DE L'ÉQUIPE N'EXÉCUTE RIEN : elle dit qui avait raison, et l'écran ne laisse pas croire davantage.
     return `Issue enregistrée : ${LIBELLE_ISSUE_DECLARATION[e.issue]}. Cette décision n’a exécuté ni remboursement, ni frais, ni versement.`;
   }
   if (e.issue) return `Issue enregistrée : ${LIBELLE_ISSUE_DECLARATION[e.issue] ?? e.issue}.`;
@@ -157,7 +171,7 @@ function DecisionRendue({ d }: { d: DecisionIncident }) {
         {d.motif}
       </p>
       <p className="text-legende text-muted-foreground">
-        Une décision ne se réécrit pas. Elle n’a déplacé aucun argent : ce qui a été exécuté se lit plus bas.
+        Une décision ne se réécrit pas. Ce qu’elle a déclenché — ou non — se lit plus bas, dans « Ce qui a été exécuté ».
       </p>
     </>
   );
@@ -301,7 +315,12 @@ export function FicheIncidentVue({ f }: { f: FicheIncident }) {
                 Aucune décision n’est préparée. Elle se prend à deux : vous la préparez, un autre membre de la Logistique
                 ou de la Direction la valide.
               </p>
-              <GestePreparerDecision incident={i.id} libelle={i.libelle} imputables={f.possibles.decider.imputables} />
+              <GestePreparerDecision
+                incident={i.id}
+                libelle={i.libelle}
+                imputables={f.possibles.decider.imputables}
+                effets={f.possibles.decider.effets}
+              />
             </>
           ) : (
             <Aucun>{f.possibles.decider.raison ?? "Aucune décision ne se prépare sur cet incident."}</Aucun>

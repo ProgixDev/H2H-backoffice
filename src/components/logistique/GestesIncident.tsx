@@ -72,6 +72,20 @@ export const decisionValide = (s: Saisie, imputables: RoleIncident[]) =>
 /** Une réponse à son auteur et un motif interne, aux longueurs que la base exige. */
 export const clotureValide = (reponse: string, motif: string) => texteValide(reponse, motif);
 
+/** Ce qu'une décision ne déplace pas, quand la base ne dit rien de plus. */
+export const SANS_ARGENT =
+  "Cette décision ne déplace aucun argent : elle n’annule rien, ne rembourse rien, ne prélève rien. Une annulation ou un remboursement se fait par sa propre procédure, sur la commande.";
+
+/**
+ * Ce que l'issue choisie déclenchera : les mots de la base (une absence du vendeur que la plateforme annule), ou
+ * rien — et l'écran dit alors qu'aucun argent ne bouge.
+ */
+export function effetDeLIssue(effets: Partial<Record<IssueIncident, string>> | null, issue: IssueIncident | null): string {
+  if (!effets) return SANS_ARGENT;
+  if (!issue) return "Chaque issue déclenche une suite, exécutée par la plateforme dans la minute : choisissez-la pour la lire.";
+  return effets[issue] ?? SANS_ARGENT;
+}
+
 function Reponse({
   id,
   libelle,
@@ -132,11 +146,14 @@ export function GestePreparerDecision({
   incident,
   libelle,
   imputables,
+  effets = null,
 }: {
   incident: string;
   /** Le libellé du formulaire, tel que les participants le lisent. */
   libelle: string;
   imputables: RoleIncident[];
+  /** Ce que chaque issue déclenchera, selon la base ; `null` : rien ne bouge. */
+  effets?: Partial<Record<IssueIncident, string>> | null;
 }) {
   const [ouvert, setOuvert] = useState(false);
   const [issue, setIssue] = useState<IssueIncident | null>(null);
@@ -226,8 +243,7 @@ export function GestePreparerDecision({
             />
             <Motif id={`motif-decision-${incident}`} valeur={motif} surSaisie={setMotif} />
             <p className="rounded-lg border border-dashed px-3 py-2 text-legende text-muted-foreground">
-              Cette décision ne déplace aucun argent : elle n’annule rien, ne rembourse rien, ne prélève rien. Une
-              annulation ou un remboursement se fait par sa propre procédure, sur la commande.
+              {effetDeLIssue(effets, issue)}
             </p>
           </div>
           <DialogFooter>

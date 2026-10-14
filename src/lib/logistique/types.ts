@@ -905,6 +905,9 @@ export const LIBELLE_ISSUE_DECLARATION: Record<string, string> = {
   ecartee: "décision de l’équipe — déclaration non retenue",
   classee: "décision de l’équipe — classée sans suite",
   traitee: "traitée par l’équipe",
+  // Une absence du vendeur que la plateforme a exécutée sans décision de l'équipe (hand-to-hand `20261014003000`).
+  absence_retenue: "absence retenue faute de contestation — co-livraison annulée, frais du vendeur",
+  absence_sans_objet: "sans objet — le colis a été pris en charge, ou la co-livraison annulée autrement",
   refus_effectif: "refus effectif — co-livraison annulée, frais du vendeur",
   refus_injustifie: "refus non retenu — co-livraison annulée, frais du cotransporteur",
   sans_objet: "sans objet — le colis a été pris en charge malgré le refus",
@@ -948,7 +951,19 @@ export type ValidationIncident = {
 };
 
 /** Ce que l'appelant peut : préparer une décision, ou pourquoi non ; et à qui l'incident, retenu, peut s'imputer. */
-export type DecisionPossible = { possible: boolean; raison: string | null; imputables: RoleIncident[] };
+export type DecisionPossible = {
+  possible: boolean;
+  raison: string | null;
+  imputables: RoleIncident[];
+  /**
+   * Ce que chaque issue déclenchera, dans les mots de la base (hand-to-hand `20261014003000`) : une absence du
+   * vendeur sur une co-livraison du § 5, que la plateforme annule. `null` : la décision ne déplace rien.
+   */
+  effets: Partial<Record<IssueIncident, string>> | null;
+};
+
+/** Ce que la plateforme a fait d'une absence du vendeur (hand-to-hand `20261014003000`). */
+export type SuiteIncident = { effet: "frais_vendeur" | "sans_frais" | "sans_objet"; le: string };
 
 export type ContestationIncident = {
   id: string;
@@ -1032,6 +1047,8 @@ export type FicheIncident = {
     issue: string | null;
     reglements: number;
     frais: { role: string; frais_cents: number; le: string } | null;
+    /** La suite donnée par la plateforme à une absence du vendeur ; `null` : aucune, ou pas encore. */
+    suite: SuiteIncident | null;
   };
   retenues: { libelle: string; depuis: string; de_la_contestation: boolean }[];
   dossiers: { id: string; reference: string; source: string; ouvert: boolean; est_test: boolean }[];

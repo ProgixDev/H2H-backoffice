@@ -31,7 +31,9 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: 
 const { ListeIncidents } = await import("./ListeIncidents");
 const { FiltresListeIncidents } = await import("./FiltresIncidents");
 const { FicheIncidentVue, actionAttendue, dureeDite, executionDite } = await import("./FicheIncident");
-const { clotureValide, decisionValide, imputationDemandee, responsablesEnvoyes } = await import("./GestesIncident");
+const { SANS_ARGENT, clotureValide, decisionValide, effetDeLIssue, imputationDemandee, responsablesEnvoyes } = await import(
+  "./GestesIncident"
+);
 const { OngletLitiges } = await import("@/components/operations/onglets/Litiges");
 const { ListeValidations } = await import("@/components/equipe/ListeValidations");
 const { adresseIncidents, cheminIncident } = await import("@/lib/logistique/types");
@@ -136,19 +138,19 @@ const fiche = (f: Partial<FicheIncident> = {}, i: Partial<Incident> = {}): Fiche
       { partie: "platform", nature: "kept", libelle: "Part conservée par HandtoHand", montant_cents: 100 },
     ],
   },
-  execution: { issue: null, reglements: 0, frais: null },
+  execution: { issue: null, reglements: 0, frais: null, suite: null },
   retenues: [{ libelle: "Incident de co-livraison — Vendeur absent au rendez-vous", depuis: "2026-10-14T08:40:00Z", de_la_contestation: false }],
   dossiers: [],
   autres: [],
   refus_colis: null,
   decision: null,
   validation: null,
-  possibles: { decider: { possible: false, raison: "Cet incident n’attend pas de décision de l’équipe.", imputables: [] } },
+  possibles: { decider: { possible: false, raison: "Cet incident n’attend pas de décision de l’équipe.", imputables: [], effets: null } },
   pieces_ouvrables: true,
   ...f,
 });
 
-const DECIDABLE = { decider: { possible: true, raison: null, imputables: [] as ("acheteur" | "vendeur" | "cotransporteur")[] } };
+const DECIDABLE = { decider: { possible: true, raison: null, imputables: [] as ("acheteur" | "vendeur" | "cotransporteur")[], effets: null } };
 const REPONSE = "Les présences déclarées montrent que le vendeur était au point de collecte.";
 const VALIDATION = {
   id: "c1250000-0000-4000-a000-0000000000a9", issue: "ecartee" as const, responsables: [], reponse: REPONSE,
@@ -380,7 +382,7 @@ describe("la fiche d’un incident", () => {
     expect(html.match(/Préparer une décision<\/button>/g)?.length).toBe(1);
     // Le rôle ne le permet pas : la raison de la base, pas de bouton.
     const lecteur = rendu(fiche({
-      possibles: { decider: { possible: false, raison: "Votre rôle ne permet pas de décider d’un incident.", imputables: ["acheteur", "cotransporteur"] } },
+      possibles: { decider: { possible: false, raison: "Votre rôle ne permet pas de décider d’un incident.", imputables: ["acheteur", "cotransporteur"], effets: null } },
     }, { ...BLOCAGE }));
     expect(lecteur).toContain("Votre rôle ne permet pas de décider d’un incident.");
     expect(lecteur).not.toContain("Préparer une décision</button>");
@@ -388,7 +390,7 @@ describe("la fiche d’un incident", () => {
 
   it("🔴 une décision préparée attend sa seconde clé : ce que relit celui qui valide, et qui peut la donner", () => {
     const enValidation = { situation: "en_validation" as const, situation_libelle: "Décision à valider", attend: "equipe" as const, echeance: null };
-    const f = fiche({ validation: VALIDATION, possibles: { decider: { possible: false, raison: "Une décision attend déjà sa validation.", imputables: [] } } }, enValidation);
+    const f = fiche({ validation: VALIDATION, possibles: { decider: { possible: false, raison: "Une décision attend déjà sa validation.", imputables: [], effets: null } } }, enValidation);
     const html = rendu(f);
     expect(html).toContain("Décision à valider");
     expect(html).toContain("Préparée, à valider");
@@ -418,8 +420,8 @@ describe("la fiche d’un incident", () => {
 
   it("🔴 la décision rendue : son issue, à qui elle est imputée, ses deux clés, la réponse reçue — et aucun argent", () => {
     const f = fiche({
-      decision: DECISION, retenues: [], execution: { issue: "retenue", reglements: 0, frais: null },
-      possibles: { decider: { possible: false, raison: "Cet incident a reçu sa décision.", imputables: ["acheteur", "cotransporteur"] } },
+      decision: DECISION, retenues: [], execution: { issue: "retenue", reglements: 0, frais: null, suite: null },
+      possibles: { decider: { possible: false, raison: "Cet incident a reçu sa décision.", imputables: ["acheteur", "cotransporteur"], effets: null } },
     }, { ...BLOCAGE, situation: "clos", situation_libelle: "Clos", attend: null, issue: "retenue", retient_les_fonds: false, dossier: null, dossier_id: null });
     const html = rendu(f);
     expect(html).toContain("La décision de l’équipe");
@@ -483,7 +485,7 @@ describe("la fiche d’un incident", () => {
     expect(html).toContain("Les frais d’un refus du colis se lisent avec son examen");
     expect(actionAttendue(f)).toBe("L’équipe examine la contestation : dans l’onglet Livraison de la commande.");
     // Il ne se décide pas ici : la base le dit, et l'écran ne propose rien.
-    const ici = rendu({ ...f, possibles: { decider: { possible: false, raison: "Ce refus du colis s’examine dans l’onglet Livraison de sa commande.", imputables: [] } } });
+    const ici = rendu({ ...f, possibles: { decider: { possible: false, raison: "Ce refus du colis s’examine dans l’onglet Livraison de sa commande.", imputables: [], effets: null } } });
     expect(ici).toContain("Ce refus du colis s’examine dans l’onglet Livraison de sa commande.");
     expect(ici).not.toContain("Préparer une décision</button>");
   });
@@ -500,11 +502,47 @@ describe("la fiche d’un incident", () => {
 
   it("ce qui a été exécuté ne se confond jamais avec ce que le protocole prévoit", () => {
     expect(executionDite(fiche())).toContain("Rien n’a été exécuté");
-    expect(executionDite(fiche({ execution: { issue: "refus_effectif", reglements: 0, frais: null } })))
+    expect(executionDite(fiche({ execution: { issue: "refus_effectif", reglements: 0, frais: null, suite: null } })))
       .toBe("Issue enregistrée : refus effectif — co-livraison annulée, frais du vendeur.");
-    expect(net(executionDite(fiche({ execution: { issue: "refus_effectif", reglements: 0, frais: { role: "vendeur", frais_cents: 400, le: "2026-10-15T09:00:00Z" } } }))))
+    expect(net(executionDite(fiche({ execution: { issue: "refus_effectif", reglements: 0, frais: { role: "vendeur", frais_cents: 400, le: "2026-10-15T09:00:00Z" }, suite: null } }))))
       .toMatch(/^Des frais de 4,00 € ont été appliqués — Vendeur —, le 15\/10\/2026/);
-    expect(executionDite(fiche({ execution: { issue: null, reglements: 2, frais: null } }))).toBe("2 règlements enregistrés.");
+    expect(executionDite(fiche({ execution: { issue: null, reglements: 2, frais: null, suite: null } }))).toBe("2 règlements enregistrés.");
+  });
+
+  it("🔴 une absence du vendeur : ce que chaque issue déclenchera, puis ce que la plateforme a fait — dans les mots de la base", () => {
+    const EFFETS = {
+      retenue: "La plateforme annule la co-livraison et l’achat, rembourse l’acheteur, et impute 4,00 € de frais au vendeur, dont 3,00 € pour le cotransporteur.",
+      ecartee: "La plateforme annule la co-livraison et l’achat, sans frais : l’acheteur et le vendeur sont remboursés.",
+      classee: "La plateforme annule la co-livraison et l’achat, sans frais : l’acheteur et le vendeur sont remboursés.",
+    };
+    // La fenêtre de préparation dit ce que l'issue choisie déclenchera ; sans effet connu, qu'aucun argent ne bouge.
+    expect(effetDeLIssue(EFFETS, "retenue")).toBe(EFFETS.retenue);
+    expect(effetDeLIssue(EFFETS, "classee")).toBe(EFFETS.classee);
+    expect(effetDeLIssue(EFFETS, null)).toMatch(/choisissez-la pour la lire/);
+    expect(effetDeLIssue(null, "retenue")).toBe(SANS_ARGENT);
+    expect(SANS_ARGENT).toMatch(/^Cette décision ne déplace aucun argent/);
+
+    // Décidée, pas encore exécutée : la plateforme l'exécute dans la minute — l'écran ne dit pas « rien ».
+    const decidee = fiche({
+      execution: { issue: "retenue", reglements: 0, frais: null, suite: null },
+      possibles: { decider: { possible: false, raison: "Cet incident a reçu sa décision.", imputables: [], effets: EFFETS } },
+    });
+    expect(executionDite(decidee)).toBe(`Issue enregistrée : décision de l’équipe — déclaration retenue. La plateforme l’exécute dans la minute : ${EFFETS.retenue}`);
+    // Exécutée : les frais, l'annulation sans frais, ou rien.
+    const SUITE_LE = "2026-10-15T09:00:00Z";
+    expect(net(executionDite(fiche({
+      execution: { issue: "retenue", reglements: 0, frais: { role: "vendeur", frais_cents: 400, le: SUITE_LE }, suite: { effet: "frais_vendeur", le: SUITE_LE } },
+    })))).toMatch(/^La plateforme a annulé la co-livraison et l’achat, et appliqué 4,00 € de frais — Vendeur —, le 15\/10\/2026/);
+    expect(executionDite(fiche({ execution: { issue: "ecartee", reglements: 0, frais: null, suite: { effet: "sans_frais", le: SUITE_LE } } })))
+      .toMatch(/^La plateforme a annulé la co-livraison et l’achat, sans frais, le 15\/10\/2026 .* : l’acheteur et le vendeur sont remboursés\.$/);
+    expect(executionDite(fiche({ execution: { issue: null, reglements: 0, frais: null, suite: { effet: "sans_objet", le: SUITE_LE } } })))
+      .toMatch(/^Sans objet, le 15\/10\/2026 .* : le colis a été pris en charge, ou la co-livraison annulée autrement — rien n’a bougé\.$/);
+    // Sans décision, l'issue que la plateforme a donnée se dit en clair.
+    expect(executionDite(fiche({ execution: { issue: "absence_retenue", reglements: 0, frais: null, suite: null } })))
+      .toBe("Issue enregistrée : absence retenue faute de contestation — co-livraison annulée, frais du vendeur.");
+    // Une décision qui ne déclenche rien le dit toujours.
+    expect(executionDite(fiche({ execution: { issue: "classee", reglements: 0, frais: null, suite: null } })))
+      .toMatch(/Cette décision n’a exécuté ni remboursement, ni frais, ni versement\.$/);
   });
 
   it("une durée se lit", () => {
