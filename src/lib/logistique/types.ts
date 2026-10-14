@@ -1,7 +1,7 @@
 // L'annuaire des points de rendez-vous et les candidatures relais, tels que le
 // back-office les lit (`bo_hubs_lister`, `bo_candidatures_relais_lister`).
 import type { Acteur } from "@/lib/activite/types";
-import type { Detenteur, StatutCandidature, StatutRecherche } from "@/lib/operations/types";
+import type { Detenteur, RefusColisLu, StatutCandidature, StatutRecherche } from "@/lib/operations/types";
 
 // ── L'annuaire des points de rendez-vous (§ 12.4, hand-to-hand `20261013005000`, `20261013006000`) ──
 
@@ -742,4 +742,244 @@ export type FicheTrajet = {
   recherches_ouvertes: RechercheOuverte[];
   suspensions: SuspensionTrajet[];
   possibles: { suspendre: GestePossible; reprendre: GestePossible };
+};
+
+// ── Les incidents (§ 12.5, hand-to-hand `20261014001000`) ─────────────────────
+//
+// Un dossier par déclaration des formulaires 2, 4, 6, 7, 11 et 13, tel que
+// `bo_incidents_lister` le rend. Sa contestation lui est rattachée : elle n'a
+// pas sa ligne. La base dit où il en est, qui il attend, ce qu'il retient.
+// 🔴 NI POSITION, NI CHEMIN D'UNE PIÈCE : la base n'en rend aucun.
+
+/** Où en est un incident : cinq situations qui s'excluent. */
+export type SituationIncident = "contestable" | "conteste" | "a_examiner" | "en_cloture" | "clos";
+
+/** Qui il attend : la personne visée (son délai court), l'équipe, la plateforme (une clôture). `null` : clos. */
+export type AttenteIncident = "partie" | "equipe" | "plateforme";
+
+export type RoleIncident = "acheteur" | "vendeur" | "cotransporteur";
+
+export type Incident = {
+  /** La déclaration. */
+  id: string;
+  /** Le numéro du formulaire : 2, 4, 6, 7, 11 ou 13. */
+  numero: number;
+  formulaire: string;
+  /** Le nom du dossier (cahier des charges, § 12.5). */
+  nom: string;
+  /** Le libellé du formulaire, tel que les participants le lisent. */
+  libelle: string;
+  etape: "collecte" | "remise";
+  situation: SituationIncident;
+  situation_libelle: string;
+  attend: AttenteIncident | null;
+  /** La fin du délai de contestation, tant qu'il court. */
+  echeance: string | null;
+  /** La plateforme devait clore depuis plus d'un quart d'heure. */
+  alerte: "cloture_en_retard" | null;
+  commande: string | null;
+  /** La référence de l'opération : elle ouvre la fiche complète. */
+  ref: string | null;
+  colivraison: string | null;
+  bien_titre: string | null;
+  hub: string | null;
+  ville: string | null;
+  rendez_vous: string;
+  declare_le: string;
+  declarant_role: RoleIncident;
+  /** ⚠️ `null` NE DIT PAS POURQUOI : un membre peut ne pas avoir choisi de pseudonyme. */
+  declarant: string | null;
+  /** La personne que la déclaration met en cause : celle qui peut la contester. `null` : un blocage ne vise personne. */
+  partie_visee_role: RoleIncident | null;
+  partie_visee: string | null;
+  conteste_le: string | null;
+  contestable_jusqu_au: string | null;
+  pieces: number;
+  retient_les_fonds: boolean;
+  issue: string | null;
+  /** Le dossier « À traiter » ouvert qui le porte, tant qu'il attend l'équipe. */
+  dossier: string | null;
+  dossier_id: string | null;
+  est_test: boolean;
+};
+
+/** Les filtres, dans l'ordre de la base (`app.bo_incidents_filtres`). */
+export type FiltreIncident = "a_traiter" | "contestables" | "en_cloture" | "clos";
+
+export const FILTRES_INCIDENT: FiltreIncident[] = ["a_traiter", "contestables", "en_cloture", "clos"];
+
+export const LIBELLE_FILTRE_INCIDENT: Record<FiltreIncident, string> = {
+  a_traiter: "À examiner",
+  contestables: "Contestation possible",
+  en_cloture: "Clôture en cours",
+  clos: "Clos",
+};
+
+/** Les six formulaires d'incident, dans l'ordre de leurs numéros (§ 12.5). */
+export const NUMEROS_INCIDENT: number[] = [2, 4, 6, 7, 11, 13];
+
+/** Le nom de chaque dossier, mot pour mot du cahier des charges : le sélecteur les nomme même sans les compteurs. */
+export const NOM_INCIDENT: Record<number, string> = {
+  2: "Acheteur absent à la remise",
+  4: "Cotransporteur absent à la remise",
+  6: "Remise bloquée",
+  7: "Vendeur absent à la collecte",
+  11: "Refus du Colis",
+  13: "Collecte bloquée",
+};
+
+/** Un formulaire d'incident, tel que la base le nomme. */
+export type FormulaireIncident = { numero: number; formulaire: string; nom: string; libelle: string };
+
+/** Un compteur par filtre et le total, avec la même recherche et le même formulaire que la liste ; et les six formulaires. */
+export type CompteursIncidents = Record<FiltreIncident | "tous", number> & { formulaires: FormulaireIncident[] };
+
+export type FiltresIncidents = {
+  filtre: FiltreIncident | null;
+  /** Le numéro d'un formulaire d'incident. */
+  formulaire: number | null;
+  q: string | null;
+  test: boolean;
+};
+
+/** L'adresse de la liste filtrée : les filtres restent dans l'adresse (R4.10). */
+export function adresseIncidents(f: FiltresIncidents): string {
+  const p = new URLSearchParams({ onglet: "incidents" });
+  if (f.filtre) p.set("filtre", f.filtre);
+  if (f.formulaire) p.set("formulaire", String(f.formulaire));
+  if (f.q) p.set("q", f.q);
+  if (f.test) p.set("test", "1");
+  return `/h2h-logistic?${p.toString()}`;
+}
+
+export const cheminIncident = (id: string) => `/h2h-logistic/incidents/${encodeURIComponent(id)}`;
+
+export const LIBELLE_ROLE_INCIDENT: Record<RoleIncident, string> = {
+  acheteur: "Acheteur",
+  vendeur: "Vendeur",
+  cotransporteur: "Cotransporteur particulier",
+};
+
+/** Qui un incident attend, en clair. */
+export const LIBELLE_ATTENTE_INCIDENT: Record<AttenteIncident, string> = {
+  partie: "La personne visée",
+  equipe: "L’équipe",
+  plateforme: "Par la plateforme",
+};
+
+/** Une présence déclarée au rendez-vous de l'incident (« Je suis au hub »). 🔴 JAMAIS UNE POSITION. */
+export type PresenceIncident = {
+  etape: "recuperation" | "remise";
+  partie: "vendeur" | "acheteur" | "cotransporteur";
+  pseudo: string | null;
+  rendez_vous: string | null;
+  declaree_le: string;
+  /** La première fois que la personne a été vue dans la zone ; `null` : jamais. */
+  validee_le: string | null;
+  dans_la_zone: boolean;
+  retard_minutes: number | null;
+  tentatives: number;
+};
+
+export type ContestationIncident = {
+  id: string;
+  formulaire: string;
+  numero: number | null;
+  libelle: string;
+  declaree_le: string;
+  role: RoleIncident;
+  par: string | null;
+  motif: string | null;
+  commentaire: string | null;
+  reponses: Record<string, unknown> | null;
+  pieces: number;
+  statut: string;
+};
+
+/** Une ligne de ce que le protocole prévoit : à qui, quoi, combien — `null` : une ligne sans montant fixe. */
+export type LigneProtocole = {
+  partie: "buyer" | "seller" | "transporter" | "platform";
+  nature: "refund" | "pay" | "fee" | "kept" | "unpaid";
+  libelle: string;
+  montant_cents: number | null;
+};
+
+export const LIBELLE_PARTIE_PROTOCOLE: Record<LigneProtocole["partie"], string> = {
+  buyer: "Acheteur",
+  seller: "Vendeur",
+  transporter: "Cotransporteur particulier",
+  platform: "HandtoHand",
+};
+
+export type FicheIncident = {
+  incident: Incident;
+  declaration: {
+    motif: string | null;
+    commentaire: string | null;
+    reponses: Record<string, unknown> | null;
+    exactitude_confirmee: boolean;
+    statut: string;
+  };
+  /** Les délais propres au cas (§ 12.5), au protocole de la co-livraison. */
+  delais: {
+    tolerance_minutes: number | null;
+    /** Le formulaire ne se dépose qu'une fois la tolérance écoulée (règle D0). */
+    attente_exigee: boolean;
+    declarable_des: string | null;
+    declaree_apres_minutes: number;
+    /** Le délai de déclaration d'un blocage (formulaires 6 et 13) ; `null` pour les autres. */
+    declaration_minutes: number | null;
+    declaration_jusqu_au: string | null;
+    /** ⚠️ LE SERVEUR NE FAIT PAS RESPECTER CE DÉLAI : la fiche dit s'il l'a été. */
+    declaree_dans_le_delai: boolean | null;
+    contestation_heures: number | null;
+    contestable_jusqu_au: string | null;
+    regle: { code: string; titre: string; texte: string } | null;
+    /** 🔴 TOUJOURS `null` : les applications n'enregistrent aucune prolongation. L'écran le dit. */
+    prolongations: null;
+  };
+  presences: PresenceIncident[];
+  contestations: ContestationIncident[];
+  colivraison: {
+    id: string;
+    statut: string;
+    etat_colis: string | null;
+    /** Née d'une recherche du § 5 des CGU H2H Logistic ; sinon, l'ancien parcours. */
+    par_recherche: boolean;
+    detenteur: Detenteur | null;
+    vendeur: string | null;
+    acheteur: string | null;
+    cotransporteur: string | null;
+    hub_collecte: string | null;
+    collecte_prevue: string | null;
+    collecte_validee_le: string | null;
+    hub_remise: string | null;
+    remise_prevue: string | null;
+    remise_validee_le: string | null;
+  } | null;
+  /** Ce que le protocole prévoit pour ce formulaire. ⚠️ CE N'EST PAS CE QUI A ÉTÉ FAIT : `execution` le dit. */
+  protocole: { titre: string; note: string | null; lignes: LigneProtocole[] } | null;
+  execution: {
+    issue: string | null;
+    reglements: number;
+    frais: { role: string; frais_cents: number; le: string } | null;
+  };
+  retenues: { libelle: string; depuis: string; de_la_contestation: boolean }[];
+  dossiers: { id: string; reference: string; source: string; ouvert: boolean; est_test: boolean }[];
+  /** Les autres déclarations de la même co-livraison. */
+  autres: {
+    id: string;
+    formulaire: string;
+    numero: number | null;
+    libelle: string;
+    genre: "incident" | "contestation" | "annulation" | "commun";
+    declare_le: string;
+    role: RoleIncident;
+    statut: string;
+  }[];
+  /** Le refus du colis d'une co-livraison du § 5 : la lecture de l'onglet Livraison, où il s'examine. */
+  refus_colis: RefusColisLu | null;
+  /** L'appelant peut ouvrir les pièces : ses permissions, et il n'est pas partie à la co-livraison. */
+  pieces_ouvrables: boolean;
+  partie: boolean;
 };

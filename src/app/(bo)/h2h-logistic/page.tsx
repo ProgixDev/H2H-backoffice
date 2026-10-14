@@ -5,35 +5,45 @@ import { AccesRefuse, equipierPourRubrique } from "@/components/bo/PageRubrique"
 import { LectureEchouee } from "@/components/bo/LectureEchouee";
 import { AnnuaireHubs, FiltresAnnuaireHubs } from "@/components/logistique/AnnuaireHubs";
 import { FiltresListeColivraisons } from "@/components/logistique/FiltresColivraisons";
+import { FiltresListeIncidents } from "@/components/logistique/FiltresIncidents";
 import { FiltresListeTrajets } from "@/components/logistique/FiltresTrajets";
 import { GestePoserHub } from "@/components/logistique/FormulairePoint";
 import { ListeCandidatures } from "@/components/logistique/ListeCandidatures";
 import { ListeColivraisons } from "@/components/logistique/ListeColivraisons";
 import { ListeHubs } from "@/components/logistique/ListeHubs";
+import { ListeIncidents } from "@/components/logistique/ListeIncidents";
 import { ListeTrajets } from "@/components/logistique/ListeTrajets";
 import { peut } from "@/lib/equipe/types";
 import {
   compterColivraisons,
   compterHubs,
+  compterIncidents,
   compterTrajets,
   listerCandidaturesRelais,
   listerColivraisons,
   listerHubs,
+  listerIncidents,
   listerTrajets,
 } from "@/lib/logistique/lectures";
 import {
   FILTRES_COLIVRAISON,
   FILTRES_HUB,
+  FILTRES_INCIDENT,
   FILTRES_TRAJET,
+  NUMEROS_INCIDENT,
   type Colivraison,
   type CompteursColivraisons,
   type CompteursHubs,
+  type CompteursIncidents,
   type CompteursTrajets,
   type FiltreColivraison,
   type FiltreHub,
+  type FiltreIncident,
   type FiltreTrajet,
   type FiltresHubs,
+  type FiltresIncidents,
   type Hub,
+  type Incident,
   type Trajet,
 } from "@/lib/logistique/types";
 import { rubriqueObligatoire } from "@/lib/navigation";
@@ -41,11 +51,12 @@ import { rubriqueObligatoire } from "@/lib/navigation";
 const rubrique = rubriqueObligatoire("/h2h-logistic");
 export const metadata: Metadata = { title: rubrique.titre };
 
-type Onglet = "colivraisons" | "trajets" | "points" | "relais";
+type Onglet = "colivraisons" | "trajets" | "points" | "incidents" | "relais";
 const ONGLETS: { id: Onglet; libelle: string }[] = [
   { id: "colivraisons", libelle: "Co-livraisons" },
   { id: "trajets", libelle: "Trajets" },
   { id: "points", libelle: "Points de rendez-vous" },
+  { id: "incidents", libelle: "Incidents" },
   { id: "relais", libelle: "Candidatures relais" },
 ];
 
@@ -80,11 +91,16 @@ function lireFiltres<F extends string>(p: Params, connus: F[], testPermis: boole
  *   valider, le corriger tant que rien n'y est en cours, le fermer aux nouvelles
  *   recherches, le rouvrir, examiner ses signalements. Les épingles à regarder
  *   et les signalements à examiner en sont des filtres.
+ * - Les incidents (§ 12.5) : un dossier par déclaration des formulaires 2, 4, 6,
+ *   7, 11 et 13 — où il en est, qui il attend, jusqu'à quand, son dossier « À
+ *   traiter » —, ses compteurs, et la fiche de chacun : ses délais propres, les
+ *   présences déclarées, sa contestation, ce que le protocole prévoit et ce qui
+ *   a été exécuté. En lecture : la décision d'un incident arrive avec la suite.
  * - Les candidatures relais, reprises de l'écran mobile du support (P0b).
  *
  * ⚠️ LES RECHERCHES DE COTRANSPORTEURS SE SUIVENT DANS L'ACTIVITÉ EN DIRECT ET
- * LEUR FICHE. EXAMINER UN SIGNALEMENT ET LES INCIDENTS ARRIVENT AVEC LA SUITE DE
- * LA PHASE 4. Cette page dit ce qu'elle fait, pas davantage.
+ * LEUR FICHE. DÉCIDER D'UN INCIDENT ARRIVE AVEC LA SUITE DE LA PHASE 4. Cette
+ * page dit ce qu'elle fait, pas davantage.
  */
 export default async function PageLogistique({ searchParams }: { searchParams: Promise<Params> }) {
   const moi = await equipierPourRubrique(rubrique);
@@ -96,12 +112,19 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
   const ft = lireFiltres<FiltreTrajet>(p, FILTRES_TRAJET, !moi.est_test);
   // ⚠️ L'ANNUAIRE N'A PAS DE MONDE DU TEST : chaque point est réel.
   const fh: FiltresHubs = { ...lireFiltres<FiltreHub>(p, FILTRES_HUB, false), test: false };
+  // Le formulaire d'un incident : son numéro ; une valeur inconnue est ignorée, pas transmise.
+  const numero = Number(texte(p.formulaire));
+  const fi: FiltresIncidents = {
+    ...lireFiltres<FiltreIncident>(p, FILTRES_INCIDENT, !moi.est_test),
+    formulaire: NUMEROS_INCIDENT.includes(numero) ? numero : null,
+  };
 
   // On LIT dans le try, on construit l'écran après (règle `react-hooks/error-boundaries`).
   let donnees:
     | { onglet: "colivraisons"; colivraisons: Colivraison[]; compteurs: CompteursColivraisons | null }
     | { onglet: "trajets"; trajets: Trajet[]; compteurs: CompteursTrajets | null }
     | { onglet: "points"; hubs: Hub[]; compteurs: CompteursHubs | null }
+    | { onglet: "incidents"; incidents: Incident[]; compteurs: CompteursIncidents | null }
     | { onglet: "relais"; candidatures: Awaited<ReturnType<typeof listerCandidaturesRelais>> }
     | { onglet: "echec" };
   try {
@@ -133,6 +156,15 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
         compteurs = null;
       }
       donnees = { onglet, hubs, compteurs };
+    } else if (onglet === "incidents") {
+      const incidents = await listerIncidents(fi);
+      let compteurs: CompteursIncidents | null;
+      try {
+        compteurs = await compterIncidents(fi);
+      } catch {
+        compteurs = null;
+      }
+      donnees = { onglet, incidents, compteurs };
     } else {
       donnees = { onglet, candidatures: await listerCandidaturesRelais() };
     }
@@ -153,6 +185,8 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
       ) : (
         <AnnuaireHubs hubs={donnees.hubs} filtree={Boolean(fh.filtre || fh.q)} />
       )
+    ) : donnees.onglet === "incidents" ? (
+      <ListeIncidents incidents={donnees.incidents} filtree={Boolean(fi.filtre || fi.formulaire || fi.q)} />
     ) : donnees.onglet === "relais" ? (
       <ListeCandidatures candidatures={donnees.candidatures} peutGerer={peutGerer} />
     ) : (
@@ -163,8 +197,9 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
     <div className="mx-auto grid max-w-6xl gap-6">
       <p className="text-corps text-muted-foreground">
         Suivez les co-livraisons et les trajets, tenez l’annuaire des points de rendez-vous — leurs signalements
-        s’examinent sur la fiche de chaque point — et tranchez les candidatures relais. Les recherches de
-        cotransporteurs se suivent dans l’Activité en direct ; les incidents arriveront avec la suite de la phase 4.
+        s’examinent sur la fiche de chaque point —, lisez les incidents déclarés par les participants et tranchez les
+        candidatures relais. Les recherches de cotransporteurs se suivent dans l’Activité en direct ; la décision d’un
+        incident arrivera avec la suite de la phase 4.
       </p>
       <nav className="flex gap-1 border-b" aria-label="Onglets">
         {ONGLETS.map((o) => (
@@ -193,6 +228,13 @@ export default async function PageLogistique({ searchParams }: { searchParams: P
         <FiltresListeTrajets
           f={ft}
           compteurs={donnees.onglet === "trajets" ? donnees.compteurs : null}
+          testVisible={!moi.est_test}
+        />
+      )}
+      {onglet === "incidents" && (
+        <FiltresListeIncidents
+          f={fi}
+          compteurs={donnees.onglet === "incidents" ? donnees.compteurs : null}
           testVisible={!moi.est_test}
         />
       )}

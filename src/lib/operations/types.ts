@@ -897,6 +897,10 @@ export type Incident = {
   /** Absence, refus de colis… ; `null` : à qualifier (ou une contestation, lue avec l'incident qu'elle conteste). */
   motif_litige: string | null;
   motif_litige_libelle: string | null;
+  /** Le numéro du formulaire dans les documents du client (hand-to-hand `20261014001000`) ; `null` : sans numéro. */
+  numero: number | null;
+  /** `incident` : un des six dossiers du § 12.5, qui a sa fiche dans la rubrique H2H Logistic. */
+  genre: "incident" | "contestation" | "annulation" | "commun";
 };
 
 export type Litiges = { reclamations: Reclamation[]; incidents: Incident[]; oppositions: number };

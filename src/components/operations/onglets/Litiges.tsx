@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { Echeance } from "@/components/activite/Echeance";
 import { StatutPastille } from "@/components/bo/StatutPastille";
 import { jour } from "@/lib/dates";
+import { cheminIncident } from "@/lib/logistique/types";
 import {
   LIBELLE_DECISION,
   LIBELLE_DECLARANT,
@@ -259,6 +261,7 @@ function UnIncident({ d, maintenant }: { d: Incident; maintenant: number }) {
     <li className="grid gap-2 rounded-lg border p-3">
       <span className="flex flex-wrap items-center gap-2">
         <span className="font-medium">
+          {d.numero ? `Formulaire ${d.numero} · ` : ""}
           {d.conteste ? "Contestation · " : ""}
           {d.formulaire_libelle}
         </span>
@@ -287,6 +290,12 @@ function UnIncident({ d, maintenant }: { d: Incident; maintenant: number }) {
           <span className="text-legende text-muted-foreground">Réponses au formulaire</span>
           <Paires objet={d.reponses} />
         </div>
+      )}
+      {/* Un incident a sa fiche (§ 12.5) : ses délais propres, les présences déclarées, ce qu'il retient. */}
+      {d.genre === "incident" && (
+        <Link href={cheminIncident(d.id)} className="w-fit text-legende font-semibold text-h2h-primary hover:underline">
+          Ouvrir la fiche de l’incident
+        </Link>
       )}
     </li>
   );

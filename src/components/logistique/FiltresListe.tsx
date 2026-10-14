@@ -22,6 +22,7 @@ export function FiltresListe<F extends string>({
   adresse,
   recherche,
   testVisible,
+  supplement,
 }: {
   /** L'onglet de la rubrique : il reste dans l'adresse avec les filtres. */
   onglet: string;
@@ -39,6 +40,8 @@ export function FiltresListe<F extends string>({
   /** Ce que la recherche sait trouver, dit dans le champ. */
   recherche: string;
   testVisible: boolean;
+  /** Un champ de plus dans le formulaire (le formulaire d'un incident) : il part avec la recherche. */
+  supplement?: React.ReactNode;
 }) {
   const pastilles: (F | null)[] = [null, ...filtres];
   return (
@@ -70,6 +73,7 @@ export function FiltresListe<F extends string>({
       <form method="get" action="/h2h-logistic" className="flex flex-wrap items-end gap-2">
         <input type="hidden" name="onglet" value={onglet} />
         {f.filtre && <input type="hidden" name="filtre" value={f.filtre} />}
+        {supplement}
         <label className="grid min-w-56 flex-1 gap-1 text-legende text-muted-foreground">
           Recherche
           <Input name="q" defaultValue={f.q ?? ""} placeholder={recherche} />

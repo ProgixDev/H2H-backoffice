@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@d7781ef : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@7fd39cf : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261013008000_un_signalement_de_point_s_examine.sql
+// Base : 20261014001000_un_incident_se_lit_et_s_annonce.sql
 
 export type Json =
   | string
@@ -8985,6 +8985,30 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      bo_incident_lire: { Args: { p_incident: string }; Returns: Json }
+      bo_incidents_compteurs: {
+        Args: {
+          p_formulaire?: number
+          p_inclure_test?: boolean
+          p_recherche?: string
+        }
+        Returns: Json
+      }
+      bo_incidents_lister: {
+        Args: {
+          p_filtre?: string
+          p_formulaire?: number
+          p_inclure_test?: boolean
+          p_recherche?: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["bo_incident"][]
+        SetofOptions: {
+          from: "*"
+          to: "bo_incident"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       bo_journal_lister: {
         Args: { p_avant?: number; p_filtres?: Json; p_limite?: number }
         Returns: Json
@@ -12829,6 +12853,39 @@ export type Database = {
         propositions_en_cours: number | null
         version: string | null
         signalements_a_examiner: number | null
+      }
+      bo_incident: {
+        id: string | null
+        numero: number | null
+        formulaire: string | null
+        nom: string | null
+        libelle: string | null
+        etape: string | null
+        situation: string | null
+        situation_libelle: string | null
+        attend: string | null
+        echeance: string | null
+        alerte: string | null
+        commande: string | null
+        ref: string | null
+        colivraison: string | null
+        bien_titre: string | null
+        hub: string | null
+        ville: string | null
+        rendez_vous: string | null
+        declare_le: string | null
+        declarant_role: string | null
+        declarant: string | null
+        partie_visee_role: string | null
+        partie_visee: string | null
+        conteste_le: string | null
+        contestable_jusqu_au: string | null
+        pieces: number | null
+        retient_les_fonds: boolean | null
+        issue: string | null
+        dossier: string | null
+        dossier_id: string | null
+        est_test: boolean | null
       }
       bo_live: {
         id: string | null
