@@ -143,6 +143,13 @@ describe("les signalements d'une cible", () => {
     expect(b).not.toContain("par @");
   });
 
+  it("une explication vide — permise depuis hand-to-hand 20261016002000 — ne laisse pas de guillemets vides", () => {
+    expect(rendre(LU)).toContain("« Il demande un virement hors de l’application. »");
+    const muet = rendre({ ...LU, signalements: [{ ...OUVERT, explication: "" }] });
+    expect(muet).toContain("Arnaque ou fraude");
+    expect(muet).not.toContain("«  »");
+  });
+
   it("sans droit, ou partie aux signalements : la raison, aucun bouton", () => {
     const raison = "Vous êtes partie à ces signalements : un autre membre de l’équipe doit les examiner.";
     const b = rendre({ ...LU, possibles: { examiner: false, raison } });

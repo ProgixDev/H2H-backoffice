@@ -138,6 +138,13 @@ describe("la fiche d’un avis", () => {
     expect(tu).toContain("arrive avec la suite de cette rubrique");
   });
 
+  it("un signalement sans explication se lit sans guillemets vides", () => {
+    expect(fiche({})).toContain("« Insultant envers la vendeuse. »");
+    const muet = fiche({ signalements: FICHE.signalements.map((s) => ({ ...s, explication: "" })) });
+    expect(muet).toContain("Offensant, insultant ou menaçant");
+    expect(muet).not.toContain("«  »");
+  });
+
   it("sans le droit de lire les comptes ni les opérations : pas de lien", () => {
     const html = fiche({}, false);
     expect(html).not.toContain("/utilisateurs/");

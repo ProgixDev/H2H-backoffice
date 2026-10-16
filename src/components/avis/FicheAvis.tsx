@@ -138,7 +138,8 @@ export function FicheAvisVue({
                   Signalé le {dateHeure(s.le)}
                   {s.signale_par ? ` par ${s.signale_par}` : ""}
                 </span>
-                <p className="whitespace-pre-line text-corps">« {s.explication} »</p>
+                {/* Une explication est facultative (hand-to-hand 20261016002000) : rien à citer si elle est vide. */}
+                {s.explication && <p className="whitespace-pre-line text-corps">« {s.explication} »</p>}
               </li>
             ))}
           </ul>
