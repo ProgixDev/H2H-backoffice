@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@209759a : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@eac94d6 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261016006000_les_places_d_un_live_suivent_la_liste.sql
+// Base : 20261016007000_les_articles_d_un_live_se_lisent.sql
 
 export type Json =
   | string
@@ -3508,6 +3508,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "live_propositions_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "live_articles_publics"
+            referencedColumns: ["article_id"]
+          },
+          {
             foreignKeyName: "live_propositions_buyer_id_fkey"
             columns: ["buyer_id"]
             isOneToOne: false
@@ -3564,6 +3571,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "live_articles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_purchase_accesses_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "live_articles_publics"
+            referencedColumns: ["article_id"]
           },
           {
             foreignKeyName: "live_purchase_accesses_buyer_id_fkey"
@@ -7643,6 +7657,35 @@ export type Database = {
           },
         ]
       }
+      live_articles_publics: {
+        Row: {
+          article_id: string | null
+          category_id: string | null
+          condition: Database["public"]["Enums"]["product_condition"] | null
+          description: string | null
+          photos: string[] | null
+          position: number | null
+          price_cents: number | null
+          session_id: string | null
+          title: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_articles_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_propositions_public: {
         Row: {
           amount_cents: number | null
@@ -7659,6 +7702,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "live_articles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_propositions_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "live_articles_publics"
+            referencedColumns: ["article_id"]
           },
         ]
       }
