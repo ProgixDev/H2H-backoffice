@@ -25,6 +25,15 @@ export function remplacementBloque(a: AttestationLigne): string | null {
   if (a.statut !== "final_available" && a.statut !== "signed_by_both") {
     return "Seule une attestation signée des deux côtés se remplace ; avant, les parties la corrigent en cours de route.";
   }
+  // 🔴 AVANT LE PRÉPAIEMENT SEULEMENT (hand-to-hand `20261016008000`) : l'application refuse alors le
+  // remplacement aux parties, et la base refuse cette demande. Un paiement en cours de confirmation, que la
+  // ligne ne porte pas, est refusé par la base avec son motif.
+  if (a.statut_commande === "cancelled" || a.statut_commande === "refunded") {
+    return "La vente est annulée : il n’y a plus d’attestation à refaire.";
+  }
+  if (a.statut_commande !== "pending") {
+    return "Le prépaiement de cette vente est engagé : la version signée ne se remplace plus.";
+  }
   if (a.remplacement_demande_le) return "Le remplacement de cette version est déjà demandé.";
   return null;
 }
