@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@3079ce5 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@209759a : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261016001000_le_depot_d_une_annonce_se_paie.sql
+// Base : 20261016006000_les_places_d_un_live_suivent_la_liste.sql
 
 export type Json =
   | string
@@ -3577,6 +3577,52 @@ export type Database = {
             columns: ["buyer_id"]
             isOneToOne: false
             referencedRelation: "profils_publics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_rappels: {
+        Row: {
+          avant_envoye_le: string | null
+          cree_le: string
+          debut_envoye_le: string | null
+          profile_id: string
+          session_id: string
+        }
+        Insert: {
+          avant_envoye_le?: string | null
+          cree_le?: string
+          debut_envoye_le?: string | null
+          profile_id: string
+          session_id: string
+        }
+        Update: {
+          avant_envoye_le?: string | null
+          cree_le?: string
+          debut_envoye_le?: string | null
+          profile_id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_rappels_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_rappels_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profils_publics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_rappels_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -10590,6 +10636,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      live_me_prevenir: {
+        Args: { p_actif?: boolean; p_session_id: string }
+        Returns: boolean
+      }
       live_phase: {
         Args: { p_session_id: string }
         Returns: {
@@ -10646,6 +10696,23 @@ export type Database = {
         }
       }
       live_renoncer_acces: { Args: { p_access_id: string }; Returns: undefined }
+      live_retirer_proposition: {
+        Args: { p_article_id: string }
+        Returns: {
+          amount_cents: number
+          article_id: string
+          buyer_id: string
+          created_at: string
+          id: string
+          status: Database["public"]["Enums"]["proposition_status"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "live_propositions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       live_retirer_replay: { Args: { p_session_id: string }; Returns: boolean }
       live_selectionner: {
         Args: {
@@ -10716,6 +10783,16 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      ma_place_live: {
+        Args: { p_session_id: string }
+        Returns: {
+          etat: Database["public"]["Enums"]["live_seat_state"]
+          fin_verrou: string
+          live_commence: boolean
+          rang: number
+          role: Database["public"]["Enums"]["live_seat_role"]
+        }[]
       }
       ma_vente: {
         Args: { p_product_id: string }

@@ -142,6 +142,9 @@ describe("les réservations et les accès (R14.3)", () => {
     expect(html).toContain("arrivé 2e");
     expect(html).toContain("Spectateur seulement");
     expect(html).toContain("n’est pas un classement");
+    // En Live VIP, la liste est servie dans l'ordre (hand-to-hand 20261016006000).
+    expect(html).toContain("servie dans l’ordre");
+    expect(html).toContain("45 secondes");
   });
 
   it("vide, dit pourquoi — d’un live, ou de tous", () => {

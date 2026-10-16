@@ -111,7 +111,10 @@ export type PlaceLive = {
   categorie_libelle: string;
   acces: "acces_complet" | "spectateur";
   acces_libelle: string;
-  /** L'ordre d'arrivée dans la liste d'attente — pas un classement. */
+  /**
+   * L'ordre d'arrivée dans la liste d'attente : l'ordre de service en Live VIP (hand-to-hand 20261016006000),
+   * pas un classement en Live Exclusif, où tout le monde est prévenu à la fois.
+   */
   rang: number | null;
   reserve_le: string | null;
   confirme_le: string | null;

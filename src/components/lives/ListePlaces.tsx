@@ -72,8 +72,10 @@ export function ListePlaces({ places, unLive }: { places: PlaceLive[]; unLive: b
         ))}
       </nav>
       <p className="text-legende text-muted-foreground">
-        La liste d’attente n’est pas un classement : une place libérée est proposée à toute la liste à la fois — premier
-        arrivé, premier servi. Le rang dit l’ordre d’arrivée.
+        En Live Exclusif, la liste d’attente n’est pas un classement : une place libérée est annoncée à toute la liste à
+        la fois — premier arrivé, premier servi. En Live VIP, elle est servie dans l’ordre : la place libérée est
+        proposée à la personne suivante, qui a 45 secondes pour la confirmer (« À confirmer »), puis à la suivante. Le
+        rang dit l’ordre d’arrivée.
       </p>
       <div className="overflow-x-auto rounded-xl border">
         <table className="w-full min-w-[980px] text-corps">
