@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@f50e29e : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@3079ce5 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261014003000_l_absence_du_vendeur_se_regle.sql
+// Base : 20261016001000_le_depot_d_une_annonce_se_paie.sql
 
 export type Json =
   | string
@@ -11124,6 +11124,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      rang_de_mon_prochain_depot: {
+        Args: { p_categorie: string }
+        Returns: number
+      }
       record_scan_event: {
         Args: {
           p_actor_role: Database["public"]["Enums"]["handoff_role"]
@@ -11468,6 +11472,7 @@ export type Database = {
           p_video_seconds?: number
         }
         Returns: {
+          depot_cents: number
           total_cents: number
         }[]
       }
