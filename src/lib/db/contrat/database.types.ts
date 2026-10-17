@@ -1,6 +1,6 @@
-// Copie de hand-to-hand@cb8ad96 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
+// Copie de hand-to-hand@2f7f909 : supabase/types/database.types.ts. Ne pas modifier : npm run sync:contrat.
 // Types de la base, générés depuis la production par `npm run types`. Ne pas modifier à la main.
-// Base : 20261017001000_une_vente_livree_ouvre_son_recu.sql
+// Base : 20261017003000_les_defauts_des_cgu_se_corrigent.sql
 
 export type Json =
   | string
@@ -3939,6 +3939,7 @@ export type Database = {
           je_cherche_proposition_id: string | null
           locked: boolean
           offer_amount_cents: number | null
+          offer_answered_at: string | null
           offer_status: Database["public"]["Enums"]["offer_status"] | null
           read: boolean
           receipt_id: string | null
@@ -3957,6 +3958,7 @@ export type Database = {
           je_cherche_proposition_id?: string | null
           locked?: boolean
           offer_amount_cents?: number | null
+          offer_answered_at?: string | null
           offer_status?: Database["public"]["Enums"]["offer_status"] | null
           read?: boolean
           receipt_id?: string | null
@@ -3975,6 +3977,7 @@ export type Database = {
           je_cherche_proposition_id?: string | null
           locked?: boolean
           offer_amount_cents?: number | null
+          offer_answered_at?: string | null
           offer_status?: Database["public"]["Enums"]["offer_status"] | null
           read?: boolean
           receipt_id?: string | null
@@ -4725,6 +4728,7 @@ export type Database = {
           fee_model: string
           hub_id: string | null
           id: string
+          offre_jusqu_au: string | null
           order_number: string
           platform_fee_cents: number
           seller_charge_cents: number
@@ -4765,6 +4769,7 @@ export type Database = {
           fee_model?: string
           hub_id?: string | null
           id?: string
+          offre_jusqu_au?: string | null
           order_number: string
           platform_fee_cents?: number
           seller_charge_cents?: number
@@ -4805,6 +4810,7 @@ export type Database = {
           fee_model?: string
           hub_id?: string | null
           id?: string
+          offre_jusqu_au?: string | null
           order_number?: string
           platform_fee_cents?: number
           seller_charge_cents?: number
@@ -5637,6 +5643,47 @@ export type Database = {
           },
         ]
       }
+      product_videos: {
+        Row: {
+          chemin: string
+          created_at: string
+          debut_s: number
+          fin_s: number
+          id: string
+          position: number
+          product_id: string
+          type: string
+        }
+        Insert: {
+          chemin: string
+          created_at?: string
+          debut_s?: number
+          fin_s: number
+          id?: string
+          position: number
+          product_id: string
+          type?: string
+        }
+        Update: {
+          chemin?: string
+          created_at?: string
+          debut_s?: number
+          fin_s?: number
+          id?: string
+          position?: number
+          product_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_videos_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           access_mode: Database["public"]["Enums"]["product_access_mode"]
@@ -5675,6 +5722,7 @@ export type Database = {
           specs: Json
           status: Database["public"]["Enums"]["product_status"]
           stock: number
+          supprimee_le: string | null
           tags: string[]
           title: string
           updated_at: string
@@ -5721,6 +5769,7 @@ export type Database = {
           specs?: Json
           status?: Database["public"]["Enums"]["product_status"]
           stock?: number
+          supprimee_le?: string | null
           tags?: string[]
           title: string
           updated_at?: string
@@ -5767,6 +5816,7 @@ export type Database = {
           specs?: Json
           status?: Database["public"]["Enums"]["product_status"]
           stock?: number
+          supprimee_le?: string | null
           tags?: string[]
           title?: string
           updated_at?: string
@@ -8153,6 +8203,32 @@ export type Database = {
         }
       }
       achat_engage: { Args: { p_cible: string }; Returns: boolean }
+      ajouter_video_annonce: {
+        Args: {
+          p_chemin: string
+          p_debut_s: number
+          p_fin_s: number
+          p_position: number
+          p_product_id: string
+          p_type: string
+        }
+        Returns: {
+          chemin: string
+          created_at: string
+          debut_s: number
+          fin_s: number
+          id: string
+          position: number
+          product_id: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "product_videos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       attestation_confirmer_identites: {
         Args: { p_attestation_id: string }
         Returns: {
@@ -11255,6 +11331,29 @@ export type Database = {
         Args: { p_categorie: string }
         Returns: number
       }
+      rechercher_annonces: {
+        Args: {
+          p_categories?: string[]
+          p_communes?: string[]
+          p_decalage?: number
+          p_echange_seulement?: boolean
+          p_etats?: Database["public"]["Enums"]["product_condition"][]
+          p_limite?: number
+          p_livraison_offerte?: boolean
+          p_paliers?: string[]
+          p_prix_max_cents?: number
+          p_prix_min_cents?: number
+          p_texte?: string
+          p_tri?: string
+          p_vendeur_verifie?: boolean
+          p_villes?: string[]
+          p_villes_en_tete?: string[]
+        }
+        Returns: {
+          id: string
+          total: number
+        }[]
+      }
       record_scan_event: {
         Args: {
           p_actor_role: Database["public"]["Enums"]["handoff_role"]
@@ -11340,6 +11439,7 @@ export type Database = {
           je_cherche_proposition_id: string | null
           locked: boolean
           offer_amount_cents: number | null
+          offer_answered_at: string | null
           offer_status: Database["public"]["Enums"]["offer_status"] | null
           read: boolean
           receipt_id: string | null
@@ -11837,6 +11937,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      statistiques_annonce: { Args: { p_product_id: string }; Returns: Json }
       stats_je_cherche: { Args: never; Returns: Json }
       stripe_absence_a_regler: {
         Args: { p_etape: string; p_shipment_id: string }
@@ -12232,6 +12333,10 @@ export type Database = {
           transfer_id: string
           verse_cents: number
         }[]
+      }
+      supprimer_mon_annonce: {
+        Args: { p_product_id: string }
+        Returns: undefined
       }
       trancher_candidature_relais: {
         Args: { p_approuver: boolean; p_id: string; p_motif?: string }
